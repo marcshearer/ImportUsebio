@@ -156,7 +156,7 @@ extension UIImage {
         let image = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
 
-        self.init(data: image.pngData()!)!
+        self.init(content: image.pngData()!)!
     }
     
     convenience init?(prefixed name: String) {

@@ -8,27 +8,29 @@
 import SwiftUI
 
 struct SelectInputView: View {
-    @State private var inputFilename: String = "/users/shearerm/Documents/Input.xml"
+    @State private var inputFilename: String = ""
     @State private var securityBookmark: Data? = nil
     @State private var refresh = true
+    @State private var content: [String] = []
+    @State private var parser: Parser? = nil
+    @State private var scoreData: ScoreData? = nil
 
     var body: some View {
-        VStack {
-  
+        
             // Just to trigger view refresh
-            if refresh { EmptyView() }
-
+        if refresh { EmptyView() }
+        
+        VStack {
             Spacer().frame(height: 30)
             HStack {
-                Spacer().frame(width: 100)
-                VStack {
-                    
-                    OverlapButton( {
-                        Input(title: "Import filename:", field: $inputFilename, message:nil, height: 80, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: false)
-                    }, {
-                        self.finderButton()
-                    })
-                }
+                Spacer().frame(width: 30)
+                                
+                Input(title: "Import filename:", field: $inputFilename, message:nil, height: 30, width: 700, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
+                
+                VStack() {
+                    Spacer()
+                    self.finderButton()
+                }.frame(height: 52)
                 Spacer()
             }
             Spacer()
@@ -38,44 +40,37 @@ struct SelectInputView: View {
     private func finderButton() -> some View {
         
         return Button(action: {
-            SelectInputView.findFile { (url, data) in
+            FileSystem.findFile { (url, bookmarkData) in
                 Utility.mainThread {
                     refresh.toggle()
-                    securityBookmark = data
-                    inputFilename = url.absoluteString
-                }
-            }
-        },label: {
-            Image(systemName: "folder.fill")
-                .frame(width: 24, height: 24)
-                .foregroundColor(Palette.background.themeText)
-        })
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    static public func findFile(relativeTo: URL? = nil,completion: @escaping (URL, Data)->()) {
-#if canImport(AppKit)
-        let openPanel = NSOpenPanel()
-        openPanel.allowsMultipleSelection = false
-        openPanel.canChooseDirectories = false
-        openPanel.canCreateDirectories = false
-        openPanel.canChooseFiles = true
-        openPanel.prompt = "Select target"
-        openPanel.level = .floating
-        openPanel.begin { result in
-            if result == .OK {
-                if !openPanel.urls.isEmpty {
-                    let url = openPanel.urls[0]
-                    do {
-                        let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: relativeTo)
-                        completion(url, data)
-                    } catch {
-                        // Ignore error
-                        print(error.localizedDescription)
+                    securityBookmark = bookmarkData
+                    if let data = try? Data(contentsOf: url) {
+                        parser = Parser(fileUrl: url, data: data, completion: parserComplete)
+                    } else {
+                        // TODO: Handle failure
                     }
                 }
             }
+        },label: {
+            Text("Change...")
+        })
+        .buttonStyle(DefaultButtonStyle())
+    }
+    
+    private func parserComplete(scoreData: ScoreData) {
+        let (errors, warnings) = scoreData.validate()
+        if let errors = errors {
+            // TODO: Handle errors
+            print(errors)
+        } else {
+            if let warnings = warnings {
+                // TODO: Show warnings
+                print(warnings)
+            }
+            self.scoreData = scoreData
+            self.inputFilename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
+            let writer = Writer(scoreData: scoreData)
+            writer.write()
         }
-#endif
     }
 }

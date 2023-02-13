@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct BridgeScoreApp: App {
+struct ImportUsebioApp: App {
     init() {
         MyApp.shared.start()
     }

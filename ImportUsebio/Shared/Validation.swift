@@ -1,0 +1,173 @@
+//
+//  Validation.swift
+//  ImportUsebio
+//
+//  Created by Marc Shearer on 09/02/2023.
+//
+
+import Foundation
+
+extension ScoreData {
+    
+    public func validate() -> ([String]?, [String]?) {
+        errors = []
+        warnings = []
+        
+        validateFile()
+        if errors.isEmpty {
+            validateEvent()
+            if errors.isEmpty {
+                validateParticipants()
+            }
+        }
+        
+        return (errors.count == 0 ? nil : errors, warnings.count == 0 ? nil: warnings)
+    }
+    
+    // Mark: - Main file validation
+    
+    private func validateFile() {
+        
+        if version == nil {
+            error("Invalid USEBIO file")
+        } else if version != "1.2" {
+            error("Only Usebio v1.2 is supported")
+        }
+        if events.count > 1 {
+            error("File contains more than 1 event")
+        } else if events.count == 0 {
+            error("No events found")
+        }
+        if clubs.count > 1 {
+            error("File contains more than 1 club")
+        } else if clubs.count == 0 {
+            error("No clubs found")
+        }
+    }
+
+    // MARK: - Event validation
+        
+    private func validateEvent() {
+        let event = events.first!
+        
+        if event.type == nil { 
+            error("No event type specified")
+        } else if !event.type!.supported {
+            error("\(event.type!.string) event type not currently supported")
+        }
+        
+        if event.boardScoring == nil {
+            error("Invalid board scoring method")
+        }
+        
+        if (event.boards ?? 0) <= 0 {
+            error("Number of boards played unspecified / zero")
+        }
+        
+        if (event.boardsPerRound ?? 0) == 0 && (event.type?.requiresWinDraw ?? false) {
+            error("Number of boards per round unspecified / invalid")
+        }
+        
+        if event.sectionCount != 1 {
+            error("Section count is \(event.sectionCount)")
+        }
+        
+        if event.sessionCount != 1 {
+            warning("Session count is \(event.sessionCount)")
+        }
+        
+        if event.winnerType < 1 || event.winnerType > 2 {
+            warning("Winner type is \(event.winnerType)")
+        } else if event.winnerType == 2 && event.type?.participantType != .pair {
+            error("2 winners in \(event.type?.string ?? "incompatible") event")
+        }
+    }
+    
+    // MARK: - Participant validation
+        
+    private func validateParticipants() {
+        let event = events.first!
+        var dict: [String : Bool] = [:]
+        
+        for participant in event.participants {
+            
+            if participant.member.number == nil {
+                error("Participant found with no number")
+            } else {
+                // Check no duplicates
+                if dict[participant.number] == nil {
+                    dict[participant.number] = false
+                } else {
+                    if dict[participant.number] == false {
+                        error("Duplicate found for \(participant.type.string) '\(participant.number)'")
+                    }
+                    dict[participant.description] = true
+                }
+            }
+            
+            if (participant.place ?? 0) <= 0 || (participant.place ?? 0) > (event.participants.count / event.winnerType) {
+                error("Invalid place (\(participant.place ?? 0) for \(participant.description)")
+            }
+            
+            if participant.score == nil {
+                error("No score for \(participant.description)")
+            }
+            
+            if participant.type != events.first!.type!.participantType {
+                error("Participant is \(participant.type.string) but event requires \(event.type!.participantType!.string) participants")
+            }
+            
+            switch participant.type {
+            case .player:
+                validate(player: participant.member as! Player)
+            case .pair:
+                validate(pair: participant.member as! Pair)
+            case .team:
+                validate(team: participant.member as! Team)
+            }
+            
+            for player in participant.member.playerList {
+                validate(player: player, errorSuffix: " in \(participant.description)")
+            }
+            
+            if (event.type?.requiresWinDraw ?? false) && participant.winDraw == nil {
+                error("No wins/draws for \(participant.description)")
+            }
+        }
+    }
+    
+    private func validate(player: Player, errorSuffix: String = "") {
+        
+        if (player.nationalId ?? "") == "" || player.nationalId == "0" {
+            warning("No national ID number for \(player.description)\(errorSuffix)")
+        }
+    }
+    
+    private func validate(pair: Pair, errorSuffix: String = "") {
+        
+        if pair.players.count != 2 {
+            error("Pair \(pair.description) has \(pair.players.count) players\(errorSuffix)")
+        }
+        
+        if (pair.boardsPlayed ?? 0) <= 0 {
+            error("Number of boards played for \(pair.description) unspecified / zero")
+        }
+    }
+    
+    private func validate(team: Team, errorSuffix: String = "") {
+        
+        if team.pairs.count < 2 {
+            error("Team \(team.description) has \(team.pairs.count) pairs\(errorSuffix)")
+        }
+    }
+    
+    // MARK: - Utility routines
+
+    func error(_ text: String) {
+        errors.append(text)
+    }
+
+    func warning(_ text: String) {
+        warnings.append(text)
+    }
+}
