@@ -20,17 +20,23 @@ enum CellType {
 
 class Column {
     var title: String
-    var content: ((Participant, Int)->(String))?
-    var playerContent: ((Participant, Player, Int, Int)->(String))?
+    var content: ((Participant, Int)->String)?
+    var playerContent: ((Participant, Player, Int, Int)->String)?
+    var referenceContent: ((Int)->Int)?
+    var referenceDivisor: Int?
+    var referenceCalculated: ((Int)->String)?
     var playerNumber: Int?
     var cellType: CellType
     var width: Float
     
-    init(title: String, content: ((Participant, Int)->(String))? = nil, playerContent: ((Participant, Player, Int, Int)->(String))? = nil, playerNumber: Int? = nil, cellType: CellType = .string, width: Float = 10.0) {
+    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDivisor: Int? = nil, referenceCalculated: ((Int)->String)? = nil, cellType: CellType = .string, width: Float = 10.0) {
         self.title = title
         self.content = content
         self.playerContent = playerContent
         self.playerNumber = playerNumber
+        self.referenceContent = referenceContent
+        self.referenceCalculated = referenceCalculated
+        self.referenceDivisor = referenceDivisor
         self.cellType = cellType
         self.width = width
     }
@@ -38,9 +44,20 @@ class Column {
 
 class Writer {
     let scoreData: ScoreData
-    var columns: [Column] = []
+    var ranksPlusMpsColumns: [Column] = []
+    let ranksPlusMPsName = "ranksPlusMPs"
+    var individualMpsColumns: [Column] = []
+    let individualMPsName = "individualMPs"
     var positionColumn: Int?
-    var nameColumn: [Int] = []
+    var directionColumn: Int?
+    var participantNoColumn: Int?
+    var individualMPsPositionColumn: Int?
+    var individualMPsDecimalColumn: Int?
+    var individualMPsNationalIdColumn: Int?
+    var individualMPsTotalColumn: Int?
+    var individualMPsChecksumColumn: Int?
+    var firstNameColumn: [Int] = []
+    var otherNameColumn: [Int] = []
     var nationalIdColumn: [Int] = []
     var boardsPlayedColumn: [Int] = []
     var winDrawColumn: [Int] = []
@@ -52,27 +69,38 @@ class Writer {
     var awardToCell: String?
     var ewAwardToCell: String?
     var perWinCell: String?
-    let headerRows = 3
+    var eventDateCell: String?
+    var eventIdCell: String?
+    var nationalLocalCell: String?
+    let ranksPlusMPsHeaderRows = 3
     var workbook: UnsafeMutablePointer<lxw_workbook>?
+    var ranksPlusMpsWorksheet: UnsafeMutablePointer<lxw_worksheet>?
+    var individualMpsWorksheet: UnsafeMutablePointer<lxw_worksheet>?
     var formatInt: UnsafeMutablePointer<lxw_format>?
     var formatFloat: UnsafeMutablePointer<lxw_format>?
     var formatBold: UnsafeMutablePointer<lxw_format>?
     var formatRightBold: UnsafeMutablePointer<lxw_format>?
     var formatPercent: UnsafeMutablePointer<lxw_format>?
     var formatTopLine: UnsafeMutablePointer<lxw_format>?
+    var formatDate: UnsafeMutablePointer<lxw_format>?
     var fieldSize: Int? = nil
     var nsPairs: Int? = nil
 
    init(scoreData: ScoreData) {
        self.scoreData = scoreData
-       setupColumns()
+       setupRanksPlusMpsColumns()
        
        let name = "\(scoreData.fileUrl!.deletingPathExtension().lastPathComponent.removingPercentEncoding!).xlsm"
        workbook = workbook_new(name)
+       individualMpsWorksheet = workbook_add_worksheet(workbook, individualMPsName)
+       ranksPlusMpsWorksheet = workbook_add_worksheet(workbook, ranksPlusMPsName)
+       workbook_add_vba_project(workbook, "./Award.bin")
        formatInt = workbook_add_format(workbook)
        format_set_num_format(formatInt, "0;-0;")
        formatFloat = workbook_add_format(workbook)
        format_set_num_format(formatFloat, "0.00;-0.00;")
+       formatDate = workbook_add_format(workbook)
+       format_set_num_format(formatDate, "dd/MM/yyyy")
        formatPercent = workbook_add_format(workbook)
        format_set_num_format(formatPercent, "#.00%")
        formatBold = workbook_add_format(workbook)
@@ -82,12 +110,17 @@ class Writer {
        formatRightBold = workbook_add_format(workbook)
        format_set_bold(formatRightBold)
        format_set_align(formatRightBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
-       workbook_add_vba_project(workbook, "./Award.bin")
        formatTopLine = workbook_add_format(workbook)
        format_set_top(formatTopLine, UInt8(LXW_BORDER_THIN.rawValue))
     }
     
     func write() {
+        writeRanksPlusMPs()
+        writeIndividualMPs()
+        workbook_close(workbook)
+    }
+    
+    func writeRanksPlusMPs() {
         let event = scoreData.events.first!
         let participants = scoreData.events.first!.participants.sorted(by: sortCriteria)
         fieldSize = participants.count
@@ -95,113 +128,115 @@ class Writer {
             nsPairs = participants.filter{(($0.member as? Pair)?.direction ?? .ns) == .ns}.count
         }
         
-        let worksheet1 = workbook_add_worksheet(workbook, "Ranks plus MPs")
-
-        writeHeader(worksheet: worksheet1)
+        writeRanksPlusMPsHeader()
         
-        for (columnNumber, column) in columns.enumerated() {
+        for (columnNumber, column) in ranksPlusMpsColumns.enumerated() {
             var format = formatBold
             if column.cellType == .integer || column.cellType == .float || column.cellType == .integerFormula || column.cellType == .floatFormula {
                 format = formatRightBold
             }
-            setColumn(worksheet: worksheet1, column: columnNumber, width: column.width)
-            write(worksheet: worksheet1, row: headerRows, column: columnNumber, string: replace(column.title), format: format)
+            setColumn(worksheet: ranksPlusMpsWorksheet, column: columnNumber, width: column.width)
+            write(worksheet: ranksPlusMpsWorksheet, row: ranksPlusMPsHeaderRows, column: columnNumber, string: replace(column.title), format: format)
         }
         
         for (rowSequence, participant) in participants.enumerated() {
             
-            let rowNumber = rowSequence + headerRows + 1
+            let rowNumber = rowSequence + ranksPlusMPsHeaderRows + 1
 
-            for (columnNumber, column) in columns.enumerated() {
+            for (columnNumber, column) in ranksPlusMpsColumns.enumerated() {
                 
                 if let content = column.content?(participant, rowNumber) {
-                    write(cellType: (content == "" ? .string : column.cellType), worksheet: worksheet1, row: rowNumber, column: columnNumber, content: content)
+                    write(cellType: (content == "" ? .string : column.cellType), worksheet: ranksPlusMpsWorksheet, row: rowNumber, column: columnNumber, content: content)
                 }
                 
                 if let playerNumber = column.playerNumber {
                     let playerList = participant.member.playerList
                     if playerNumber < playerList.count {
                         if let playerContent = column.playerContent?(participant, playerList[playerNumber], playerNumber, rowNumber) {
-                            write(cellType: (playerContent == "" ? .string : column.cellType), worksheet: worksheet1, row: rowNumber, column: columnNumber, content: playerContent)
+                            write(cellType: (playerContent == "" ? .string : column.cellType), worksheet: ranksPlusMpsWorksheet, row: rowNumber, column: columnNumber, content: playerContent)
                         }
                     } else {
-                        write(cellType: .string, worksheet: worksheet1, row: rowNumber, column: columnNumber, content: "")
+                        write(cellType: .string, worksheet: ranksPlusMpsWorksheet, row: rowNumber, column: columnNumber, content: "")
                     }
                 }
             }
         }
-        
-        workbook_close(workbook)
     }
     
-    private func setupColumns() {
+    private func setupRanksPlusMpsColumns() {
         let event = scoreData.events.first!
         let playerCount = maxPlayers
         let winDraw = event.type?.requiresWinDraw ?? false
         
-        columns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place!)" }, cellType: .integer))
-        positionColumn = columns.count - 1
+        ranksPlusMpsColumns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place!)" }, cellType: .integer))
+        positionColumn = ranksPlusMpsColumns.count - 1
 
         if event.winnerType == 2 && event.type?.participantType == .pair {
-            columns.append(Column(title: "Direction", content: { (participant, _) in (participant.member as! Pair).direction?.string ?? "NS"} , cellType: .string))
+            ranksPlusMpsColumns.append(Column(title: "Direction", content: { (participant, _) in (participant.member as! Pair).direction?.string ?? "NS"} , cellType: .string))
+            directionColumn = ranksPlusMpsColumns.count - 1
         }
         
-        columns.append(Column(title: "@P number", content: { (participant, _) in participant.member.number!} , cellType: .integer))
+        ranksPlusMpsColumns.append(Column(title: "@P number", content: { (participant, _) in participant.member.number!} , cellType: .integer)) ; participantNoColumn = ranksPlusMpsColumns.count - 1
 
-        columns.append(Column(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float))
+        ranksPlusMpsColumns.append(Column(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float))
         
         if winDraw && maxPlayers <= event.type?.participantType?.players ?? maxPlayers {
-            columns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw!)" }, cellType: .float))
-            winDrawColumn.append(columns.count - 1)
+            ranksPlusMpsColumns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw!)" }, cellType: .float))
+            winDrawColumn.append(ranksPlusMpsColumns.count - 1)
         }
 
         for playerNumber in 0..<playerCount {
-            columns.append(Column(title: "Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in player.name! }, playerNumber: playerNumber, cellType: .string))
-            nameColumn.append(columns.count - 1)
-            
-            columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: { (_, player,_, _) in player.nationalId! }, playerNumber: playerNumber, cellType: .integer))
-            nationalIdColumn.append(columns.count - 1)
+            ranksPlusMpsColumns.append(Column(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name!, element: 0) }, playerNumber: playerNumber, cellType: .string))
+            firstNameColumn.append(ranksPlusMpsColumns.count - 1)
+
+            ranksPlusMpsColumns.append(Column(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name!, element: 1) }, playerNumber: playerNumber, cellType: .string))
+            otherNameColumn.append(ranksPlusMpsColumns.count - 1)
+
+            ranksPlusMpsColumns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: { (_, player,_, _) in player.nationalId! }, playerNumber: playerNumber, cellType: .integer))
+            nationalIdColumn.append(ranksPlusMpsColumns.count - 1)
             
             if maxPlayers > event.type?.participantType?.players ?? maxPlayers {
                 
-                columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
-                boardsPlayedColumn.append(columns.count - 1)
+                ranksPlusMpsColumns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
+                boardsPlayedColumn.append(ranksPlusMpsColumns.count - 1)
                 
                 if winDraw {
-                    columns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
-                    winDrawColumn.append(columns.count - 1)
+                    ranksPlusMpsColumns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
+                    winDrawColumn.append(ranksPlusMpsColumns.count - 1)
                 }
                 
-                columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", playerContent: playerBonusAward, playerNumber: playerNumber, cellType: .integerFormula))
-                bonusMPColumn.append(columns.count - 1)
+                ranksPlusMpsColumns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", playerContent: playerBonusAward, playerNumber: playerNumber, cellType: .integerFormula))
+                bonusMPColumn.append(ranksPlusMpsColumns.count - 1)
                 
                 if winDraw {
-                    columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", playerContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .integerFormula))
-                    winDrawMPColumn.append(columns.count - 1)
+                    ranksPlusMpsColumns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", playerContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .integerFormula))
+                    winDrawMPColumn.append(ranksPlusMpsColumns.count - 1)
                     
-                    columns.append(Column(title: "Total MP (\(playerNumber+1))", playerContent: playerTotalAward, playerNumber: playerNumber, cellType: .integerFormula))
-                    totalMPColumn.append(columns.count - 1)
+                    ranksPlusMpsColumns.append(Column(title: "Total MP (\(playerNumber+1))", playerContent: playerTotalAward, playerNumber: playerNumber, cellType: .integerFormula))
+                    totalMPColumn.append(ranksPlusMpsColumns.count - 1)
                 }
             }
         }
             
         if maxPlayers <= event.type?.participantType?.players ?? maxPlayers {
             
-            columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", content: bonusAward, cellType: .integerFormula))
-            bonusMPColumn.append(columns.count - 1)
+            ranksPlusMpsColumns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", content: bonusAward, cellType: .integerFormula))
+            bonusMPColumn.append(ranksPlusMpsColumns.count - 1)
             
             if winDraw {
                 
-                columns.append(Column(title: "Win/Draw MP", content: winDrawAward, cellType: .integerFormula))
-                winDrawMPColumn.append(columns.count - 1)
+                ranksPlusMpsColumns.append(Column(title: "Win/Draw MP", content: winDrawAward, cellType: .integerFormula))
+                winDrawMPColumn.append(ranksPlusMpsColumns.count - 1)
                 
-                columns.append(Column(title: "Total MP", content: totalAward, cellType: .integerFormula))
-                totalMPColumn.append(columns.count - 1)
+                ranksPlusMpsColumns.append(Column(title: "Total MP", content: totalAward, cellType: .integerFormula))
+                for _ in 0..<maxPlayers {
+                    totalMPColumn.append(ranksPlusMpsColumns.count - 1)
+                }
             }
         }
     }
     
-    // MARK: - Content getters
+    // MARK: - Ranks plus MPs Content getters
     
     private func bonusAward(participant: Participant, rowNumber: Int) -> String {
         return playerBonusAward(participant: participant, rowNumber: rowNumber)
@@ -212,17 +247,17 @@ class Writer {
         let event = scoreData.events.first!
         var useAwardCell = maxAwardCell
         var useAwardToCell = awardToCell
-        var firstRow = headerRows + 1
-        var lastRow = headerRows + event.participants.count
+        var firstRow = ranksPlusMPsHeaderRows + 1
+        var lastRow = ranksPlusMPsHeaderRows + event.participants.count
         if let nsPairs = nsPairs {
             if event.winnerType == 2 && participant.type == .pair {
                 if let pair = participant.member as? Pair {
                     if pair.direction == .ew {
                         useAwardCell = maxEwAwardCell
                         useAwardToCell = ewAwardToCell
-                        firstRow = headerRows + nsPairs + 1
+                        firstRow = ranksPlusMPsHeaderRows + nsPairs + 1
                     } else {
-                        lastRow = headerRows + nsPairs
+                        lastRow = ranksPlusMPsHeaderRows + nsPairs
                     }
                 }
             }
@@ -273,72 +308,259 @@ class Writer {
         return result
     }
     
-    // MARK: - Heading
+    // MARK: - Ranks plus MPs header
     
-    func writeHeader(worksheet: UnsafeMutablePointer<lxw_worksheet>?) {
+    func writeRanksPlusMPsHeader() {
         let event = scoreData.events.first!
         var column = -1
         var row = 0
         var prefix = ""
         var toe = fieldSize!
-        if event.winnerType == 2 && event.type?.participantType == .pair {
+        let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
+        if twoWinners {
             prefix = "NS "
             toe = nsPairs!
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Event", format: formatBold)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "\(prefix)TOE", format: formatRightBold)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "EW TOE", format: formatRightBold)
+        
+        func writeCell(string: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, string: string, format: format)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Tables", format: formatRightBold)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Boards", format: formatRightBold)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "\(prefix)Max Award", format: formatRightBold)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "EW Max Award", format: formatRightBold)
+        
+        func writeCell(integer: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, integer: integer, format: format)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Factor%", format: formatRightBold)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "\(prefix)Award", format: formatRightBold)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "EW Award", format: formatRightBold)
+        
+        func writeCell(float: Float, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, float: float, format: format)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Award %", format: formatRightBold)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "\(prefix)Award to", format: formatRightBold)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "EW Award to", format: formatRightBold)
+        
+        func writeCell(date: Date, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, date: date, format: format)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: "Per Win", format: formatRightBold)
+        
+        func writeCell(formula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, floatFormula: formula, format: format)
+        }
+
+        func writeCell(integerFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+            column += 1
+            write(worksheet: ranksPlusMpsWorksheet, row: row, column: column, integerFormula: integerFormula, format: format)
+        }
+
+        writeCell(string: "Event", format: formatBold)
+        writeCell(string: "\(prefix)TOE", format: formatRightBold)
+        if twoWinners {
+            writeCell(string: "EW TOE", format: formatRightBold)
+        }
+        writeCell(string: "Tables", format: formatRightBold)
+        writeCell(string: "Boards", format: formatRightBold)
+        writeCell(string: "\(prefix)Max Award", format: formatRightBold)
+        if twoWinners {
+            writeCell(string: "EW Max Award", format: formatRightBold)
+        }
+        writeCell(string: "Factor%", format: formatRightBold)
+        writeCell(string: "\(prefix)Award", format: formatRightBold)
+        if twoWinners {
+            writeCell(string: "EW Award", format: formatRightBold)
+        }
+        writeCell(string: "Award %", format: formatRightBold)
+        writeCell(string: "\(prefix)Award to", format: formatRightBold)
+        if twoWinners {
+            writeCell(string: "EW Award to", format: formatRightBold)
+        }
+        writeCell(string: "Per Win", format: formatRightBold)
+        
+        writeCell(string: "Event Date", format: formatBold)
+        
+        writeCell(string: "Event Code", format: formatBold)
+        
+        writeCell(string: "Local/Nat", format: formatBold)
         
         column = -1
         row = 1
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, string: event.description ?? "")
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: toe) ; let toeRef = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(string: event.description ?? "")
+        
+        writeCell(integer: toe) ; let toeRef = cell(row, rowFixed: true, column, columnFixed: true)
+        
         var toeCell = toeRef
         var ewToeRef = ""
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: fieldSize! - nsPairs!) ; ewToeRef = cell(row, rowFixed: true, column, columnFixed: true)
+        if twoWinners {
+            writeCell(integer: fieldSize! - nsPairs!) ; ewToeRef = cell(row, rowFixed: true, column, columnFixed: true)
             toeCell += "+" + ewToeRef
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, formula: "=ROUNDUP(\(toeCell)*(\(event.type?.participantType?.players ?? 4)/4),0)")
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: event.boards ?? 0)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: 1000) ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(formula: "=ROUNDUP(\(toeCell)*(\(event.type?.participantType?.players ?? 4)/4),0)")
+        
+        writeCell(integer: event.boards ?? 0)
+        
         var baseMaxEwAwardCell = ""
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            let ewPairs = fieldSize! - nsPairs!
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, integerFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewToeRef)/\(toeRef),0)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(integer: 1000) ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        if twoWinners {
+            writeCell(integerFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewToeRef)/\(toeRef),0)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: 1, format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, formula: "=ROUNDUP(\(baseMaxAwardCell)*\(factorCell),0)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, formula: "=ROUNDUP(\(baseMaxEwAwardCell)*\(factorCell),0)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(integer: 1, format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(formula: "=ROUNDUP(\(baseMaxAwardCell)*\(factorCell),0)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        if twoWinners {
+            writeCell(formula: "=ROUNDUP(\(baseMaxEwAwardCell)*\(factorCell),0)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, float: 0.25, format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, formula: "=ROUNDUP(\(toeRef)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            column += 1 ; write(worksheet: worksheet, row: row, column: column, formula: "=ROUNDUP(\(ewToeRef)*\(awardPercentCell),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(float: 0.25, format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(formula: "=ROUNDUP(\(toeRef)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        if twoWinners {
+            writeCell(formula: "=ROUNDUP(\(ewToeRef)*\(awardPercentCell),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
-        column += 1 ; write(worksheet: worksheet, row: row, column: column, integer: 25) ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(integer: 25) ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(date: event.date ?? Date.today) ; eventDateCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(string: event.eventId ?? "") ; eventIdCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        writeCell(string: "Local") ; nationalLocalCell = cell(row, rowFixed: true, column, columnFixed: true)
     }
+    
+    // MARK: - Indiviual MPs worksheet
+    
+    func writeIndividualMPs() {
+        setupIndividualMpsColumns()
+        
+        for (columnNumber, column) in individualMpsColumns.enumerated() {
+            var format = formatBold
+            if column.cellType == .integer || column.cellType == .float || column.cellType == .integerFormula || column.cellType == .floatFormula {
+                format = formatRightBold
+            }
+            setColumn(worksheet: individualMpsWorksheet, column: columnNumber, width: column.width)
+            write(worksheet: individualMpsWorksheet, row: 0, column: columnNumber, string: replace(column.title), format: format)
+        }
+        
+        for (columnNumber, column) in individualMpsColumns.enumerated() {
+            
+            if let referenceContent = column.referenceContent {
+                referenceColumn(columnNumber: columnNumber, referencedContent: referenceContent, divisor: column.referenceDivisor)
+            }
+            
+            if let referenceCalculatedContent = column.referenceCalculated {
+                referenceCalculated(columnNumber: columnNumber, calculated: referenceCalculatedContent, cellType: column.cellType)
+            }
+        }
+        
+        let totalColumnRef = columnRef(column: individualMPsDecimalColumn!)
+        write(worksheet: individualMpsWorksheet, row: 1, column: individualMPsTotalColumn!, floatFormula: "=SUM(\(totalColumnRef):\(totalColumnRef))")
+        
+        let nationalIdColumnRef = columnRef(column: individualMPsNationalIdColumn!)
+        write(worksheet: individualMpsWorksheet, row: 1, column: individualMPsChecksumColumn!, floatFormula: "=SUMPRODUCT(\(totalColumnRef):\(totalColumnRef),\(nationalIdColumnRef):\(nationalIdColumnRef))")
 
+    }
+    
+    private func setupIndividualMpsColumns() {
+        let event = scoreData.events.first!
+        let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
+        
+        individualMpsColumns.append(Column(title: "Place", referenceContent: { (_) in self.positionColumn! }, cellType: .integerFormula)) ; individualMPsPositionColumn = individualMpsColumns.count - 1
+        
+        if twoWinners {
+            individualMpsColumns.append(Column(title: "Direction", referenceContent: { (_) in self.directionColumn! }, cellType: .stringFormula))
+        }
+        
+        individualMpsColumns.append(Column(title: "@P no", referenceContent: { (_) in self.participantNoColumn! }, cellType: .integerFormula))
+        
+        individualMpsColumns.append(Column(title: "Total MPs", referenceContent: { (playerNumber) in self.totalMPColumn[playerNumber] }, referenceDivisor: 100, cellType: .floatFormula)) ; individualMPsDecimalColumn = individualMpsColumns.count - 1
+        
+        individualMpsColumns.append(Column(title: "Names", referenceContent: { (playerNumber) in self.firstNameColumn[playerNumber] }, cellType: .stringFormula))
+        
+        individualMpsColumns.append(Column(title: "", referenceContent: { (playerNumber) in self.otherNameColumn[playerNumber] }, cellType: .stringFormula))
+        
+        individualMpsColumns.append(Column(title: "Event Date", referenceCalculated: { (_) in "\(self.ranksPlusMPsName)!\(self.eventDateCell!)" }, cellType: .dataFormula))
+
+        individualMpsColumns.append(Column(title: "MemNo", referenceContent: { (playerNumber) in self.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; individualMPsNationalIdColumn = individualMpsColumns.count - 1
+                                    
+        individualMpsColumns.append(Column(title: "Event Code", referenceCalculated: { (_) in "\(self.ranksPlusMPsName)!\(self.eventIdCell!)" }, cellType: .stringFormula))
+        
+        individualMpsColumns.append(Column(title: "Club Code"))
+
+        individualMpsColumns.append(Column(title: "Local MPs", referenceCalculated: { (rowNumber) in "IF(\(self.ranksPlusMPsName)!\(self.nationalLocalCell!) = \"National\",0,\(self.cell(rowNumber, self.individualMPsDecimalColumn!, columnFixed: true)))" }, cellType: .floatFormula))
+        
+        individualMpsColumns.append(Column(title: "National MPs", referenceCalculated: { (rowNumber) in "IF(\(self.ranksPlusMPsName)!\(self.nationalLocalCell!) <> \"National\",0,\(self.cell(rowNumber, self.individualMPsDecimalColumn!, columnFixed: true)))" }, cellType: .floatFormula))
+        
+        individualMpsColumns.append(Column(title: "Total")) ; individualMPsTotalColumn = individualMpsColumns.count - 1
+        
+        individualMpsColumns.append(Column(title: "Checksum")) ; individualMPsChecksumColumn = individualMpsColumns.count - 1
+    }
+    
+    private func referenceColumn(columnNumber: Int, referencedContent: (Int)->Int, divisor: Int? = nil) {
+        
+        var result = "=_xlfn._xlws.FILTER(_xlfn._xlws.VSTACK("
+        
+        for playerNumber in 0..<maxPlayers {
+            let columnReference = referencedContent(playerNumber)
+            if playerNumber != 0 {
+                result += ","
+            }
+            result += "\(ranksPlusMPsName)!" + cell(ranksPlusMPsHeaderRows + 1, columnReference)
+            result += ":"
+            result += cell(ranksPlusMPsHeaderRows + fieldSize!, columnReference)
+        }
+        
+        result += ")"
+        
+        if let divisor = divisor {
+            result += "/\(divisor)"
+        }
+        result += ",_xlfn._xlws.VSTACK("
+        
+        for playerNumber in 0..<maxPlayers {
+            if playerNumber != 0 {
+                result += ","
+            }
+            result += "\(ranksPlusMPsName)!" + cell(ranksPlusMPsHeaderRows + 1, totalMPColumn[playerNumber])
+            result += ":"
+            result += cell(ranksPlusMPsHeaderRows + fieldSize!, totalMPColumn[playerNumber])
+        }
+        
+        result += ")<>0)"
+                
+        let column = lxw_col_t(Int32(columnNumber))
+        worksheet_write_dynamic_array_formula(individualMpsWorksheet, 1, column, 999, column, result, nil)
+    }
+    
+    private func referenceCalculated(columnNumber: Int, calculated: (Int)->String, cellType: CellType? = nil) {
+        
+        var format = formatInt
+        if let cellType = cellType {
+            switch cellType {
+            case .date, .dataFormula:
+                format = formatDate
+            case .float, .floatFormula:
+                format = formatFloat
+            case .string, .stringFormula:
+                format = nil
+            default:
+                break
+            }
+        }
+        let column = lxw_col_t(Int32(columnNumber))
+        
+        for rowNumber in 1...(maxPlayers * fieldSize!) {
+            let placeRef = cell(rowNumber, individualMPsPositionColumn!, columnFixed: true)
+            var result = "=IF(\(placeRef)<>\"\","
+            
+            result += calculated(rowNumber)
+            
+            result += ",\"\")"
+            
+            let row = lxw_row_t(Int32(rowNumber))
+            worksheet_write_formula(individualMpsWorksheet, row, column, result, format)
+        }
+    }
+    
     // MARK: - Utility routines
     
     private func sortCriteria(_ a: Participant, _ b: Participant) -> Bool {
@@ -368,6 +590,17 @@ class Writer {
             }
         } else {
             return false
+        }
+    }
+    
+    private func nameColumn(name: String, element: Int) -> String {
+        let names = name.components(separatedBy: " ")
+        if element == 0 {
+            return names[0]
+        } else {
+            var otherNames = names
+            otherNames.removeFirst()
+            return otherNames.joined(separator: " ")
         }
     }
     
@@ -461,6 +694,11 @@ class Writer {
         worksheet_write_formula(worksheet, lxw_row_t(Int32(row)), lxw_col_t(Int32(column)), formula, format)
     }
     
+    func write(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, column: Int, date: Date, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let format = format ?? formatDate
+        worksheet_write_unixtime(worksheet, lxw_row_t(Int32(row)), lxw_col_t(Int32(column)), Int64(date.timeIntervalSince1970), format)
+    }
+    
     func write(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, column: Int, integerFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let format = format ?? formatInt
         worksheet_write_formula(worksheet, lxw_row_t(Int32(row)), lxw_col_t(Int32(column)), integerFormula, format)
@@ -478,6 +716,6 @@ class Writer {
     
     func setRow(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let row = lxw_row_t(Int32(row))
-        worksheet_set_row(worksheet, row, 0, format)
+        worksheet_set_row(worksheet, row,  LXW_DEF_ROW_HEIGHT, format)
     }
 }
