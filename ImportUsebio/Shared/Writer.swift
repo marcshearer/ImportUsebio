@@ -61,6 +61,9 @@ class Writer {
     var filter: String { "\(dynamicFnPrefix)FILTER" }
     var sortBy: String { "\(dynamicFnPrefix)SORTBY" }
     var unique: String { "\(dynamicFnPrefix)UNIQUE" }
+    var byRow: String { "\(fnPrefix)BYROW" }
+    var lambda: String { "\(fnPrefix)LAMBDA"}
+    var lambdaParam: String { "\(paramPrefix)x"}
     
     var summaryWorksheet: UnsafeMutablePointer<lxw_worksheet>?
     let summaryName = "Summary"
@@ -323,13 +326,13 @@ class Writer {
         write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)('\(consolidatedName)'!\(cell(consolidatedDataRow!, rowFixed: true, consolidatedOtherNamesColumn!, columnFixed: true)))")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: eventDataColumn, string: "Event date", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventDataColumn, dynamicFormula: "=_xlfn.BYROW(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), _xlfn.LAMBDA(_xlpm.x, _xlfn.IF(_xlpm.x=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), _xlfn.IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: nationalIdColumn, string: "MemNo", format: formatRightBoldUnderline)
         write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)('\(consolidatedName)'!\(cell(consolidatedDataRow!, rowFixed: true, consolidatedNationalIdColumn!, columnFixed: true)))", format: formatInt)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventCodeColumn, dynamicFormula: "=_xlfn.BYROW(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), _xlfn.LAMBDA(_xlpm.x, _xlfn.IF(_xlpm.x=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), _xlfn.IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
@@ -510,8 +513,8 @@ class Writer {
         // Total local/national columns
         let dataRange = "\(arrayRef)(\(cell(consolidatedDataRow!, dataColumn, columnFixed: true))):\(arrayRef)(\(cell(consolidatedDataRow!, rowFixed: true, dataColumn + maxRounds - 1, columnFixed: true)))"
         
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedLocalMPsColumn!, dynamicFloatFormula: "_xlfn.BYROW(\(dataRange),_xlfn.LAMBDA(_xlpm.x,_xlfn.SUMIF(\(nationalLocalRange), \"<>National\", _xlpm.x)))")
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalMPsColumn!, dynamicFloatFormula: "_xlfn.BYROW(\(dataRange),_xlfn.LAMBDA(_xlpm.x,_xlfn.SUMIF(\(nationalLocalRange), \"=National\", _xlpm.x)))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedLocalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),_xlfn.SUMIF(\(nationalLocalRange), \"<>National\", \(lambdaParam))))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),_xlfn.SUMIF(\(nationalLocalRange), \"=National\", \(lambdaParam))))")
 
         // Lookup data columns
         let sourceDataRange = "\(cell(1, rowFixed: true, individualMPsUniqueColumn!, columnFixed: true)):\(cell((maxPlayers * fieldSize!), rowFixed: true, individualMPsDecimalColumn!, columnFixed: true))"
@@ -929,30 +932,30 @@ class Writer {
         let event = scoreData.events.first!
         let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
         
-        individualMpsColumns.append(Column(title: "Place", referenceContent: { (_) in self.ranksPlusMpsPositionColumn! }, cellType: .integerFormula)) ; individualMPsPositionColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "Place", referenceContent: { [self] (_) in ranksPlusMpsPositionColumn! }, cellType: .integerFormula)) ; individualMPsPositionColumn = individualMpsColumns.count - 1
         
         if twoWinners {
-            individualMpsColumns.append(Column(title: "Direction", referenceContent: { (_) in self.ranksPlusMPsDirectionColumn! }, cellType: .stringFormula))
+            individualMpsColumns.append(Column(title: "Direction", referenceContent: { [self] (_) in ranksPlusMPsDirectionColumn! }, cellType: .stringFormula))
         }
         
-        individualMpsColumns.append(Column(title: "@P no", referenceContent: { (_) in self.ranksPlusMPsParticipantNoColumn! }, cellType: .integerFormula))
+        individualMpsColumns.append(Column(title: "@P no", referenceContent: { [self] (_) in ranksPlusMPsParticipantNoColumn! }, cellType: .integerFormula))
         
         individualMpsColumns.append(Column(title: "Unique", cellType: .floatFormula)) ; individualMPsUniqueColumn = individualMpsColumns.count - 1
         let unique = individualMpsColumns.last!
         
-        individualMpsColumns.append(Column(title: "Names", referenceContent: { (playerNumber) in self.ranksPlusMPsfFirstNameColumn[playerNumber] }, cellType: .stringFormula)) ; let firstNameColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "Names", referenceContent: { [self] (playerNumber) in ranksPlusMPsfFirstNameColumn[playerNumber] }, cellType: .stringFormula)) ; let firstNameColumn = individualMpsColumns.count - 1
         
-        individualMpsColumns.append(Column(title: "", referenceContent: { (playerNumber) in self.ranksPlusMPsOtherNameColumn[playerNumber] }, cellType: .stringFormula)) ; let otherNamesColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "", referenceContent: { [self] (playerNumber) in ranksPlusMPsOtherNameColumn[playerNumber] }, cellType: .stringFormula)) ; let otherNamesColumn = individualMpsColumns.count - 1
         
-        individualMpsColumns.append(Column(title: "SBU No", referenceContent: { (playerNumber) in self.ranksPlusMPsNationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; individualMPsNationalIdColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in ranksPlusMPsNationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; individualMPsNationalIdColumn = individualMpsColumns.count - 1
         
-        unique.referenceDynamic = { "CONCATENATE(\(self.arrayRef)(\(self.cell(1, self.individualMPsNationalIdColumn!, columnFixed: true))), \"+\", \(self.arrayRef)(\(self.cell(1, firstNameColumn, columnFixed: true))), \"+\", \(self.arrayRef)(\(self.cell(1, otherNamesColumn, columnFixed: true))))" }
+        unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(1, individualMPsNationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, firstNameColumn, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, otherNamesColumn, columnFixed: true))))" }
         
-        individualMpsColumns.append(Column(title: "Total MPs", referenceContent: { (playerNumber) in self.ranksPlusMPsTotalMPColumn[playerNumber] }, cellType: .floatFormula)) ; individualMPsDecimalColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "Total MPs", referenceContent: { [self] (playerNumber) in ranksPlusMPsTotalMPColumn[playerNumber] }, cellType: .floatFormula)) ; individualMPsDecimalColumn = individualMpsColumns.count - 1
         
-        individualMpsColumns.append(Column(title: "Local MPs", referenceDynamic: { "=_xlfn.BYROW(\(self.arrayRef)(\(self.cell(1, self.individualMPsDecimalColumn!, columnFixed: true))),_xlfn.LAMBDA(_xlpm.x, IF('\(self.scoreData.roundName!) \(self.ranksPlusMPsName)'!\(self.ranksPlusMPsNationalLocalCell!)<>\"National\",_xlpm.x,0)))" }, cellType: .floatFormula)) ; individualMPsLocalMPsColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, individualMPsDecimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF('\(scoreData.roundName!) \(ranksPlusMPsName)'!\(ranksPlusMPsNationalLocalCell!)<>\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; individualMPsLocalMPsColumn = individualMpsColumns.count - 1
         
-        individualMpsColumns.append(Column(title: "National MPs", referenceDynamic: { "=_xlfn.BYROW(\(self.arrayRef)(\(self.cell(1, self.individualMPsDecimalColumn!, columnFixed: true))),_xlfn.LAMBDA(_xlpm.x, IF('\(self.scoreData.roundName!) \(self.ranksPlusMPsName)'!\(self.ranksPlusMPsNationalLocalCell!)=\"National\",_xlpm.x,0)))" }, cellType: .floatFormula)) ; individualMPsNationalMPsColumn = individualMpsColumns.count - 1
+        individualMpsColumns.append(Column(title: "National MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, individualMPsDecimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF('\(scoreData.roundName!) \(ranksPlusMPsName)'!\(ranksPlusMPsNationalLocalCell!)=\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; individualMPsNationalMPsColumn = individualMpsColumns.count - 1
 
         individualMpsColumns.append(Column(title: "Total Local", cellType: .floatFormula)) ; individualMPsLocalTotalColumn = individualMpsColumns.count - 1
         
