@@ -159,7 +159,7 @@ public class Parser: NSObject, XMLParserDelegate {
             }))
         case "EVENT_IDENTIFIER":
             current = current?.add(child: Node(name: name, completion: { (value) in
-                self.scoreData.events.last?.eventId = value
+                self.scoreData.events.last?.eventCode = value
             }))
         case "BOARD_SCORING_METHOD":
             current = current?.add(child: Node(name: name, completion: { (value) in

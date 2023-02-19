@@ -81,7 +81,7 @@ public class Event {
     var programVersion: String?
     var description: String?
     var date: Date?
-    var eventId: String?
+    var eventCode: String?
     var boardScoring: ScoringMethod?
     var matchScoring: ScoringMethod?
     var boards: Int?
@@ -275,6 +275,10 @@ public class Match {
 
 public class ScoreData {
     public var fileUrl: URL?
+    public var roundName: String?
+    public var national: Bool = false
+    public var minRank = 0
+    public var maxRank = 9999
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []

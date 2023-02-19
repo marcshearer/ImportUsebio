@@ -47,6 +47,7 @@
 		B2E103BC29928EB900A35645 /* SelectInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103BB29928EB900A35645 /* SelectInput.swift */; };
 		B2E103C32992B87300A35645 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C22992B87300A35645 /* Parser.swift */; };
 		B2E103C52994120700A35645 /* Writer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C42994120700A35645 /* Writer.swift */; };
+		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
 		FA3159DCBD56ECB8B9F9A701 /* Pods_ImportUsebio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2F95071D4EC8ECE243067C0 /* Pods_ImportUsebio.framework */; };
 /* End PBXBuildFile section */
 
@@ -95,6 +96,7 @@
 		B2E103BB29928EB900A35645 /* SelectInput.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SelectInput.swift; path = ImportUsebio/Shared/SelectInput.swift; sourceTree = SOURCE_ROOT; };
 		B2E103C22992B87300A35645 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		B2E103C42994120700A35645 /* Writer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Writer.swift; sourceTree = "<group>"; };
+		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
 		D2F95071D4EC8ECE243067C0 /* Pods_ImportUsebio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ImportUsebio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -229,6 +231,7 @@
 				B2E103862992806E00A35645 /* Banner.swift */,
 				B2E1037D2992806E00A35645 /* Double Column View.swift */,
 				B2E103782992806D00A35645 /* Input String.swift */,
+				B2FEA7F429A218E900BD43F7 /* Input Integer.swift */,
 				B2E103792992806D00A35645 /* Input Title.swift */,
 				B2E103842992806E00A35645 /* Inset View.swift */,
 				B2E103822992806E00A35645 /* List Tile View.swift */,
@@ -395,6 +398,7 @@
 				B2E1035D29927C3300A35645 /* Declarations.swift in Sources */,
 				B2E103AE2992846000A35645 /* Custom View Animations.swift in Sources */,
 				B2E103912992806F00A35645 /* Input Title.swift in Sources */,
+				B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */,
 				B2E1037229927EB100A35645 /* Other Extensions.swift in Sources */,
 				B2E103902992806F00A35645 /* Input String.swift in Sources */,
 				B2E103952992806F00A35645 /* Double Column View.swift in Sources */,

@@ -16,7 +16,7 @@ public let widgetKind = "com.sheareronline.ImportUsebio"
 // Sizes
 public var isLandscape: Bool { false }
 
-var inputTopHeight: CGFloat { MyApp.format == .tablet ? 20.0 : 10.0 }
+var inputTopHeight: CGFloat { 5.0 }
 let inputDefaultHeight: CGFloat = 30.0
 var inputToggleDefaultHeight: CGFloat { MyApp.format == .tablet ? 30.0 : 16.0 }
 var bannerHeight: CGFloat { (MyApp.format == .tablet ? 60.0 : 50.0) }

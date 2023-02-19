@@ -14,9 +14,41 @@
             filePath = "ImportUsebio/Shared/SelectInput.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "64"
-            endingLineNumber = "64"
+            startingLineNumber = "139"
+            endingLineNumber = "139"
             landmarkName = "parserComplete(scoreData:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "9259EF4B-561F-432D-8583-5F60676C414E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "ImportUsebio/Shared/Writer.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "521"
+            endingLineNumber = "521"
+            landmarkName = "writeConsolidated()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "5D4FD74D-5F1D-4014-9B0D-0ED3FDEFDE96"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "ImportUsebio/Shared/Writer.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "971"
+            endingLineNumber = "971"
+            landmarkName = "referenceColumn(columnNumber:referencedContent:referenceDivisor:cellType:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
