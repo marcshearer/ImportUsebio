@@ -54,7 +54,6 @@ class Writer {
     let fnPrefix = "_xlfn."
     let dynamicFnPrefix = "_xlfn._xlws."
     let paramPrefix = "_xlpm."
-    let tempPrefix = "_xlfn."
     
     var vstack: String { "\(fnPrefix)VSTACK" }
     var arrayRef: String { "\(fnPrefix)ANCHORARRAY" }
@@ -315,7 +314,7 @@ class Writer {
         csvExportNationalMpsCell = cell(nationalMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
 
         write(worksheet: csvExportWorksheet, row: checksumRow, column: titleColumn, string: "Checksum:", format: formatBold)
-        write(worksheet: csvExportWorksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=_xlfn.SUM((\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: csvExportWorksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=SUM((\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
         csvExportChecksumCell = cell(checksumRow, rowFixed: true, valuesColumn, columnFixed: true)
 
         // Data
@@ -326,13 +325,13 @@ class Writer {
         write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)('\(consolidatedName)'!\(cell(consolidatedDataRow!, rowFixed: true, consolidatedOtherNamesColumn!, columnFixed: true)))")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: eventDataColumn, string: "Event date", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), _xlfn.IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: nationalIdColumn, string: "MemNo", format: formatRightBoldUnderline)
         write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)('\(consolidatedName)'!\(cell(consolidatedDataRow!, rowFixed: true, consolidatedNationalIdColumn!, columnFixed: true)))", format: formatInt)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), _xlfn.IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(csvExportDataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
@@ -344,22 +343,22 @@ class Writer {
 
         //Lookups
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupFirstNameColumn, string: "First Name", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupFirstNameColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),5,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupFirstNameColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),5,FALSE)")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupOtherNamesColumn, string: "Other Names", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupOtherNamesColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),4,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupOtherNamesColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),4,FALSE)")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupHomeClubColumn, string: "Home Club", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupHomeClubColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),19,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupHomeClubColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),19,FALSE)")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupRankColumn, string: "Rank", format: formatRightBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupRankColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),6,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupRankColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),6,FALSE)")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupEmailColumn, string: "Email", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupEmailColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),8,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupEmailColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),8,FALSE)")
         
         write(worksheet: csvExportWorksheet, row: titleRow, column: lookupStatusColumn, string: "Status", format: formatBoldUnderline)
-        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupStatusColumn, dynamicFormula: "=_xlfn.VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),25,FALSE)")
+        write(worksheet: csvExportWorksheet, row: csvExportDataRow!, column: lookupStatusColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(csvExportDataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),25,FALSE)")
         
         highlightLookupDifferent(column: firstNameColumn, lookupColumn: lookupFirstNameColumn, format: formatYellow)
         highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
@@ -504,17 +503,17 @@ class Writer {
         write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: uniqueColumn, dynamicFormula: "=\(unique)(\(vstack)(\(arrayRef)('\(scoreData.roundName!) \(individualMPsName)'!\(cell(1,rowFixed: true, individualMPsUniqueColumn!, columnFixed: true)))))")
         
         // Name columns
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedFirstNameColumn!, dynamicFormula: "=IF(\(uniqueIdCell)=\"\",\"\",_xlfn.TEXTBEFORE(_xlfn.TEXTAFTER(\(uniqueIdCell),\"+\"),\"+\"))")
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedOtherNamesColumn!, dynamicFormula: "=IF(\(uniqueIdCell)=\"\",\"\",_xlfn.TEXTAFTER(\(uniqueIdCell), \"+\", 2))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedFirstNameColumn!, dynamicFormula: "=IF(\(uniqueIdCell)=\"\",\"\",\(fnPrefix)TEXTBEFORE(\(fnPrefix)TEXTAFTER(\(uniqueIdCell),\"+\"),\"+\"))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedOtherNamesColumn!, dynamicFormula: "=IF(\(uniqueIdCell)=\"\",\"\",\(fnPrefix)TEXTAFTER(\(uniqueIdCell), \"+\", 2))")
         
         // National ID column
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalIdColumn!, dynamicIntegerFormula: "=IF(\(uniqueIdCell)=\"\",\"\",IFERROR(_xlfn.NUMBERVALUE(_xlfn.TEXTBEFORE(\(uniqueIdCell), \"+\")),_xlfn.TEXTBEFORE(\(uniqueIdCell), \"+\")))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalIdColumn!, dynamicIntegerFormula: "=IF(\(uniqueIdCell)=\"\",\"\",IFERROR(\(fnPrefix)NUMBERVALUE(\(fnPrefix)TEXTBEFORE(\(uniqueIdCell), \"+\")),\(fnPrefix)TEXTBEFORE(\(uniqueIdCell), \"+\")))")
     
         // Total local/national columns
         let dataRange = "\(arrayRef)(\(cell(consolidatedDataRow!, dataColumn, columnFixed: true))):\(arrayRef)(\(cell(consolidatedDataRow!, rowFixed: true, dataColumn + maxRounds - 1, columnFixed: true)))"
         
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedLocalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),_xlfn.SUMIF(\(nationalLocalRange), \"<>National\", \(lambdaParam))))")
-        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),_xlfn.SUMIF(\(nationalLocalRange), \"=National\", \(lambdaParam))))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedLocalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(nationalLocalRange), \"<>National\", \(lambdaParam))))")
+        write(worksheet: consolidatedWorksheet, row: consolidatedDataRow!, column: consolidatedNationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(nationalLocalRange), \"=National\", \(lambdaParam))))")
 
         // Lookup data columns
         let sourceDataRange = "\(cell(1, rowFixed: true, individualMPsUniqueColumn!, columnFixed: true)):\(cell((maxPlayers * fieldSize!), rowFixed: true, individualMPsDecimalColumn!, columnFixed: true))"
