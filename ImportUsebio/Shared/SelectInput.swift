@@ -88,7 +88,8 @@ struct SelectInputView: View {
                                         event.eventCode = eventCode
                                     }
                                 }
-                                let writer = Writer(scoreData: scoreData)
+                                let writer = Writer()
+                                writer.add(prefix: prefix, scoreData: scoreData)
                                 writer.write()
                                 MessageBox.shared.show("Processed Successfully")
                             }
