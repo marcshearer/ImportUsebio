@@ -14,8 +14,8 @@
             filePath = "ImportUsebio/Shared/SelectInput.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "140"
-            endingLineNumber = "140"
+            startingLineNumber = "142"
+            endingLineNumber = "142"
             landmarkName = "parserComplete(scoreData:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,8 +30,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1078"
-            endingLineNumber = "1078"
+            startingLineNumber = "1091"
+            endingLineNumber = "1091"
             landmarkName = "referenceColumn(columnNumber:referencedContent:referenceDivisor:cellType:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -46,8 +46,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1062"
-            endingLineNumber = "1062"
+            startingLineNumber = "1075"
+            endingLineNumber = "1075"
             landmarkName = "setupIndividualMpsColumns()"
             landmarkType = "7">
             <Locations>

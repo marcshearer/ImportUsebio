@@ -9,8 +9,9 @@ import SwiftUI
 
 struct SelectInputView: View {
     @State private var inputFilename: String = ""
-    @State private var prefix: String = "Pairs"
+    @State private var roundName: String = "Pairs"
     @State private var eventCode: String = ""
+    @State private var eventDescription: String = ""
     @State private var national: Bool = false
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
@@ -34,6 +35,22 @@ struct SelectInputView: View {
                     Spacer().frame(height: 30)
                     
                     HStack {
+                        Input(title: "Event Description:", field: $eventDescription, height: 30, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                    }
+                    
+                    HStack {
+                        Input(title: "Event code:", field: $eventCode, height: 30, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                        Spacer()
+                    }
+                    
+                    VStack {
+                        
+                        InputInt(title: "Minimum rank:", field: $minRank, inlineTitle: false)
+                        
+                        InputInt(title: "Maximum rank:", field: $maxRank, inlineTitle: false)
+                    }
+                    
+                    HStack {
                         Input(title: "Import filename:", field: $inputFilename, height: 30, width: 700, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
                         
                         VStack() {
@@ -45,12 +62,7 @@ struct SelectInputView: View {
                     }
                     
                     HStack {
-                        Input(title: "Round prefix:", field: $prefix, height: 30, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                        Spacer()
-                    }
-                    
-                    HStack {
-                        Input(title: "Event code:", field: $eventCode, height: 30, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                        Input(title: "Round name:", field: $roundName, height: 30, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
                         Spacer()
                     }
                     
@@ -66,30 +78,20 @@ struct SelectInputView: View {
                         Spacer()
                     }
                     
-                    VStack {
-                        
-                        InputInt(title: "Minimum rank:", field: $minRank, inlineTitle: false)
-                        
-                        InputInt(title: "Maximum rank:", field: $maxRank, inlineTitle: false)
-                    }
-                    
                     Spacer().frame(height: 20)
                     
                     HStack {
                         Spacer().frame(width: 32)
                         Button{
                             if let scoreData = scoreData {
-                                scoreData.roundName = prefix
-                                scoreData.national = national
-                                scoreData.minRank = minRank
-                                scoreData.maxRank = maxRank
-                                if eventCode != "" {
-                                    for event in scoreData.events {
-                                        event.eventCode = eventCode
-                                    }
-                                }
                                 let writer = Writer()
-                                writer.add(prefix: prefix, scoreData: scoreData)
+                                writer.eventDescription = eventDescription
+                                writer.eventCode = eventCode
+                                writer.minRank = minRank
+                                writer.maxRank = maxRank
+                                scoreData.roundName = roundName
+                                scoreData.national = national
+                                writer.add(prefix: roundName, scoreData: scoreData)
                                 writer.write()
                                 MessageBox.shared.show("Processed Successfully")
                             }
