@@ -30,8 +30,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1091"
-            endingLineNumber = "1091"
+            startingLineNumber = "1078"
+            endingLineNumber = "1078"
             landmarkName = "referenceColumn(columnNumber:referencedContent:referenceDivisor:cellType:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -46,8 +46,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1075"
-            endingLineNumber = "1075"
+            startingLineNumber = "1062"
+            endingLineNumber = "1062"
             landmarkName = "setupIndividualMpsColumns()"
             landmarkType = "7">
             <Locations>
@@ -97,22 +97,6 @@
                   offsetFromSymbolStart = "63">
                </Location>
             </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "6F30CA65-FB80-49EC-88A0-18F2335890F7"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "ImportUsebio/Shared/Writer.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "522"
-            endingLineNumber = "522"
-            landmarkName = "write()"
-            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

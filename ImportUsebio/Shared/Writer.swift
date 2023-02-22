@@ -233,7 +233,31 @@ class CsvExportWriter: WriterBase {
     var localMpsCell: String?
     var nationalMpsCell: String?
     var checksumCell: String?
-    var dataRow: Int?
+    let eventCodeRow = 0
+    let eventDescriptionRow = 1
+    let licenseNoRow = 2
+    let eventDateRow = 3
+    let localMPsRow = 4
+    let nationalMPsRow = 5
+    let checksumRow = 6
+    let titleRow = 9
+    let dataRow = 10
+    let titleColumn = 0
+    let valuesColumn = 1
+    let firstNameColumn = 0
+    let otherNamesColumn = 1
+    let eventDataColumn = 2
+    let nationalIdColumn = 3
+    let eventCodeColumn = 4
+    let clubCodeColumn = 5
+    let localMPsColumn = 6
+    let nationalMPsColumn = 7
+    let lookupFirstNameColumn = 10
+    let lookupOtherNamesColumn = 11
+    let lookupHomeClubColumn = 12
+    let lookupRankColumn = 13
+    let lookupEmailColumn = 14
+    let lookupStatusColumn = 15
     
     init(writer: Writer) {
         super.init(workbook: writer.workbook)
@@ -243,32 +267,6 @@ class CsvExportWriter: WriterBase {
     }
     
     func write() {
-        let eventCodeRow = 0
-        let eventDescriptionRow = 1
-        let licenseNoRow = 2
-        let eventDateRow = 3
-        let nationalLocalRow = 4
-        let localMPsRow = 5
-        let nationalMPsRow = 6
-        let checksumRow = 7
-        let titleRow = 10
-        dataRow = 11
-        let titleColumn = 0
-        let valuesColumn = 1
-        let firstNameColumn = 0
-        let otherNamesColumn = 1
-        let eventDataColumn = 2
-        let nationalIdColumn = 3
-        let eventCodeColumn = 4
-        let clubCodeColumn = 5
-        let localMPsColumn = 6
-        let nationalMPsColumn = 7
-        let lookupFirstNameColumn = 10
-        let lookupOtherNamesColumn = 11
-        let lookupHomeClubColumn = 12
-        let lookupRankColumn = 13
-        let lookupEmailColumn = 14
-        let lookupStatusColumn = 15
         
         setColumn(worksheet: worksheet, column: titleColumn, width: 12)
         setColumn(worksheet: worksheet, column: valuesColumn, width: 16)
@@ -286,7 +284,6 @@ class CsvExportWriter: WriterBase {
         
         // Parameters etc
         let ranksPlusMps = writer.rounds.first!.ranksPlusMps!
-        let scoreData = writer.rounds.first!.scoreData
         write(worksheet: worksheet, row: eventCodeRow, column: titleColumn, string: "Event Code:", format: formatBold)
         write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, formula: "=\(cell(writer: ranksPlusMps, ranksPlusMps.eventIdCell!))")
         
@@ -298,64 +295,50 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: eventDateRow, column: titleColumn, string: "Date:", format: formatBold)
         write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(cell(writer: ranksPlusMps, ranksPlusMps.eventDateCell!))", format: formatDate)
         
-        write(worksheet: worksheet, row: nationalLocalRow, column: titleColumn, string: "Nat/Local:", format: formatBold)
-        write(worksheet: worksheet, row: nationalLocalRow, column: valuesColumn, formula: "==\(cell(writer: ranksPlusMps, ranksPlusMps.localCell!))")
-        
         write(worksheet: worksheet, row: localMPsRow, column: titleColumn, string: "Local MPs:", format: formatBold)
-        write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow!, rowFixed: true, localMPsColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true))))", format: formatZeroFloat)
         localMpsCell = cell(localMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: nationalMPsRow, column: titleColumn, string: "National MPs:", format: formatBold)
-        write(worksheet: worksheet, row: nationalMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalMPsColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: nationalMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true))))", format: formatZeroFloat)
         nationalMpsCell = cell(nationalMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: checksumRow, column: titleColumn, string: "Checksum:", format: formatBold)
-        write(worksheet: worksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=SUM((\(arrayRef)(\(cell(dataRow!, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=SUM((\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
         checksumCell = cell(checksumRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         // Data
         let consolidated = writer.consolidated!
         write(worksheet: worksheet, row: titleRow, column: firstNameColumn, string: "Names", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: firstNameColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.firstNameColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow, column: firstNameColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.firstNameColumn!, columnFixed: true)))")
         
         write(worksheet: worksheet, row: titleRow, column: otherNamesColumn, string: "", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.otherNamesColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.otherNamesColumn!, columnFixed: true)))")
         
         write(worksheet: worksheet, row: titleRow, column: eventDataColumn, string: "Event date", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: worksheet, row: dataRow, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "MemNo", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
+        write(worksheet: worksheet, row: dataRow, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
         
         write(worksheet: worksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: worksheet, row: dataRow, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
         
         write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn, string: "National", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
         
-            //Lookups
-        write(worksheet: worksheet, row: titleRow, column: lookupFirstNameColumn, string: "First Name", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupFirstNameColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),5,FALSE)")
-        
-        write(worksheet: worksheet, row: titleRow, column: lookupOtherNamesColumn, string: "Other Names", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupOtherNamesColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),4,FALSE)")
-        
-        write(worksheet: worksheet, row: titleRow, column: lookupHomeClubColumn, string: "Home Club", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupHomeClubColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),19,FALSE)")
-        
-        write(worksheet: worksheet, row: titleRow, column: lookupRankColumn, string: "Rank", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupRankColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),6,FALSE)")
-        
-        write(worksheet: worksheet, row: titleRow, column: lookupEmailColumn, string: "Email", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupEmailColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),8,FALSE)")
-        
-        write(worksheet: worksheet, row: titleRow, column: lookupStatusColumn, string: "Status", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: lookupStatusColumn, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow!, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),25,FALSE)")
+        //Lookups
+        writeLookup(title: "First Name", column: lookupFirstNameColumn, lookupColumn: 5)
+        writeLookup(title: "Other Names", column: lookupOtherNamesColumn, lookupColumn: 4)
+        writeLookup(title: "Home Club", column: lookupHomeClubColumn, lookupColumn: 19)
+        writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: 6)
+        writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: 8)
+        writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: 25)
         
         highlightLookupDifferent(column: firstNameColumn, lookupColumn: lookupFirstNameColumn, format: formatYellow)
         highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
@@ -368,52 +351,57 @@ class CsvExportWriter: WriterBase {
         highlightBadStatus(column: lookupStatusColumn)
     }
     
+    private func writeLookup(title: String, column: Int, lookupColumn: Int) {
+        write(worksheet: worksheet, row: titleRow, column: column, string: title, format: formatBoldUnderline)
+        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),\(lookupColumn),FALSE)")
+    }
+    
     private func highlightLookupDifferent(column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let field = "\(cell(dataRow!, column, columnFixed: true))"
-        let lookupfield = "\(cell(dataRow!, lookupColumn, columnFixed: true))"
+        let field = "\(cell(dataRow, column, columnFixed: true))"
+        let lookupfield = "\(cell(dataRow, lookupColumn, columnFixed: true))"
         let formula = "\(field)<>\(lookupfield)"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightLookupError(fromColumn: Int, toColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let lookupCell = "\(cell(dataRow!, fromColumn))"
+        let lookupCell = "\(cell(dataRow, fromColumn, columnFixed: true))"
         let formula = "=ISNA(\(lookupCell))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: fromColumn, toRow: dataRow! + writer.maxPlayers - 1, toColumn: toColumn, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: fromColumn, toRow: dataRow + writer.maxPlayers - 1, toColumn: toColumn, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightBadStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let statusCell = "\(cell(dataRow!, column))"
+        let statusCell = "\(cell(dataRow, column, columnFixed: true))"
         let formula = "=AND(\(statusCell)<>\"\(goodStatus)\", \(statusCell)<>\"\")"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightBadNationalId(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let nationalIdCell = cell(dataRow!, column, columnFixed: true)
-        let firstNameCell = cell(dataRow!, firstNameColumn, columnFixed: true)
+        let nationalIdCell = cell(dataRow, column, columnFixed: true)
+        let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
         let formula = "=AND(\(firstNameCell)<>\"\", OR(\(nationalIdCell)=0, \(nationalIdCell)>\(maxNationalIdNumber), NOT(ISNUMBER(\(nationalIdCell)))))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, checkDuplicates: true, format: format ?? formatRed!, duplicateFormat: formatRedHatched!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, checkDuplicates: true, format: format ?? formatRed!, duplicateFormat: formatRedHatched!)
     }
     
     private func highlightBadMPs(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let pointsCell = cell(dataRow!, column, columnFixed: true)
-        let firstNameCell = cell(dataRow!, firstNameColumn, columnFixed: true)
+        let pointsCell = cell(dataRow, column, columnFixed: true)
+        let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
         let formula = "=AND(\(firstNameCell)<>\"\", OR(\(pointsCell)>\(maxPoints), AND(\(pointsCell)<>\"\", NOT(ISNUMBER(\(pointsCell))))))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightBadDate(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let dateCell = cell(dataRow!, column, columnFixed: true)
-        let firstNameCell = cell(dataRow!, firstNameColumn, columnFixed: true)
+        let dateCell = cell(dataRow, column, columnFixed: true)
+        let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
         let formula = "=AND(\(firstNameCell)<>\"\", OR(\(dateCell)>DATEVALUE(\"\(Date().toString(format: "dd/MM/yyyy"))\"), \(dateCell)<DATEVALUE(\"\(Date().toString(format: "dd/MM/yyyy"))\")-30))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightBadRank(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let rankCell = cell(dataRow!, column, columnFixed: true)
+        let rankCell = cell(dataRow, column, columnFixed: true)
         let round = writer.rounds.first!
         let source = round.ranksPlusMps!
         let formula = "=AND(\(rankCell)<>\"\", OR(\(rankCell)<\(cell(writer: source, source.minRankCell!)), \(rankCell)>\(cell(writer: source, source.maxRankCell!))))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
 }
     
@@ -509,7 +497,7 @@ class ConsolidatedWriter: WriterBase {
         }
         
         // Data rows
-        let uniqueIdCell = "\(arrayRef)(\(cell(dataRow!, uniqueColumn, columnFixed: true)))"
+        let uniqueIdCell = "\(arrayRef)(\(cell(dataRow!, rowFixed: true, uniqueColumn, columnFixed: true)))"
         
         // Unique ID column
         var formula = "=\(unique)("
@@ -594,7 +582,6 @@ class RanksPlusMPsWriter: WriterBase {
     }
     
     func write() {
-        let event = scoreData.events.first!
         let participants = scoreData.events.first!.participants.sorted(by: sortCriteria)
         
         setupColumns()
@@ -974,8 +961,8 @@ class RanksPlusMPsWriter: WriterBase {
             if playerNumber != 0 {
                 result += ","
             }
-            let from = cell(firstRow, rowFixed: true, column[playerNumber])
-            let to = cell(lastRow, rowFixed: true, column[playerNumber])
+            let from = cell(firstRow, rowFixed: true, column[playerNumber], columnFixed: true)
+            let to = cell(lastRow, rowFixed: true, column[playerNumber], columnFixed: true)
             result += from + ":" + to
         }
         return result
@@ -1101,9 +1088,9 @@ class IndividualMPsWriter: WriterBase {
             if playerNumber != 0 {
                 result += ","
             }
-            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, columnReference)
+            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, rowFixed: true, columnReference)
             result += ":"
-            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, columnReference)
+            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, rowFixed: true, columnReference)
         }
         
         result += ")"
@@ -1117,9 +1104,9 @@ class IndividualMPsWriter: WriterBase {
             if playerNumber != 0 {
                 result += ","
             }
-            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, round.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, rowFixed: true, round.ranksPlusMps.totalMPColumn[playerNumber])
             result += ":"
-            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, round.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, rowFixed: true, round.ranksPlusMps.totalMPColumn[playerNumber])
         }
         result += ")<>0)"
         
