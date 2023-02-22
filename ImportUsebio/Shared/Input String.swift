@@ -100,6 +100,7 @@ struct Input : View {
                                     .onChange(of: field, perform: { (value) in onChange?(value) })
                                     .textFieldStyle(PlainTextFieldStyle())
                                     .foregroundColor(Palette.input.text)
+                                    .background(Palette.input.background)
                                     .inputStyle(width: width, height: height)
                                     .myKeyboardType(self.keyboardType)
                                     .myAutocapitalization(autoCapitalize)

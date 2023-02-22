@@ -624,10 +624,10 @@ class RanksPlusMPsWriter: WriterBase {
             let nationalIdColumn = nationalIdColumn[playerNumber]
             let firstNameColumn = firstNameColumn[playerNumber]
             let otherNamesColumn = otherNameColumn[playerNumber]
-            let firstNameNonBlank = "\(columnRef(column: firstNameColumn, fixed: true))\(dataRow)<>\"\""
-            let otherNamesNonBlank = "\(columnRef(column: otherNamesColumn, fixed: true))\(dataRow)<>\"\""
-            let nationalIdZero = "\(columnRef(column: nationalIdColumn, fixed: true))\(dataRow)=0"
-            let nationalIdLarge = "\(columnRef(column: nationalIdColumn, fixed: true))\(dataRow)>\(maxNationalIdNumber)"
+            let firstNameNonBlank = "\(cell(dataRow, firstNameColumn, columnFixed: true))<>\"\""
+            let otherNamesNonBlank = "\(cell(dataRow, otherNamesColumn, columnFixed: true))<>\"\""
+            let nationalIdZero = "\(cell(dataRow, nationalIdColumn, columnFixed: true))=0"
+            let nationalIdLarge = "\(cell(dataRow, nationalIdColumn, columnFixed: true))>\(maxNationalIdNumber)"
             let formula = "=AND(OR(\(firstNameNonBlank),\(otherNamesNonBlank)), OR(\(nationalIdZero),\(nationalIdLarge)))"
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: nationalIdColumn, toRow: dataRow + round.fieldSize - 1, toColumn: nationalIdColumn, formula: formula, format: formatRed!)
         }
@@ -729,9 +729,10 @@ class RanksPlusMPsWriter: WriterBase {
                 }
                 
                 columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", playerContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
-                bonusMPColumn.append(columns.count - 1)
-                
-                if winDraw {
+                if !winDraw {
+                    totalMPColumn.append(columns.count - 1)
+                } else {
+                    bonusMPColumn.append(columns.count - 1)
                     columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", playerContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
                     winDrawMPColumn.append(columns.count - 1)
                     
@@ -744,9 +745,13 @@ class RanksPlusMPsWriter: WriterBase {
         if round.maxParticipantPlayers <= event.type?.participantType?.players ?? round.maxParticipantPlayers {
             
             columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", content: bonusAward, cellType: .floatFormula))
-            bonusMPColumn.append(columns.count - 1)
-            
-            if winDraw {
+             
+            if !winDraw {
+                for _ in 0..<round.maxParticipantPlayers {
+                    totalMPColumn.append(columns.count - 1)
+                }
+            } else {
+                bonusMPColumn.append(columns.count - 1)
                 
                 columns.append(Column(title: "Win/Draw MP", content: winDrawAward, cellType: .integerFormula))
                 winDrawMPColumn.append(columns.count - 1)
@@ -931,19 +936,19 @@ class RanksPlusMPsWriter: WriterBase {
         writeCell(integer: event.boards ?? 0)
         
         var baseMaxEwAwardCell = ""
-        writeCell(float: 10.00) ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(float: scoreData.maxAward) ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
             writeCell(floatFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewToeRef)/\(toeCell!),2)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(float: 1, format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=MIN(1, ROUNDUP((\(toeCells))/\(round.scoreData.minField), 4))", format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(floatFormula: "=ROUNDUP(\(baseMaxAwardCell)*\(factorCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
             writeCell(floatFormula: "=ROUNDUP(\(baseMaxEwAwardCell)*\(factorCell),2)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(float: 0.25, format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(float: scoreData.awardTo/100, format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(formula: "=ROUNDUP(\(toeCell!)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
@@ -952,7 +957,7 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(float: 0.25) ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(date: event.date ?? Date.today) ; eventDateCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(date: event.date ?? Date.today) ; eventDateCell = cell(row, rowFixed: true, column, columnFixed: true) ; let eventDateColumn = column
         
         writeCell(string: event.eventCode ?? "") ; eventIdCell = cell(row, rowFixed: true, column, columnFixed: true)
         
@@ -962,11 +967,14 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,SUM(\(range(column: totalMPColumn))))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=SUM(\(vstack)(\(range(column: totalMPColumn)))*\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=SUM(\(vstack)(\(range(column: totalMPColumn)))*\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true) ; let checksumColumn = column
+        
+        setColumn(worksheet: worksheet, column: eventDateColumn, width: 10)
+        setColumn(worksheet: worksheet, column: checksumColumn, width: 16)
+        
     }
     
     private func range(column: [Int])->String {
-        let event = scoreData.events.first!
         let firstRow = dataRow
         let lastRow = dataRow + round.fieldSize - 1
         var result = ""
@@ -991,6 +999,7 @@ class IndividualMPsWriter: WriterBase {
     override var name: String { "Individual MPs" }
     var columns: [Column] = []
     var positionColumn: Int?
+    var directionColumn: Int?
     var uniqueColumn: Int?
     var decimalColumn: Int?
     var nationalIdColumn: Int?
@@ -1053,6 +1062,7 @@ class IndividualMPsWriter: WriterBase {
         
         if twoWinners {
             columns.append(Column(title: "Direction", referenceContent: { [self] (_) in round.ranksPlusMps.directionColumn! }, cellType: .stringFormula))
+            directionColumn = columns.count - 1
         }
         
         columns.append(Column(title: "@P no", referenceContent: { [self] (_) in round.ranksPlusMps.participantNoColumn! }, cellType: .integerFormula))
@@ -1082,11 +1092,19 @@ class IndividualMPsWriter: WriterBase {
     }
     
     private func referenceColumn(columnNumber: Int, referencedContent: (Int)->Int, referenceDivisor: Int? = nil, cellType: CellType? = nil) {
+        let event = scoreData.events.first!
+        let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
         
         let content = zeroFiltered(referencedContent: referencedContent, divisor: referenceDivisor)
         let position = zeroFiltered(referencedContent: { (_) in positionColumn! })
         
-        let result = "=\(sortBy)(\(content), \(position), 1)"
+        var result = "=\(sortBy)("
+        
+        if twoWinners {
+            let direction = zeroFiltered(referencedContent: { (_) in directionColumn! })
+            result += "\(content), \(direction), -1, "
+        }
+        result += "\(position), 1)"
         
         let column = lxw_col_t(Int32(columnNumber))
         worksheet_write_dynamic_array_formula(worksheet, 1, column, 999, column, result, formatFrom(cellType: cellType))

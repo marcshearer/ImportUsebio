@@ -277,6 +277,9 @@ public class ScoreData {
     public var fileUrl: URL?
     public var roundName: String?
     public var national: Bool = false
+    public var maxAward: Float = 0.0
+    public var minField: Int = 0
+    public var awardTo: Float = 0.0
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []
