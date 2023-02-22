@@ -42,7 +42,7 @@ class Column {
     }
 }
 
-class Sheet {
+class Round {
     var writer: Writer
     var scoreData: ScoreData
     var prefix: String
@@ -54,8 +54,8 @@ class Sheet {
         self.writer = writer
         self.prefix = prefix
         self.scoreData = scoreData
-        self.individualMPs = IndividualMPsWriter(writer: writer, sheet: self, scoreData: scoreData)
-        self.ranksPlusMps = RanksPlusMPsWriter(writer: writer, sheet: self, scoreData: scoreData)
+        self.individualMPs = IndividualMPsWriter(writer: writer, round: self, scoreData: scoreData)
+        self.ranksPlusMps = RanksPlusMPsWriter(writer: writer, round: self, scoreData: scoreData)
     }
     
     func replace(_ text: String) -> String {
@@ -96,9 +96,9 @@ class Writer: WriterBase {
     fileprivate var summary: SummaryWriter!
     fileprivate var csvExport:CsvExportWriter!
     fileprivate var consolidated: ConsolidatedWriter!
-    fileprivate var sheets: [Sheet] = []
+    fileprivate var rounds: [Round] = []
     
-    var maxPlayers: Int { sheets.map{ $0.maxPlayers }.reduce(0, +) }
+    var maxPlayers: Int { rounds.map{ $0.maxPlayers }.reduce(0, +) }
     
     init() {
         let name = "New workbook.xlsm"
@@ -109,15 +109,15 @@ class Writer: WriterBase {
     }
     
     func add(prefix: String, scoreData: ScoreData) {
-        sheets.append(Sheet(writer: self, prefix: prefix, scoreData: scoreData, workbook: workbook))
+        rounds.append(Round(writer: self, prefix: prefix, scoreData: scoreData, workbook: workbook))
     }
     
     func write() {
         workbook_add_vba_project(workbook, "./Award.bin")
         
-        for sheet in sheets {
-            sheet.ranksPlusMps.write()
-            sheet.individualMPs.write()
+        for round in rounds {
+            round.ranksPlusMps.write()
+            round.individualMPs.write()
         }
         consolidated.write()
         csvExport.write()
@@ -132,12 +132,17 @@ fileprivate class SummaryWriter : WriterBase {
     private var writer: Writer!
     private var worksheet: UnsafeMutablePointer<lxw_worksheet>?
     override var name: String { "Summary" }
+    var toeColumn: Int?
+    var tablesColumn: Int?
     var descriptionColumn: Int?
     var nationalLocalColumn: Int?
     var localMPsColumn: Int?
     var nationalMPsColumn: Int?
     var checksumColumn: Int?
     var exportedRow: Int?
+    var headerRow: Int?
+    var detailRow: Int?
+    var totalRow: Int?
     
     init(writer: Writer) {
         super.init(workbook: writer.workbook)
@@ -148,67 +153,67 @@ fileprivate class SummaryWriter : WriterBase {
     
     func write() {
         descriptionColumn = 0
-        let toeColumn = 1
-        let tablesColumn = 2
+        toeColumn = 1
+        tablesColumn = 2
         nationalLocalColumn = 3
         localMPsColumn = 4
         nationalMPsColumn = 5
         checksumColumn = 6
-        let headerRow = 0
-        let detailRow = 1
-        let totalRow = detailRow + writer.sheets.count + 1
-        exportedRow = totalRow + 1
+        headerRow = 0
+        detailRow = 1
+        totalRow = detailRow! + writer.rounds.count + 1
+        exportedRow = totalRow! + 1
         
         setColumn(worksheet: worksheet, column: descriptionColumn!, width: 30)
         setColumn(worksheet: worksheet, column: localMPsColumn!, width: 12)
         setColumn(worksheet: worksheet, column: nationalMPsColumn!, width: 12)
         setColumn(worksheet: worksheet, column: checksumColumn!, width: 16)
         
-        write(worksheet: worksheet, row: headerRow, column: descriptionColumn!, string: "Round", format: formatBold)
-        write(worksheet: worksheet, row: headerRow, column: toeColumn, string: "TOE", format: formatRightBold)
-        write(worksheet: worksheet, row: headerRow, column: tablesColumn, string: "Tables", format: formatRightBold)
-        write(worksheet: worksheet, row: headerRow, column: nationalLocalColumn!, string: "Nat/Local", format: formatBold)
-        write(worksheet: worksheet, row: headerRow, column: localMPsColumn!, string: "Local MPs", format: formatRightBold)
-        write(worksheet: worksheet, row: headerRow, column: nationalMPsColumn!, string: "National MPs", format: formatRightBold)
-        write(worksheet: worksheet, row: headerRow, column: checksumColumn!, string: "Checksum", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: descriptionColumn!, string: "Round", format: formatBold)
+        write(worksheet: worksheet, row: headerRow!, column: toeColumn!, string: "TOE", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: tablesColumn!, string: "Tables", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: nationalLocalColumn!, string: "Nat/Local", format: formatBold)
+        write(worksheet: worksheet, row: headerRow!, column: localMPsColumn!, string: "Local MPs", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: nationalMPsColumn!, string: "National MPs", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: checksumColumn!, string: "Checksum", format: formatRightBold)
         
-        for (sheetNumber, sheet) in writer.sheets.enumerated() {
-            let row = detailRow + sheetNumber
-            write(worksheet: worksheet, row: row, column: descriptionColumn!, formula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.roundCell!)")
-            write(worksheet: worksheet, row: row, column: toeColumn, integerFormula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.toeCell!)")
-            write(worksheet: worksheet, row: row, column: tablesColumn, integerFormula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.tablesCell!)")
-            write(worksheet: worksheet, row: row, column: nationalLocalColumn!, formula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.localCell!)")
-            write(worksheet: worksheet, row: row, column: localMPsColumn!, floatFormula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.localMPsCell!)", format: formatZeroFloat)
-            write(worksheet: worksheet, row: row, column: nationalMPsColumn!, floatFormula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.nationalMPsCell!)", format: formatZeroFloat)
-            write(worksheet: worksheet, row: row, column: checksumColumn!, floatFormula: "='\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.checksumCell!)", format: formatZeroFloat)
+        for (roundNumber, round) in writer.rounds.enumerated() {
+            let source = round.ranksPlusMps!
+            let row = detailRow! + roundNumber
+            write(worksheet: worksheet, row: row, column: descriptionColumn!, formula: "=\(cell(writer: source, source.roundCell!))")
+            write(worksheet: worksheet, row: row, column: toeColumn!, integerFormula: "=\(cell(writer: source, source.toeCell!))")
+            write(worksheet: worksheet, row: row, column: tablesColumn!, integerFormula: "=\(cell(writer: source, source.tablesCell!))")
+            write(worksheet: worksheet, row: row, column: nationalLocalColumn!, formula: "=\(cell(writer: source, source.localCell!))")
+            write(worksheet: worksheet, row: row, column: localMPsColumn!, floatFormula: "=\(cell(writer: source, source.localMPsCell!))", format: formatZeroFloat)
+            write(worksheet: worksheet, row: row, column: nationalMPsColumn!, floatFormula: "=\(cell(writer: source, source.nationalMPsCell!))", format: formatZeroFloat)
+            write(worksheet: worksheet, row: row, column: checksumColumn!, floatFormula: "=\(cell(writer: source, source.checksumCell!))", format: formatZeroFloat)
         }
         
         for column in [toeColumn, tablesColumn, nationalLocalColumn, localMPsColumn, nationalMPsColumn, checksumColumn] {
-            write(worksheet: worksheet, row: detailRow + writer.sheets.count, column: column!, string: "", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: detailRow! + writer.rounds.count, column: column!, string: "", format: formatBoldUnderline)
         }
         
-        write(worksheet: worksheet, row: totalRow, column: descriptionColumn!, string: "Round totals", format: formatBold)
+        write(worksheet: worksheet, row: totalRow!, column: descriptionColumn!, string: "Round totals", format: formatBold)
         
-        let tablesColumnRef = columnRef(column: tablesColumn, fixed: true)
-        write(worksheet: worksheet, row: totalRow, column: tablesColumn, integerFormula: "=SUM(\(tablesColumnRef)2:\(tablesColumnRef)\(2+writer.sheets.count))", format: formatZeroInt)
+        writeTotal(column: tablesColumn, format: formatInt)
+        writeTotal(column: localMPsColumn)
+        writeTotal(column: nationalMPsColumn)
+        writeTotal(column: checksumColumn)
         
-        let localMPsColumnRef = columnRef(column: localMPsColumn!, fixed: true)
-        write(worksheet: worksheet, row: totalRow, column: localMPsColumn!, floatFormula: "=SUM(\(localMPsColumnRef)\(detailRow):\(localMPsColumnRef)\(detailRow + writer.sheets.count))", format: formatZeroFloat)
-        
-        let nationalMPsColumnRef = columnRef(column: nationalMPsColumn!, fixed: true)
-        write(worksheet: worksheet, row: totalRow, column: nationalMPsColumn!, floatFormula: "=SUM(\(nationalMPsColumnRef)\(detailRow):\(nationalMPsColumnRef)\(detailRow + writer.sheets.count))", format: formatZeroFloat)
-        
-        let checksumColumnRef = columnRef(column: checksumColumn!, fixed: true)
-        write(worksheet: worksheet, row: totalRow, column: checksumColumn!, floatFormula: "=SUM(\(checksumColumnRef)\(detailRow):\(checksumColumnRef)\(detailRow + writer.sheets.count))", format: formatZeroFloat)
-        
+        let csvExport = writer.csvExport!
         write(worksheet: worksheet, row: exportedRow!, column: descriptionColumn!, string: "Exported totals", format: formatBold)
-        write(worksheet: worksheet, row: exportedRow!, column: localMPsColumn!, formula: "='\(writer.csvExport.name)'!\(writer.csvExport.localMpsCell!)", format: formatZeroFloat)
-        write(worksheet: worksheet, row: exportedRow!, column: nationalMPsColumn!, formula: "='\(writer.csvExport.name)'!\(writer.csvExport.nationalMpsCell!)", format: formatZeroFloat)
-        write(worksheet: worksheet, row: exportedRow!, column: checksumColumn!, formula: "='\(writer.csvExport.name)'!\(writer.csvExport.checksumCell!)", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: localMPsColumn!, formula: "=\(cell(writer: csvExport, csvExport.localMpsCell!))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: nationalMPsColumn!, formula: "=\(cell(writer: csvExport, csvExport.nationalMpsCell!))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: checksumColumn!, formula: "=\(cell(writer: csvExport, csvExport.checksumCell!))", format: formatZeroFloat)
         
         for column in [localMPsColumn, nationalMPsColumn, checksumColumn] {
-            highlightTotalDifferent(row: exportedRow!, compareRow: totalRow, column: column!)
+            highlightTotalDifferent(row: exportedRow!, compareRow: totalRow!, column: column!)
         }
+        
+    }
+    
+    private func writeTotal(column: Int?, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        write(worksheet: worksheet, row: totalRow!, column: column!, integerFormula: "=SUM(\(cell(detailRow!, rowFixed: true, column!)):\(cell(detailRow! + writer.rounds.count - 1, rowFixed: true, column!)))", format: format ?? formatZeroFloat)
     }
     
     private func highlightTotalDifferent(row: Int, compareRow: Int, column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -279,20 +284,22 @@ class CsvExportWriter: WriterBase {
         setColumn(worksheet: worksheet, column: lookupEmailColumn, width: 25)
         setColumn(worksheet: worksheet, column: lookupStatusColumn, width: 25)
         
-            // Parameters etc
+        // Parameters etc
+        let ranksPlusMps = writer.rounds.first!.ranksPlusMps!
+        let scoreData = writer.rounds.first!.scoreData
         write(worksheet: worksheet, row: eventCodeRow, column: titleColumn, string: "Event Code:", format: formatBold)
-        write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, formula: "='\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.eventIdCell!)")
+        write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, formula: "=\(cell(writer: ranksPlusMps, ranksPlusMps.eventIdCell!))")
         
         write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event:", format: formatBold)
-        write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, formula: "='\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.eventDescriptionCell!)")
+        write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, formula: "=\(cell(writer: ranksPlusMps, ranksPlusMps.eventDescriptionCell!))")
         
         write(worksheet: worksheet, row: licenseNoRow, column: titleColumn, string: "License no:", format: formatBold)
         
         write(worksheet: worksheet, row: eventDateRow, column: titleColumn, string: "Date:", format: formatBold)
-        write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "='\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.eventDateCell!)", format: formatDate)
+        write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(cell(writer: ranksPlusMps, ranksPlusMps.eventDateCell!))", format: formatDate)
         
         write(worksheet: worksheet, row: nationalLocalRow, column: titleColumn, string: "Nat/Local:", format: formatBold)
-        write(worksheet: worksheet, row: nationalLocalRow, column: valuesColumn, formula: "='\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.localCell!)")
+        write(worksheet: worksheet, row: nationalLocalRow, column: valuesColumn, formula: "==\(cell(writer: ranksPlusMps, ranksPlusMps.localCell!))")
         
         write(worksheet: worksheet, row: localMPsRow, column: titleColumn, string: "Local MPs:", format: formatBold)
         write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow!, rowFixed: true, localMPsColumn, columnFixed: true))))", format: formatZeroFloat)
@@ -306,18 +313,19 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=SUM((\(arrayRef)(\(cell(dataRow!, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
         checksumCell = cell(checksumRow, rowFixed: true, valuesColumn, columnFixed: true)
         
-            // Data
+        // Data
+        let consolidated = writer.consolidated!
         write(worksheet: worksheet, row: titleRow, column: firstNameColumn, string: "Names", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: firstNameColumn, dynamicFormula: "=\(arrayRef)('\(writer.consolidated.name)'!\(cell(writer.consolidated.dataRow!, rowFixed: true, writer.consolidated.firstNameColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow!, column: firstNameColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.firstNameColumn!, columnFixed: true)))")
         
         write(worksheet: worksheet, row: titleRow, column: otherNamesColumn, string: "", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)('\(writer.consolidated.name)'!\(cell(writer.consolidated.dataRow!, rowFixed: true, writer.consolidated.otherNamesColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow!, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.otherNamesColumn!, columnFixed: true)))")
         
         write(worksheet: worksheet, row: titleRow, column: eventDataColumn, string: "Event date", format: formatBoldUnderline)
         write(worksheet: worksheet, row: dataRow!, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "MemNo", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)('\(writer.consolidated.name)'!\(cell(writer.consolidated.dataRow!, rowFixed: true, writer.consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
+        write(worksheet: worksheet, row: dataRow!, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
         
         write(worksheet: worksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
         write(worksheet: worksheet, row: dataRow!, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow!, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
@@ -325,10 +333,10 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn, dynamicFormula: "=\(arrayRef)('\(writer.consolidated.name)'!\(cell(writer.consolidated.dataRow!, rowFixed: true, writer.consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
         
         write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn, string: "National", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)('\(writer.consolidated.name)'!\(cell(writer.consolidated.dataRow!, rowFixed: true, writer.consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
         
             //Lookups
         write(worksheet: worksheet, row: titleRow, column: lookupFirstNameColumn, string: "First Name", format: formatBoldUnderline)
@@ -358,7 +366,6 @@ class CsvExportWriter: WriterBase {
         highlightBadMPs(column: nationalMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadRank(column: lookupRankColumn)
         highlightBadStatus(column: lookupStatusColumn)
-        
     }
     
     private func highlightLookupDifferent(column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -403,7 +410,9 @@ class CsvExportWriter: WriterBase {
     
     private func highlightBadRank(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let rankCell = cell(dataRow!, column, columnFixed: true)
-        let formula = "=AND(\(rankCell)<>\"\", OR(\(rankCell)<'\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.minRankCell!), \(rankCell)>'\(writer.sheets.first!.scoreData.roundName!) \(writer.sheets.first!.ranksPlusMps.name)'!\(writer.sheets.first!.ranksPlusMps.maxRankCell!)))"
+        let round = writer.rounds.first!
+        let source = round.ranksPlusMps!
+        let formula = "=AND(\(rankCell)<>\"\", OR(\(rankCell)<\(cell(writer: source, source.minRankCell!)), \(rankCell)>\(cell(writer: source, source.maxRankCell!))))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow!, fromColumn: column, toRow: dataRow! + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
 }
@@ -443,14 +452,14 @@ class ConsolidatedWriter: WriterBase {
         let checksumRow = 2
         dataRow = 4
         
-        let nationalLocalRange = "\(cell(nationalLocalRow, rowFixed: true, dataColumn, columnFixed: true)):\(cell(nationalLocalRow, rowFixed: true, dataColumn + writer.sheets.count - 1, columnFixed: true))"
+        let nationalLocalRange = "\(cell(nationalLocalRow, rowFixed: true, dataColumn, columnFixed: true)):\(cell(nationalLocalRow, rowFixed: true, dataColumn + writer.rounds.count - 1, columnFixed: true))"
         
         setRow(worksheet: worksheet, row: titleRow, format: formatBoldUnderline)
         setRow(worksheet: worksheet, row: nationalLocalRow, format: formatBoldUnderline)
         setRow(worksheet: worksheet, row: totalRow, format: formatBoldUnderline)
         setRow(worksheet: worksheet, row: checksumRow, format: formatBoldUnderline)
         
-        for column in 0..<(dataColumn + writer.sheets.count) {
+        for column in 0..<(dataColumn + writer.rounds.count) {
             if column == uniqueColumn {
                 setColumn(worksheet: worksheet, column: column, hidden: true)
             } else if column == nationalIdColumn {
@@ -467,19 +476,19 @@ class ConsolidatedWriter: WriterBase {
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn!, string: "Local MPs", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn!, string: "National MPs", format: formatRightBoldUnderline)
         
-        for (column, sheet) in writer.sheets.enumerated() {
+        for (column, round) in writer.rounds.enumerated() {
             // Round titles
-            write(worksheet: worksheet, row: titleRow, column: dataColumn + column, string: sheet.prefix, format: formatRightBoldUnderline)
+            write(worksheet: worksheet, row: titleRow, column: dataColumn + column, string: round.prefix, format: formatRightBoldUnderline)
         
             // National/Local row
-            let cell = "'\(sheet.prefix) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.localCell!)"
+            let cell = cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!)
             write(worksheet: worksheet, row: nationalLocalRow, column: dataColumn + column, formula: "=IF(\(cell)=0,\"\",\(cell))", format: formatRightBoldUnderline)
         }
         
         for element in 0...1 {
             // Total row and checksum row
             let row = (element == 0 ? totalRow : checksumRow)
-            let totalRange = "\(cell(row, rowFixed: true, dataColumn, columnFixed: true)):\(cell(row, rowFixed: true, dataColumn + writer.sheets.count - 1, columnFixed: true))"
+            let totalRange = "\(cell(row, rowFixed: true, dataColumn, columnFixed: true)):\(cell(row, rowFixed: true, dataColumn + writer.rounds.count - 1, columnFixed: true))"
             
             write(worksheet: worksheet, row: row, column: nationalIdColumn!, string: (row == totalRow ? "Total" : "Checksum"), format: formatRightBoldUnderline)
             
@@ -487,7 +496,7 @@ class ConsolidatedWriter: WriterBase {
             
             write(worksheet: worksheet, row: row, column: nationalMPsColumn!, floatFormula: "=SUMIF(\(nationalLocalRange), \"=National\", \(totalRange))", format: formatFloatBoldUnderline)
             
-            for (column, _) in writer.sheets.enumerated() {
+            for (column, _) in writer.rounds.enumerated() {
                 let valueRange = "\(arrayRef)(\(cell(dataRow!, rowFixed: true, dataColumn + column)))"
                 let nationalIdRange = "\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalIdColumn!, columnFixed: true)))"
                 
@@ -504,11 +513,11 @@ class ConsolidatedWriter: WriterBase {
         
         // Unique ID column
         var formula = "=\(unique)("
-        for (sheetNumber, sheet) in writer.sheets.enumerated() {
-            if sheetNumber != 0 {
+        for (roundNumber, round) in writer.rounds.enumerated() {
+            if roundNumber != 0 {
                 formula += ","
             }
-            formula += "\(vstack)(\(arrayRef)('\(sheet.scoreData.roundName!) \(sheet.individualMPs.name)'!\(cell(1,rowFixed: true, sheet.individualMPs.uniqueColumn!, columnFixed: true)))))"
+            formula += "\(vstack)(\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)))))"
         }
         write(worksheet: worksheet, row: dataRow!, column: uniqueColumn, dynamicFormula: formula)
         
@@ -520,16 +529,16 @@ class ConsolidatedWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow!, column: nationalIdColumn!, dynamicIntegerFormula: "=IF(\(uniqueIdCell)=\"\",\"\",IFERROR(\(fnPrefix)NUMBERVALUE(\(fnPrefix)TEXTBEFORE(\(uniqueIdCell), \"+\")),\(fnPrefix)TEXTBEFORE(\(uniqueIdCell), \"+\")))")
         
         // Total local/national columns
-        let dataRange = "\(arrayRef)(\(cell(dataRow!, dataColumn, columnFixed: true))):\(arrayRef)(\(cell(dataRow!, rowFixed: true, dataColumn + writer.sheets.count - 1, columnFixed: true)))"
+        let dataRange = "\(arrayRef)(\(cell(dataRow!, dataColumn, columnFixed: true))):\(arrayRef)(\(cell(dataRow!, rowFixed: true, dataColumn + writer.rounds.count - 1, columnFixed: true)))"
         
         write(worksheet: worksheet, row: dataRow!, column: localMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(nationalLocalRange), \"<>National\", \(lambdaParam))))")
         write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(nationalLocalRange), \"=National\", \(lambdaParam))))")
         
         // Lookup data columns
-        for (column, sheet) in writer.sheets.enumerated() {
-            let sourceDataRange = "\(cell(1, rowFixed: true, sheet.individualMPs.uniqueColumn!, columnFixed: true)):\(cell(writer.maxPlayers, rowFixed: true, sheet.individualMPs.decimalColumn!, columnFixed: true))"
-            let sourceOffset = (sheet.individualMPs.sheet.individualMPs.decimalColumn! - sheet.individualMPs.uniqueColumn! + 1)
-            write(worksheet: worksheet, row: dataRow!, column: dataColumn + column, dynamicFloatFormula: "=IF(\(uniqueIdCell)=\"\",0,IFERROR(VLOOKUP(\(uniqueIdCell),'\(sheet.prefix) \(sheet.individualMPs.name)'!\(sourceDataRange),\(sourceOffset),FALSE),0))")
+        for (column, round) in writer.rounds.enumerated() {
+            let sourceDataRange = "\(cell(1, rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)):\(cell(writer.maxPlayers, rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true))"
+            let sourceOffset = (round.individualMPs.round.individualMPs.decimalColumn! - round.individualMPs.uniqueColumn! + 1)
+            write(worksheet: worksheet, row: dataRow!, column: dataColumn + column, dynamicFloatFormula: "=IF(\(uniqueIdCell)=\"\",0,IFERROR(VLOOKUP(\(uniqueIdCell),\(cell(writer: round.individualMPs, sourceDataRange)),\(sourceOffset),FALSE),0))")
         }
     }
 }
@@ -538,7 +547,6 @@ class ConsolidatedWriter: WriterBase {
  
 class RanksPlusMPsWriter: WriterBase {
     private var writer: Writer!
-    var sheet: Sheet!
     var scoreData: ScoreData!
     var worksheet: UnsafeMutablePointer<lxw_worksheet>?
     
@@ -576,10 +584,10 @@ class RanksPlusMPsWriter: WriterBase {
     
     let headerRows = 3
     
-    init(writer: Writer, sheet: Sheet, scoreData: ScoreData) {
+    init(writer: Writer, round: Round, scoreData: ScoreData) {
         super.init(workbook: writer.workbook)
         self.writer = writer
-        self.sheet = sheet
+        self.round = round
         self.scoreData = scoreData
         self.workbook = workbook
         worksheet = workbook_add_worksheet(workbook, "\(scoreData.roundName!) \(name)")
@@ -598,10 +606,10 @@ class RanksPlusMPsWriter: WriterBase {
                 format = formatRightBold
             }
             setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
-            write(worksheet: worksheet, row: headerRows, column: columnNumber, string: sheet.replace(column.title), format: format)
+            write(worksheet: worksheet, row: headerRows, column: columnNumber, string: round.replace(column.title), format: format)
         }
         
-        for playerNumber in 0..<sheet.maxParticipantPlayers {
+        for playerNumber in 0..<round.maxParticipantPlayers {
             let nationalIdColumn = nationalIdColumn[playerNumber]
             let firstNameColumn = firstNameColumn[playerNumber]
             let otherNamesColumn = otherNameColumn[playerNumber]
@@ -610,7 +618,7 @@ class RanksPlusMPsWriter: WriterBase {
             let nationalIdZero = "\(columnRef(column: nationalIdColumn, fixed: true))\(headerRows + 2)=0"
             let nationalIdLarge = "\(columnRef(column: nationalIdColumn, fixed: true))\(headerRows + 2)>\(maxNationalIdNumber)"
             let formula = "=AND(OR(\(firstNameNonBlank),\(otherNamesNonBlank)), OR(\(nationalIdZero),\(nationalIdLarge)))"
-            setConditionalFormat(worksheet: worksheet, fromRow: headerRows + 1, fromColumn: nationalIdColumn, toRow: headerRows + sheet.fieldSize, toColumn: nationalIdColumn, formula: formula, format: formatRed!)
+            setConditionalFormat(worksheet: worksheet, fromRow: headerRows + 1, fromColumn: nationalIdColumn, toRow: headerRows + round.fieldSize, toColumn: nationalIdColumn, formula: formula, format: formatRed!)
         }
         
         for (rowSequence, participant) in participants.enumerated() {
@@ -669,7 +677,7 @@ class RanksPlusMPsWriter: WriterBase {
     
     private func setupColumns() {
         let event = scoreData.events.first!
-        let playerCount = sheet.maxParticipantPlayers
+        let playerCount = round.maxParticipantPlayers
         let winDraw = event.type?.requiresWinDraw ?? false
         
         columns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place!)" }, cellType: .integer))
@@ -684,7 +692,7 @@ class RanksPlusMPsWriter: WriterBase {
         
         columns.append(Column(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float))
         
-        if winDraw && sheet.maxParticipantPlayers <= event.type?.participantType?.players ?? sheet.maxParticipantPlayers {
+        if winDraw && round.maxParticipantPlayers <= event.type?.participantType?.players ?? round.maxParticipantPlayers {
             columns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw!)" }, cellType: .float))
             winDrawColumn.append(columns.count - 1)
         }
@@ -699,7 +707,7 @@ class RanksPlusMPsWriter: WriterBase {
             columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: { (_, player,_, _) in player.nationalId! }, playerNumber: playerNumber, cellType: .integer))
             nationalIdColumn.append(columns.count - 1)
             
-            if sheet.maxParticipantPlayers > event.type?.participantType?.players ?? sheet.maxParticipantPlayers {
+            if round.maxParticipantPlayers > event.type?.participantType?.players ?? round.maxParticipantPlayers {
                 
                 columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
                 boardsPlayedColumn.append(columns.count - 1)
@@ -722,7 +730,7 @@ class RanksPlusMPsWriter: WriterBase {
             }
         }
         
-        if sheet.maxParticipantPlayers <= event.type?.participantType?.players ?? sheet.maxParticipantPlayers {
+        if round.maxParticipantPlayers <= event.type?.participantType?.players ?? round.maxParticipantPlayers {
             
             columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", content: bonusAward, cellType: .floatFormula))
             bonusMPColumn.append(columns.count - 1)
@@ -733,7 +741,7 @@ class RanksPlusMPsWriter: WriterBase {
                 winDrawMPColumn.append(columns.count - 1)
                 
                 columns.append(Column(title: "Total MP", content: totalAward, cellType: .integerFormula))
-                for _ in 0..<sheet.maxParticipantPlayers {
+                for _ in 0..<round.maxParticipantPlayers {
                     totalMPColumn.append(columns.count - 1)
                 }
             }
@@ -753,7 +761,7 @@ class RanksPlusMPsWriter: WriterBase {
         var useAwardToCell = awardToCell
         var firstRow = headerRows + 1
         var lastRow = headerRows + event.participants.count
-        if let nsPairs = sheet.nsPairs {
+        if let nsPairs = round.nsPairs {
             if event.winnerType == 2 && participant.type == .pair {
                 if let pair = participant.member as? Pair {
                     if pair.direction == .ew {
@@ -819,11 +827,11 @@ class RanksPlusMPsWriter: WriterBase {
         var column = -1
         var row = 0
         var prefix = ""
-        var toe = sheet.fieldSize
+        var toe = round.fieldSize
         let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
         if twoWinners {
             prefix = "NS "
-            toe = sheet.nsPairs!
+            toe = round.nsPairs!
         }
         
         func writeCell(string: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -911,7 +919,7 @@ class RanksPlusMPsWriter: WriterBase {
         var toeCells = toeCell!
         var ewToeRef = ""
         if twoWinners {
-            writeCell(integer: sheet.fieldSize - sheet.nsPairs!) ; ewToeRef = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(integer: round.fieldSize - round.nsPairs!) ; ewToeRef = cell(row, rowFixed: true, column, columnFixed: true)
             toeCells += "+" + ewToeRef
         }
         writeCell(integerFormula: "=ROUNDUP(\(toeCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(row, rowFixed: true, column, columnFixed: true)
@@ -962,7 +970,7 @@ class RanksPlusMPsWriter: WriterBase {
         let firstRow = headerRows + 1
         let lastRow = headerRows + event.participants.count
         var result = ""
-        for playerNumber in 0..<sheet.maxParticipantPlayers {
+        for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
                 result += ","
             }
@@ -978,7 +986,6 @@ class RanksPlusMPsWriter: WriterBase {
 
 class IndividualMPsWriter: WriterBase {
     private var writer: Writer
-    var sheet: Sheet
     var scoreData: ScoreData
     var worksheet: UnsafeMutablePointer<lxw_worksheet>?
     override var name: String { "Individual MPs" }
@@ -993,11 +1000,11 @@ class IndividualMPsWriter: WriterBase {
     var nationalTotalColumn: Int?
     var checksumColumn: Int?
     
-    init(writer: Writer, sheet: Sheet, scoreData: ScoreData) {
+    init(writer: Writer, round: Round, scoreData: ScoreData) {
         self.writer = writer
-        self.sheet = sheet
         self.scoreData = scoreData
         super.init(workbook: writer.workbook)
+        self.round = round
         worksheet = workbook_add_worksheet(workbook, "\(scoreData.roundName!) \(name)")
      }
     
@@ -1010,7 +1017,7 @@ class IndividualMPsWriter: WriterBase {
                 format = formatRightBold
             }
             setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
-            write(worksheet: worksheet, row: 0, column: columnNumber, string: sheet.replace(column.title), format: format)
+            write(worksheet: worksheet, row: 0, column: columnNumber, string: round.replace(column.title), format: format)
         }
         
         for (columnNumber, column) in columns.enumerated() {
@@ -1042,30 +1049,30 @@ class IndividualMPsWriter: WriterBase {
         let event = scoreData.events.first!
         let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
         
-        columns.append(Column(title: "Place", referenceContent: { [self] (_) in sheet.ranksPlusMps.positionColumn! }, cellType: .integerFormula)) ; positionColumn = columns.count - 1
+        columns.append(Column(title: "Place", referenceContent: { [self] (_) in round.ranksPlusMps.positionColumn! }, cellType: .integerFormula)) ; positionColumn = columns.count - 1
         
         if twoWinners {
-            columns.append(Column(title: "Direction", referenceContent: { [self] (_) in sheet.ranksPlusMps.directionColumn! }, cellType: .stringFormula))
+            columns.append(Column(title: "Direction", referenceContent: { [self] (_) in round.ranksPlusMps.directionColumn! }, cellType: .stringFormula))
         }
         
-        columns.append(Column(title: "@P no", referenceContent: { [self] (_) in sheet.ranksPlusMps.participantNoColumn! }, cellType: .integerFormula))
+        columns.append(Column(title: "@P no", referenceContent: { [self] (_) in round.ranksPlusMps.participantNoColumn! }, cellType: .integerFormula))
         
         columns.append(Column(title: "Unique", cellType: .floatFormula)) ; uniqueColumn = columns.count - 1
         let unique = columns.last!
         
-        columns.append(Column(title: "Names", referenceContent: { [self] (playerNumber) in sheet.ranksPlusMps.firstNameColumn[playerNumber] }, cellType: .stringFormula)) ; let firstNameColumn = columns.count - 1
+        columns.append(Column(title: "Names", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.firstNameColumn[playerNumber] }, cellType: .stringFormula)) ; let firstNameColumn = columns.count - 1
         
-        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in sheet.ranksPlusMps.otherNameColumn[playerNumber] }, cellType: .stringFormula)) ; let otherNamesColumn = columns.count - 1
+        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.otherNameColumn[playerNumber] }, cellType: .stringFormula)) ; let otherNamesColumn = columns.count - 1
         
-        columns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in sheet.ranksPlusMps.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; nationalIdColumn = columns.count - 1
+        columns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; nationalIdColumn = columns.count - 1
         
         unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(1, nationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, firstNameColumn, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, otherNamesColumn, columnFixed: true))))" }
         
-        columns.append(Column(title: "Total MPs", referenceContent: { [self] (playerNumber) in sheet.ranksPlusMps.totalMPColumn[playerNumber] }, cellType: .floatFormula)) ; decimalColumn = columns.count - 1
+        columns.append(Column(title: "Total MPs", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.totalMPColumn[playerNumber] }, cellType: .floatFormula)) ; decimalColumn = columns.count - 1
         
-        columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF('\(scoreData.roundName!) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.localCell!)<>\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; localMPsColumn = columns.count - 1
+        columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))<>\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; localMPsColumn = columns.count - 1
         
-        columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF('\(scoreData.roundName!) \(sheet.ranksPlusMps.name)'!\(sheet.ranksPlusMps.localCell!)=\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; nationalMPsColumn = columns.count - 1
+        columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))=\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula)) ; nationalMPsColumn = columns.count - 1
         
         columns.append(Column(title: "Total Local", cellType: .floatFormula)) ; localTotalColumn = columns.count - 1
         
@@ -1089,14 +1096,14 @@ class IndividualMPsWriter: WriterBase {
         
         var result = "\(filter)(\(vstack)("
         
-        for playerNumber in 0..<sheet.maxParticipantPlayers {
+        for playerNumber in 0..<round.maxParticipantPlayers {
             let columnReference = referencedContent(playerNumber)
             if playerNumber != 0 {
                 result += ","
             }
-            result += "'\(scoreData.roundName!) \(sheet.ranksPlusMps.name)'!" + cell(sheet.ranksPlusMps.headerRows + 1, columnReference)
+            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, columnReference)
             result += ":"
-            result += cell(sheet.ranksPlusMps.headerRows + sheet.fieldSize, columnReference)
+            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, columnReference)
         }
         
         result += ")"
@@ -1106,13 +1113,13 @@ class IndividualMPsWriter: WriterBase {
         }
         result += ",\(vstack)("
         
-        for playerNumber in 0..<sheet.maxParticipantPlayers {
+        for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
                 result += ","
             }
-            result += "'\(scoreData.roundName!) \(sheet.ranksPlusMps.name)'!" + cell(sheet.ranksPlusMps.headerRows + 1, sheet.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.headerRows + 1, round.ranksPlusMps.totalMPColumn[playerNumber])
             result += ":"
-            result += cell(sheet.ranksPlusMps.headerRows + sheet.fieldSize, sheet.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(round.ranksPlusMps.headerRows + round.fieldSize, round.ranksPlusMps.totalMPColumn[playerNumber])
         }
         result += ")<>0)"
         
@@ -1167,6 +1174,7 @@ class WriterBase {
     var formatYellow: UnsafeMutablePointer<lxw_format>?
     var formatGrey: UnsafeMutablePointer<lxw_format>?
     
+    var round: Round!
     var name: String { fatalError() }
     
     init(workbook: UnsafeMutablePointer<lxw_workbook>? = nil) {
@@ -1209,12 +1217,19 @@ class WriterBase {
     func cell(writer: WriterBase? = nil, _ row: Int, rowFixed: Bool = false, _ column: Int, columnFixed: Bool = false) -> String {
         let rowRef = rowRef(row: row, fixed: rowFixed)
         let columnRef = columnRef(column: column, fixed: columnFixed)
-        return cell(writer: writer, cellRef: "\(columnRef)\(rowRef)")
+        return cell(writer: writer, "\(columnRef)\(rowRef)")
     }
     
-    func cell(writer: WriterBase? = nil, cellRef: String) -> String {
-        let sheetRef = (writer == nil ? "" : "'\(writer!.name)'!")
-        return "\(sheetRef)\(cellRef)"
+    func cell(writer: WriterBase? = nil, _ cellRef: String) -> String {
+        var roundRef = ""
+        if let writer = writer {
+            var prefix = ""
+            if let round = writer.round {
+                prefix = "\(round.prefix) "
+            }
+            roundRef = "'\(prefix)\(writer.name)'!"
+        }
+        return "\(roundRef)\(cellRef)"
     }
     
     func rowRef(row: Int, fixed: Bool = false) -> String {
