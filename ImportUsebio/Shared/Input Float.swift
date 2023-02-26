@@ -13,7 +13,7 @@ struct InputFloat : View {
     var message: Binding<String>?
     var topSpace: CGFloat = 0
     var leadingSpace: CGFloat = 0
-    var height: CGFloat = 40
+    var height: CGFloat = inputDefaultHeight
     var width: CGFloat?
     var places: Int = 2
     var inlineTitle: Bool = true
@@ -42,7 +42,6 @@ struct InputFloat : View {
                 HStack {
                     InputTitle(title: title, message: message, topSpace: topSpace)
                 }
-                Spacer().frame(height: 8)
             } else {
                 Spacer().frame(height: topSpace)
             }
@@ -50,24 +49,22 @@ struct InputFloat : View {
                 Spacer().frame(width: leadingSpace)
                 if title != nil && inlineTitle {
                     HStack {
-                        Spacer().frame(width: 6)
                         Text(title!)
+                            .font(inputFont)
                         Spacer()
                     }
                     .frame(width: inlineTitleWidth)
                 }
 
                 HStack {
-                    Spacer().frame(width: 4)
-                    
                     UndoWrapper(text) { text in
                         TextField("", text: text, onEditingChanged: {(editing) in
                             text.wrappedValue = Float(text.wrappedValue)?.toString(places: places) ?? ""
-                            field = Float(text.wrappedValue) ?? 0
+                            field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
                         })
                             .onSubmit {
                                 text.wrappedValue = Float(text.wrappedValue)?.toString(places: places) ?? ""
-                                field = Float(text.wrappedValue) ?? 0
+                                field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
                             }
                             .onChange(of: text.wrappedValue) { newValue in
                                 let filtered = newValue.filter { "0123456789 -,.".contains($0) }
@@ -75,7 +72,7 @@ struct InputFloat : View {
                                 if filtered != newValue {
                                     text.wrappedValue = filtered
                                 }
-                                field = Float(text.wrappedValue) ?? 0
+                                field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
                                 if oldField != field {
                                     onChange?(field)
                                 }
@@ -90,7 +87,7 @@ struct InputFloat : View {
                 }
                 .frame(height: height)
                 .background(Palette.input.background)
-                .cornerRadius(12)
+                .cornerRadius(8)
     
                 if width == nil {
                     Spacer()
@@ -109,7 +106,7 @@ struct InputFloat : View {
         }
         .frame(height: self.height + ((self.inlineTitle ? 0 : self.topSpace) + (title == nil || inlineTitle ? 0 : 30)))
         .if(width != nil) { (view) in
-            view.frame(width: width! + leadingSpace + (inlineTitle && title != nil ? inlineTitleWidth : 0))
+            view.frame(width: width! + leadingSpace + (inlineTitle && title != nil ? inlineTitleWidth : 0) + 32)
         }
     }
 }

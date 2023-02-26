@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B20CFF382994EC8800B09269 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20CFF372994EC8800B09269 /* Validation.swift */; };
+		B271D0E529A7B70C003C417C /* Notes.txt in Resources */ = {isa = PBXBuildFile; fileRef = B271D0E429A7B70C003C417C /* Notes.txt */; };
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
 		B28D69082994CDCD00BA73E5 /* File System.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69072994CDCD00BA73E5 /* File System.swift */; };
 		B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */ = {isa = PBXBuildFile; fileRef = B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */; };
@@ -56,6 +57,7 @@
 		6251B899D03B9B558B6DFAFB /* Pods-ImportUsebio.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ImportUsebio.release.xcconfig"; path = "Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio.release.xcconfig"; sourceTree = "<group>"; };
 		7560428ABF5BBFBD709EC702 /* Pods-ImportUsebio.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ImportUsebio.debug.xcconfig"; path = "Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio.debug.xcconfig"; sourceTree = "<group>"; };
 		B20CFF372994EC8800B09269 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
+		B271D0E429A7B70C003C417C /* Notes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Notes.txt; sourceTree = "<group>"; };
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
 		B28D69072994CDCD00BA73E5 /* File System.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "File System.swift"; sourceTree = "<group>"; };
 		B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ImportUsebio.xcworkspace; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 		B2E103442992785000A35645 /* ImportUsebio */ = {
 			isa = PBXGroup;
 			children = (
+				B271D0E429A7B70C003C417C /* Notes.txt */,
 				B2E1034E2992785200A35645 /* ImportUsebio.entitlements */,
 				B2E103542992792A00A35645 /* Shared */,
 				B2E103552992793B00A35645 /* Main App */,
@@ -341,6 +344,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */,
+				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

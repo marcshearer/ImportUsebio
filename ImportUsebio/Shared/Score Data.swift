@@ -280,6 +280,7 @@ public class ScoreData {
     public var maxAward: Float = 0.0
     public var minField: Int = 0
     public var awardTo: Float = 0.0
+    public var perWin: Float = 0.0
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []

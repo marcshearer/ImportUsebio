@@ -93,12 +93,14 @@ struct MessageBoxView: View {
                             } label: {
                                 Text(okText)
                                     .foregroundColor(values.okDestructive ? Palette.destructiveButton.text : Palette.highlightButton.text)
-                                    .font(.callout).minimumScaleFactor(0.5)
                                     .frame(width: 100, height: 30)
+                                    .font(.callout).minimumScaleFactor(0.5)
                                     .background(values.okDestructive ? Palette.destructiveButton.background : Palette.highlightButton.background)
                                     .cornerRadius(15)
                             }
-                        }
+                            .frame(width: 100, height: 30)
+                            .buttonStyle(PlainButtonStyle())
+                      }
                         
                         if let cancelText = values.cancelText {
                             if values.okText != nil {
@@ -110,8 +112,8 @@ struct MessageBoxView: View {
                             } label: {
                                 Text(cancelText)
                                     .foregroundColor(Palette.highlightButton.text)
-                                    .font(.callout).minimumScaleFactor(0.5)
                                     .frame(width: 100, height: 30)
+                                    .font(.callout).minimumScaleFactor(0.5)
                                     .background(Palette.highlightButton.background)
                                     .cornerRadius(15)
                             }

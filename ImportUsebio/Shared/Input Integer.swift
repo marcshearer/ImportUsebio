@@ -13,7 +13,7 @@ struct InputInt : View {
     var field: Binding<Int>
     var message: Binding<String>?
     var topSpace: CGFloat = inputTopHeight
-    var leadingSpace: CGFloat = 32
+    var leadingSpace: CGFloat = 0
     var height: CGFloat = inputDefaultHeight
     var width: CGFloat?
     var inlineTitle: Bool = true
@@ -34,8 +34,7 @@ struct InputInt : View {
                 HStack {
                     InputTitle(title: title, message: message, topSpace: topSpace)
                 }
-                Spacer().frame(height: 8)
-            } else {
+           } else {
                 Spacer().frame(height: topSpace)
             }
             
@@ -43,15 +42,14 @@ struct InputInt : View {
                 Spacer().frame(width: leadingSpace)
                 if title != nil && inlineTitle {
                     HStack {
-                        Spacer().frame(width: 6)
                         Text(title!)
+                            .font(inputFont)
                         Spacer()
                     }
                     .frame(width: inlineTitleWidth)
                 }
                 
                 HStack {
-                    Spacer().frame(width: 8)
                     UndoWrapper(field) { field in
                         TextField("", value: field, format: .number)
                             .lineLimit(1)
@@ -64,14 +62,14 @@ struct InputInt : View {
                 }
                 .frame(height: height)
                 .background(Palette.input.background)
-                .cornerRadius(12)
+                .cornerRadius(8)
                 
                 if width == nil {
                     Spacer()
                 }
             }
-            .font(inputFont)
         }
+        .font(inputFont)
         .onAppear {
             text = "\(field.wrappedValue)"
         }
@@ -80,7 +78,7 @@ struct InputInt : View {
         }
         .frame(height: self.height + ((self.inlineTitle ? 0 : self.topSpace) + (title == nil || inlineTitle ? 0 : 30)))
         .if(width != nil) { (view) in
-            view.frame(width: width! + leadingSpace + (inlineTitle ? inlineTitleWidth : 0) + 16)
+            view.frame(width: width! + leadingSpace + (inlineTitle ? inlineTitleWidth : 0) + 32)
         }
     }
 }

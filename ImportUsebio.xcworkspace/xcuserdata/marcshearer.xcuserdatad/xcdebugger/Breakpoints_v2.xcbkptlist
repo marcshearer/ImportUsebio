@@ -14,89 +14,10 @@
             filePath = "ImportUsebio/Shared/SelectInput.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "170"
-            endingLineNumber = "170"
-            landmarkName = "parserComplete(scoreData:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "5D4FD74D-5F1D-4014-9B0D-0ED3FDEFDE96"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "ImportUsebio/Shared/Writer.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1109"
-            endingLineNumber = "1109"
-            landmarkName = "referenceColumn(columnNumber:referencedContent:referenceDivisor:cellType:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "5A6C08BD-3108-440F-AFB5-BD8C57E247F1"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "ImportUsebio/Shared/Writer.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1085"
-            endingLineNumber = "1085"
-            landmarkName = "setupIndividualMpsColumns()"
-            landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "5A6C08BD-3108-440F-AFB5-BD8C57E247F1 - e7e9a7905be274a9"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "ImportUsebio.Writer.setupIndividualMpsColumns() -&gt; ()"
-                  moduleName = "ImportUsebio"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/marcshearer/Documents/Xcode%20projects/ImportUsebio/ImportUsebio/Shared/Writer.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "958"
-                  endingLineNumber = "958"
-                  offsetFromSymbolStart = "4998">
-               </Location>
-               <Location
-                  uuid = "5A6C08BD-3108-440F-AFB5-BD8C57E247F1 - e7e9a7905be274a9"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "ImportUsebio.Writer.setupIndividualMpsColumns() -&gt; ()"
-                  moduleName = "ImportUsebio"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/marcshearer/Documents/Xcode%20projects/ImportUsebio/ImportUsebio/Shared/Writer.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "958"
-                  endingLineNumber = "958"
-                  offsetFromSymbolStart = "5041">
-               </Location>
-               <Location
-                  uuid = "5A6C08BD-3108-440F-AFB5-BD8C57E247F1 - c646eb74e1b6a911"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #10 () -&gt; Swift.String in ImportUsebio.Writer.setupIndividualMpsColumns() -&gt; ()"
-                  moduleName = "ImportUsebio"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/marcshearer/Documents/Xcode%20projects/ImportUsebio/ImportUsebio/Shared/Writer.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "958"
-                  endingLineNumber = "958"
-                  offsetFromSymbolStart = "63">
-               </Location>
-            </Locations>
+            startingLineNumber = "254"
+            endingLineNumber = "254"
+            landmarkName = "Handle errors"
+            landmarkType = "19">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

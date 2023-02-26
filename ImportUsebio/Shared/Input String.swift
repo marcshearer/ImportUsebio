@@ -67,9 +67,6 @@ struct Input : View {
                                 }
                             } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
                                 VStack {
-                                    if MyApp.target == .macOS {
-                                        Spacer().frame(height: 2)
-                                    }
                                     if isEnabled && !isReadOnly {
                                         TextEditor(text: $field)
                                             .font(inputFont)
@@ -82,18 +79,20 @@ struct Input : View {
                                             .disableAutocorrection(!autoCorrect)
                                     } else {
                                         VStack {
-                                            Spacer().frame(height: 10)
                                             HStack {
                                                 Spacer().frame(width: 10)
                                                 Text(field)
                                                     .foregroundColor(Palette.input.faintText)
                                                     .font(inputFont)
+                                                    .frame(height: height)
                                                 Spacer()
                                             }
                                             Spacer()
                                         }
                                     }
                                 }
+                                .font(inputFont)
+                                .frame(height: height)
                             } else {
                                 TextField("", text: $field)
                                     .font(inputFont)
@@ -105,6 +104,7 @@ struct Input : View {
                                     .myKeyboardType(self.keyboardType)
                                     .myAutocapitalization(autoCapitalize)
                                     .disableAutocorrection(!autoCorrect)
+                                    .frame(height: height)
                             }
                         }
                     }
@@ -112,9 +112,9 @@ struct Input : View {
                     Spacer().frame(width: 24)
                 }
             }
+            Spacer().frame(height: 8)
         }
-        .background(Color.clear)
-        .frame(height: self.height + self.topSpace + (title == nil ? 0 : 30))
+        .frame(height: self.height + self.topSpace + (title == nil ? 0 : 20))
     }
 }
 
