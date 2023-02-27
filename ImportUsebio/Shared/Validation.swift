@@ -87,7 +87,8 @@ extension ScoreData {
         
     private func validateParticipants() {
         let event = events.first!
-        var dict: [String : Bool] = [:]
+        var participantNumbers: [String : Bool] = [:]
+        var playerNationalIds: [ String : [String] ] = [:]
         
         for participant in event.participants {
             
@@ -95,13 +96,13 @@ extension ScoreData {
                 error("Participant found with no number")
             } else {
                 // Check no duplicates
-                if dict[participant.number] == nil {
-                    dict[participant.number] = false
+                if participantNumbers[participant.number] == nil {
+                    participantNumbers[participant.number] = false
                 } else {
-                    if dict[participant.number] == false {
+                    if participantNumbers[participant.number] == false {
                         error("Duplicate found for \(participant.type.string) '\(participant.number)'")
                     }
-                    dict[participant.description] = true
+                    participantNumbers[participant.description] = true
                 }
             }
             
@@ -127,11 +128,35 @@ extension ScoreData {
             }
             
             for player in participant.member.playerList {
+                // Build national Id list
+                if let nationalId = player.nationalId {
+                    if nationalId != "0" && nationalId != "" {
+                        if playerNationalIds[nationalId] == nil {
+                            playerNationalIds[nationalId] = []
+                        }
+                        playerNationalIds[nationalId]!.append("\(player.description) in \(participant.description)")
+                    }
+                }
                 validate(player: player, errorSuffix: " in \(participant.description)")
             }
             
             if (event.type?.requiresWinDraw ?? false) && participant.winDraw == nil {
                 error("No wins/draws for \(participant.description)")
+            }
+        }
+        // Report duplicate National IDs
+        for (nationalId, players) in playerNationalIds {
+            if players.count > 1 {
+                var message = "Duplicate National Id \(nationalId) for "
+                for (playerNumber, player) in players.enumerated() {
+                    if playerNumber == players.count - 1 {
+                        message += " & "
+                    } else if playerNumber != 0 {
+                        message += ", "
+                    }
+                    message += player
+                }
+                warning(message)
             }
         }
     }
@@ -160,7 +185,7 @@ extension ScoreData {
             error("Team \(team.description) has \(team.pairs.count) pairs\(errorSuffix)")
         }
     }
-    
+       
     // MARK: - Utility routines
 
     func error(_ text: String) {

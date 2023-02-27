@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 class FileSystem {
     
-    static public func findFile(relativeTo: URL? = nil,completion: @escaping (URL, Data)->()) {
+    static public func findFile(relativeTo: URL? = nil, types: [String]? = nil, completion: @escaping (URL, Data)->()) {
 #if canImport(AppKit)
         let openPanel = NSOpenPanel()
         openPanel.allowsMultipleSelection = false
@@ -18,6 +19,9 @@ class FileSystem {
         openPanel.canChooseFiles = true
         openPanel.prompt = "Select target"
         openPanel.level = .floating
+        if let types = types {
+            openPanel.allowedContentTypes = types.map{UTType(tag: $0, tagClass: UTTagClass.filenameExtension, conformingTo: .text)!}
+        }
         openPanel.begin { result in
             if result == .OK {
                 if !openPanel.urls.isEmpty {

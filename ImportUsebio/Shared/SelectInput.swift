@@ -14,7 +14,7 @@ enum Level: Int {
 
 struct SelectInputView: View {
     @State private var inputFilename: String = ""
-    @State private var roundName: String = "Pairs"
+    @State private var roundName: String = ""
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
     @State private var nationalLocal = Level.local
@@ -145,7 +145,7 @@ struct SelectInputView: View {
     private func finderButton() -> some View {
         
         return Button {
-            FileSystem.findFile { (url, bookmarkData) in
+            FileSystem.findFile(types: ["xml"]) { (url, bookmarkData) in
                 Utility.mainThread {
                     refresh.toggle()
                     securityBookmark = bookmarkData
@@ -247,15 +247,15 @@ struct SelectInputView: View {
         .disabled(writer == nil)
     }
     
-    private func parserComplete(scoreData: ScoreData) {
+    private func parserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
         let (errors, warnings) = scoreData.validate()
         if let errors = errors {
             // TODO: Handle errors
-            print(errors)
+            print(parseErrors + errors)
         } else {
             if let warnings = warnings {
                 // TODO: Show warnings
-                print(warnings)
+                print(parseWarnings + warnings)
             }
             self.scoreData = scoreData
             self.inputFilename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""

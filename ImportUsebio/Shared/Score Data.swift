@@ -221,7 +221,7 @@ public class Team : Member {
         let fullList = pairs.flatMap{$0.playerList}
         var list: [Player] = []
         for player in fullList {
-            if let existing = list.first(where: {$0.name == player.name && $0.nationalId == player.nationalId}) {
+            if let existing = list.first(where: {$0.name?.lowercased() == player.name?.lowercased() && $0.nationalId == player.nationalId}) {
                 existing.accumulatedBoardsPlayed = existing.accumulatedBoardsPlayed! + (player.pair?.boardsPlayed ?? 0)
                 existing.accumulatedWinDraw = existing.accumulatedWinDraw! + (player.pair?.winDraw ?? 0)
             } else {

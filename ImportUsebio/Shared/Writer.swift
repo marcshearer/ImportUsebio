@@ -120,7 +120,7 @@ class Writer: WriterBase {
     
     func write() {
         // Create workbook
-        let name = "New workbook.xlsm"
+        let name = "\(eventDescription.replacingOccurrences(of: "/", with: "-")).xlsm"
         self.workbook = workbook_new(name)
         setupFormats()
         // Create worksheets
@@ -245,7 +245,7 @@ class SummaryWriter : WriterBase {
     }
     
     private func writeTotal(column: Int?, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        write(worksheet: worksheet, row: totalRow!, column: column!, integerFormula: "=SUM(\(cell(detailRow!, rowFixed: true, column!)):\(cell(detailRow! + writer.rounds.count - 1, rowFixed: true, column!)))", format: format ?? formatZeroFloat)
+        write(worksheet: worksheet, row: totalRow!, column: column!, integerFormula: "=ROUND(SUM(\(cell(detailRow!, rowFixed: true, column!)):\(cell(detailRow! + writer.rounds.count - 1, rowFixed: true, column!))),2)", format: format ?? formatZeroFloat)
     }
     
     private func highlightTotalDifferent(row: Int, compareRow: Int, column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -322,10 +322,10 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, string: writer.eventCode)
         
         write(worksheet: worksheet, row: minRankRow, column: titleColumn, string: "Minimum Rank:", format: formatBold)
-        write(worksheet: worksheet, row: minRankRow, column: valuesColumn, formula: "=\(writer.minRank)")
+        write(worksheet: worksheet, row: minRankRow, column: valuesColumn, formula: "=\(writer.minRank)", format: formatString)
         
         write(worksheet: worksheet, row: maxRankRow, column: titleColumn, string: "Maximum Rank:", format: formatBold)
-        write(worksheet: worksheet, row: maxRankRow, column: valuesColumn, formula: "=\(writer.maxRank)")
+        write(worksheet: worksheet, row: maxRankRow, column: valuesColumn, formula: "=\(writer.maxRank)", format: formatString)
         
         write(worksheet: worksheet, row: eventDateRow, column: titleColumn, string: "Event Date:", format: formatBold)
         write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(writer.maxEventDate)", format: formatDate)
@@ -333,15 +333,15 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: licenseNoRow, column: titleColumn, string: "License no:", format: formatBold)
         
         write(worksheet: worksheet, row: localMPsRow, column: titleColumn, string: "Local MPs:", format: formatBold)
-        write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=ROUND(SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true)))),2)", format: formatZeroFloat)
         localMpsCell = cell(localMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: nationalMPsRow, column: titleColumn, string: "National MPs:", format: formatBold)
-        write(worksheet: worksheet, row: nationalMPsRow, column: valuesColumn, dynamicFormula: "=SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: nationalMPsRow, column: valuesColumn, dynamicFormula: "=ROUND(SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true)))),2)", format: formatZeroFloat)
         nationalMpsCell = cell(nationalMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: checksumRow, column: titleColumn, string: "Checksum:", format: formatBold)
-        write(worksheet: worksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=SUM((\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: checksumRow, column: valuesColumn, dynamicFormula: "=ROUND(SUM((\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true)))+\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn, columnFixed: true))))*\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true)))),2)", format: formatZeroFloat)
         checksumCell = cell(checksumRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         // Data
@@ -519,9 +519,9 @@ class ConsolidatedWriter: WriterBase {
                 let nationalIdRange = "\(arrayRef)(\(cell(dataRow!, rowFixed: true, nationalIdColumn!, columnFixed: true)))"
                 
                 if row == totalRow {
-                    write(worksheet: worksheet, row: row, column: dataColumn + column, floatFormula: "=SUM(\(valueRange))", format: formatFloatBoldUnderline)
+                    write(worksheet: worksheet, row: row, column: dataColumn + column, floatFormula: "=ROUND(SUM(\(valueRange)),2)", format: formatFloatBoldUnderline)
                 } else {
-                    write(worksheet: worksheet, row: row, column: dataColumn + column, floatFormula: "=SUM(\(valueRange)*\(nationalIdRange))", format: formatFloatBoldUnderline)
+                    write(worksheet: worksheet, row: row, column: dataColumn + column, floatFormula: "=ROUND(SUM(\(valueRange)*\(nationalIdRange)),2)", format: formatFloatBoldUnderline)
                 }
             }
         }
@@ -811,7 +811,7 @@ class RanksPlusMPsWriter: WriterBase {
             }
             totalBoardsPlayed += ")"
 
-            result += "ROUNDUP((\(cell(rowNumber, boardsPlayedColumn[playerNumber], columnFixed: true))/MAX(1,\(totalBoardsPlayed)))*"
+            result += "ROUNDUP((\(cell(rowNumber, boardsPlayedColumn[playerNumber], columnFixed: true))/(MAX(1,\(totalBoardsPlayed))/\(event.type!.participantType!.players)))*"
         }
         
         result += "IF(\(positionCell)=0,0,Award(\(useAwardCell), \(positionCell), \(useAwardToCell), 2, \(allPositionsRange)))"
@@ -985,11 +985,11 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(string: scoreData.national ? "National" : "Local") ; localCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(localCell!)=\"National\",0,SUM(\(range(column: totalMPColumn))))") ; localMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=IF(\(localCell!)=\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; localMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,SUM(\(range(column: totalMPColumn))))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=SUM(\(vstack)(\(range(column: totalMPColumn)))*\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true) ; let checksumColumn = column
+        writeCell(floatFormula: "=ROUND(SUM(\(vstack)(\(range(column: totalMPColumn)))*\(vstack)(\(range(column: nationalIdColumn)))),2)") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true) ; let checksumColumn = column
         
         setColumn(worksheet: worksheet, column: eventDateColumn, width: 10)
         setColumn(worksheet: worksheet, column: checksumColumn, width: 16)
@@ -1191,6 +1191,7 @@ class WriterBase {
     var writer: Writer! = nil
     var workbook: UnsafeMutablePointer<lxw_workbook>?
     var worksheet: UnsafeMutablePointer<lxw_worksheet>?
+    var formatString: UnsafeMutablePointer<lxw_format>?
     var formatInt: UnsafeMutablePointer<lxw_format>?
     var formatFloat: UnsafeMutablePointer<lxw_format>?
     var formatZeroInt: UnsafeMutablePointer<lxw_format>?
@@ -1226,6 +1227,7 @@ class WriterBase {
         self.worksheet = workbook_add_worksheet(workbook, fullName)
         if let writer = writer {
             // Copy from writer
+            self.formatString = writer.formatString
             self.formatInt = writer.formatInt
             self.formatFloat = writer.formatFloat
             self.formatZeroInt = writer.formatZeroInt
@@ -1309,6 +1311,7 @@ class WriterBase {
     }
     
     func setupFormats() {
+        formatString = workbook_add_format(workbook)
         formatInt = workbook_add_format(workbook)
         format_set_num_format(formatInt, "0;-0;")
         format_set_align(formatInt, UInt8(LXW_ALIGN_RIGHT.rawValue))

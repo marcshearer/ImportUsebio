@@ -38,15 +38,17 @@ fileprivate class Node {
 public class Parser: NSObject, XMLParserDelegate {
 
     private var data: Data!
-    private var completion: (ScoreData)->()
+    private var completion: (ScoreData, [String], [String])->()
     private var parser: XMLParser!
     private let replacingSingleQuote = "@@replacingSingleQuote@@"
     private var root: Node?
     private var current: Node?
     private let scoreData = ScoreData()
+    private var errors: [String] = []
+    private var warnings: [String] = []
     private var travellerDirection: Direction?
     
-    init(fileUrl: URL, data: Data, completion: @escaping (ScoreData)->()) {
+    init(fileUrl: URL, data: Data, completion: @escaping (ScoreData, [String], [String])->()) {
         self.scoreData.fileUrl = fileUrl
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
@@ -62,7 +64,7 @@ public class Parser: NSObject, XMLParserDelegate {
     
     func parseComplete() {
         checkWinDraw()
-        completion(scoreData)
+        completion(scoreData, errors, warnings)
     }
             
     // MARK: - Parser Delegate ========================================================================== -
@@ -307,7 +309,7 @@ public class Parser: NSObject, XMLParserDelegate {
         switch name {
         case "PLACE":
             current = current?.add(child: Node(name: name, completion: { (value) in
-                participant.place = Int(value)
+                participant.place = Int(value.replacingOccurrences(of: "=", with: ""))
             }))
         case "TOTAL_SCORE", "PERCENTAGE":
             current = current?.add(child: Node(name: name, completion: { (value) in
