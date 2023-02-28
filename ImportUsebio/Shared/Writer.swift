@@ -166,7 +166,7 @@ class Writer: WriterBase {
     
 class SummaryWriter : WriterBase {
     override var name: String { "Summary" }
-    var toeColumn: Int?
+    var entryColumn: Int?
     var tablesColumn: Int?
     var descriptionColumn: Int?
     var nationalLocalColumn: Int?
@@ -185,7 +185,7 @@ class SummaryWriter : WriterBase {
     
     func write() {
         descriptionColumn = 0
-        toeColumn = 1
+        entryColumn = 1
         tablesColumn = 2
         nationalLocalColumn = 3
         localMPsColumn = 4
@@ -202,7 +202,7 @@ class SummaryWriter : WriterBase {
         setColumn(worksheet: worksheet, column: checksumColumn!, width: 16)
         
         write(worksheet: worksheet, row: headerRow!, column: descriptionColumn!, string: "Round", format: formatBold)
-        write(worksheet: worksheet, row: headerRow!, column: toeColumn!, string: "TOE", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow!, column: entryColumn!, string: "Entry", format: formatRightBold)
         write(worksheet: worksheet, row: headerRow!, column: tablesColumn!, string: "Tables", format: formatRightBold)
         write(worksheet: worksheet, row: headerRow!, column: nationalLocalColumn!, string: "Nat/Local", format: formatBold)
         write(worksheet: worksheet, row: headerRow!, column: localMPsColumn!, string: "Local MPs", format: formatRightBold)
@@ -213,7 +213,7 @@ class SummaryWriter : WriterBase {
             let source = round.ranksPlusMps!
             let row = detailRow! + roundNumber
             write(worksheet: worksheet, row: row, column: descriptionColumn!, string: "\(round.name)")
-            write(worksheet: worksheet, row: row, column: toeColumn!, integerFormula: "=\(cell(writer: source, source.toeCell!))")
+            write(worksheet: worksheet, row: row, column: entryColumn!, integerFormula: "=\(cell(writer: source, source.entryCell!))")
             write(worksheet: worksheet, row: row, column: tablesColumn!, integerFormula: "=\(cell(writer: source, source.tablesCell!))")
             write(worksheet: worksheet, row: row, column: nationalLocalColumn!, formula: "=\(cell(writer: source, source.localCell!))")
             write(worksheet: worksheet, row: row, column: localMPsColumn!, floatFormula: "=\(cell(writer: source, source.localMPsCell!))", format: formatZeroFloat)
@@ -221,7 +221,7 @@ class SummaryWriter : WriterBase {
             write(worksheet: worksheet, row: row, column: checksumColumn!, floatFormula: "=\(cell(writer: source, source.checksumCell!))", format: formatZeroFloat)
         }
         
-        for column in [toeColumn, tablesColumn, nationalLocalColumn, localMPsColumn, nationalMPsColumn, checksumColumn] {
+        for column in [entryColumn, tablesColumn, nationalLocalColumn, localMPsColumn, nationalMPsColumn, checksumColumn] {
             write(worksheet: worksheet, row: detailRow! + writer.rounds.count, column: column!, string: "", format: formatBoldUnderline)
         }
         
@@ -587,7 +587,7 @@ class RanksPlusMPsWriter: WriterBase {
     var totalMPColumn: [Int] = []
     
     var eventDescriptionCell: String?
-    var toeCell: String?
+    var entryCell: String?
     var tablesCell: String?
     var maxAwardCell: String?
     var maxEwAwardCell: String?
@@ -898,9 +898,9 @@ class RanksPlusMPsWriter: WriterBase {
         }
         
         writeCell(string: "Description", format: formatBold)
-        writeCell(string: "\(prefix)TOE", format: formatRightBold)
+        writeCell(string: "\(prefix)Entry", format: formatRightBold)
         if twoWinners {
-            writeCell(string: "EW TOE", format: formatRightBold)
+            writeCell(string: "EW Entry", format: formatRightBold)
         }
         writeCell(string: "Tables", format: formatRightBold)
         writeCell(string: "Boards", format: formatRightBold)
@@ -937,33 +937,33 @@ class RanksPlusMPsWriter: WriterBase {
         writeCell(string: event.description ?? "") ; eventDescriptionCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         
-        var toeCells = ""
-        var ewToeRef = ""
+        var entryCells = ""
+        var ewEntryRef = ""
         if twoWinners {
             writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ns.string)\")")
-            toeCell = cell(row, rowFixed: true, column, columnFixed: true)
+            entryCell = cell(row, rowFixed: true, column, columnFixed: true)
             
             writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ew.string)\")")
-            ewToeRef = cell(row, rowFixed: true, column, columnFixed: true)
+            ewEntryRef = cell(row, rowFixed: true, column, columnFixed: true)
 
-            toeCells = "(\(toeCell!)+\(ewToeRef))"
+            entryCells = "(\(entryCell!)+\(ewEntryRef))"
         } else {
-            writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)),\">0\")") ; toeCell = cell(row, rowFixed: true, column, columnFixed: true)
-            toeCells = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)),\">0\")") ; entryCell = cell(row, rowFixed: true, column, columnFixed: true)
+            entryCells = cell(row, rowFixed: true, column, columnFixed: true)
         }
-        writeCell(integerFormula: "=ROUNDUP(\(toeCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(integerFormula: "=ROUNDUP(\(entryCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(integer: event.boards ?? 0)
         
         var baseMaxEwAwardCell = ""
         writeCell(floatFormula: "=ROUND(\(scoreData.maxAward),2)") ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewToeRef)/\(toeCell!),2)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(floatFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewEntryRef)/\(entryCell!),2)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(integer: round.scoreData.minField, format: formatInt) ; minFieldCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(minFieldCell!)=0,1,MIN(1, ROUNDUP((\(toeCells))/\(minFieldCell!), 4)))", format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=IF(\(minFieldCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minFieldCell!), 4)))", format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(floatFormula: "=ROUNDUP(\(baseMaxAwardCell)*\(factorCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
@@ -972,9 +972,9 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,2)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(formula: "=ROUNDUP(\(toeCell!)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(formula: "=ROUNDUP(\(ewToeRef)*\(awardPercentCell),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(formula: "=ROUNDUP(\(ewEntryRef)*\(awardPercentCell),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(floatFormula: "=ROUND(\(scoreData.perWin),2)") ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)

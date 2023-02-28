@@ -69,7 +69,7 @@ extension ScoreData {
         }
         
         if event.sectionCount != 1 {
-            error("Section count is \(event.sectionCount)")
+            warning("Section count is \(event.sectionCount)")
         }
         
         if event.sessionCount != 1 {
@@ -172,11 +172,7 @@ extension ScoreData {
         
         if pair.players.count != 2 {
             error("Pair \(pair.description) has \(pair.players.count) players\(errorSuffix)")
-        }
-        
-        if (pair.boardsPlayed ?? 0) <= 0 {
-            error("Number of boards played for \(pair.description) unspecified / zero")
-        }
+        }        
     }
     
     private func validate(team: Team, errorSuffix: String = "") {

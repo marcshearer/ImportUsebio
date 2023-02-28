@@ -199,6 +199,10 @@ public class Parser: NSObject, XMLParserDelegate {
             let match = Match()
             scoreData.events.last?.matches.append(match)
             current = current?.add(child: Node(name: name, process: processMatch))
+        case "SESSION":
+            current = current?.add(child: Node(name: name, process: processEvent))
+        case "SECTION":
+            current = current?.add(child: Node(name: name, process: processEvent))
         default:
             current = current?.add(child: Node(name: name))
         }
