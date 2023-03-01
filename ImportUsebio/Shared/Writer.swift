@@ -30,9 +30,9 @@ class Column {
     var referenceDynamic: (()->String)?
     var playerNumber: Int?
     var cellType: CellType
-    var width: Float
+    var width: Float?
     
-    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, width: Float = 10.0) {
+    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, width: Float? = nil) {
         self.title = title
         self.content = content
         self.playerContent = playerContent
@@ -48,6 +48,7 @@ class Column {
 class Round {
     var writer: Writer
     var scoreData: ScoreData
+    var shortName: String
     var name: String
     var individualMPs: IndividualMPsWriter!
     var ranksPlusMps: RanksPlusMPsWriter!
@@ -56,6 +57,7 @@ class Round {
     init(writer: Writer, prefix: String, scoreData: ScoreData, workbook: UnsafeMutablePointer<lxw_workbook>?) {
         self.writer = writer
         self.name = prefix
+        self.shortName = prefix.left(16)
         self.scoreData = scoreData
         self.individualMPs = IndividualMPsWriter(writer: writer, round: self, scoreData: scoreData)
         self.ranksPlusMps = RanksPlusMPsWriter(writer: writer, round: self, scoreData: scoreData)
@@ -481,9 +483,9 @@ class ConsolidatedWriter: WriterBase {
             if column == uniqueColumn {
                 setColumn(worksheet: worksheet, column: column, hidden: true)
             } else if column == nationalIdColumn {
-                setColumn(worksheet: worksheet, column: column, width: 16.5, format: formatInt)
+                setColumn(worksheet: worksheet, column: column, format: formatInt)
             } else {
-                setColumn(worksheet: worksheet, column: column, width: 16.5, format: formatFloat)
+                setColumn(worksheet: worksheet, column: column, format: formatFloat)
             }
         }
         
@@ -496,7 +498,7 @@ class ConsolidatedWriter: WriterBase {
         
         for (column, round) in writer.rounds.enumerated() {
             // Round titles
-            write(worksheet: worksheet, row: titleRow, column: dataColumn + column, string: round.name, format: formatRightBoldUnderline)
+            write(worksheet: worksheet, row: titleRow, column: dataColumn + column, string: round.shortName, format: formatRightBoldUnderline)
         
             // National/Local row
             let cell = cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!)
@@ -573,6 +575,7 @@ class RanksPlusMPsWriter: WriterBase {
     private var headerDataRow = 1
     private var dataTitleRow = 3
     var dataRow = 4
+    private var headerColumns = 0
     
     var positionColumn: Int?
     var directionColumn: Int?
@@ -620,8 +623,10 @@ class RanksPlusMPsWriter: WriterBase {
             if column.cellType == .integer || column.cellType == .float || column.cellType == .integerFormula || column.cellType == .floatFormula {
                 format = formatRightBold
             }
-            setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
-            write(worksheet: worksheet, row: dataTitleRow, column: columnNumber, string: round.replace(column.title), format: format)
+            if let width = column.width {
+                setColumn(worksheet: worksheet, column: columnNumber, width: width)
+            }
+                write(worksheet: worksheet, row: dataTitleRow, column: columnNumber, string: round.replace(column.title), format: format)
         }
         
         for playerNumber in 0..<round.maxParticipantPlayers {
@@ -665,6 +670,8 @@ class RanksPlusMPsWriter: WriterBase {
                 }
             }
         }
+        
+        setColumn(worksheet: worksheet, column: 0, toColumn: headerColumns - 1, width: 12.0)
     }
     
     private func sortCriteria(_ a: Participant, _ b: Participant) -> Bool {
@@ -927,29 +934,32 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(string: "Local/Nat", format: formatBold)
         
-        writeCell(string: "Local MPs", format: formatBold)
-        writeCell(string: "National MPs", format: formatBold)
-        writeCell(string: "Checksum", format: formatBold)
+        writeCell(string: "Local MPs", format: formatRightBold)
+        writeCell(string: "National MPs", format: formatRightBold)
+        writeCell(string: "Checksum", format: formatRightBold)
         
+        headerColumns = column + 1
+
         column = -1
         row = headerDataRow
         
         writeCell(string: event.description ?? "") ; eventDescriptionCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        
         var entryCells = ""
         var ewEntryRef = ""
         if twoWinners {
-            writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ns.string)\")")
+            let nsCell = "COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ns.string)\")"
+            writeCell(integerFormula: "=\(nsCell)")
             entryCell = cell(row, rowFixed: true, column, columnFixed: true)
-            
-            writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ew.string)\")")
+                        
+            let ewCell = "COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ew.string)\")"
+            writeCell(integerFormula: "=\(ewCell)")
             ewEntryRef = cell(row, rowFixed: true, column, columnFixed: true)
 
-            entryCells = "(\(entryCell!)+\(ewEntryRef))"
+            entryCells = "(\(nsCell)+\(ewCell))"
         } else {
-            writeCell(integerFormula: "=COUNTIF(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)),\">0\")") ; entryCell = cell(row, rowFixed: true, column, columnFixed: true)
-            entryCells = cell(row, rowFixed: true, column, columnFixed: true)
+            entryCells = "COUNTIF(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)),\">0\")"
+            writeCell(integerFormula: "=\(entryCells)") ; entryCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         writeCell(integerFormula: "=ROUNDUP(\(entryCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(row, rowFixed: true, column, columnFixed: true)
         
@@ -990,9 +1000,6 @@ class RanksPlusMPsWriter: WriterBase {
         writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(floatFormula: "=ROUND(SUM(\(vstack)(\(range(column: totalMPColumn)))*\(vstack)(\(range(column: nationalIdColumn)))),2)") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true) ; let checksumColumn = column
-        
-        setColumn(worksheet: worksheet, column: eventDateColumn, width: 10)
-        setColumn(worksheet: worksheet, column: checksumColumn, width: 16)
         
     }
     
@@ -1221,7 +1228,7 @@ class WriterBase {
         self.workbook = workbook
         var fullName = ""
         if let round = round {
-            fullName += round.name + " "
+            fullName += round.shortName + " "
         }
         fullName += name
         self.worksheet = workbook_add_worksheet(workbook, fullName)
@@ -1287,7 +1294,7 @@ class WriterBase {
         if let writer = writer {
             var prefix = ""
             if let round = writer.round {
-                prefix = "\(round.name) "
+                prefix = "\(round.shortName) "
             }
             roundRef = "'\(prefix)\(writer.name)'!"
         }
@@ -1461,15 +1468,16 @@ class WriterBase {
         }
     }
     
-    func setColumn(worksheet: UnsafeMutablePointer<lxw_worksheet>?, column: Int, width: Float? = nil, hidden: Bool = false, format: UnsafeMutablePointer<lxw_format>? = nil) {
+    func setColumn(worksheet: UnsafeMutablePointer<lxw_worksheet>?, column: Int, toColumn: Int? = nil, width: Float? = nil, hidden: Bool = false, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let toColumn = lxw_col_t(Int32(toColumn ?? column))
         let column = lxw_col_t(Int32(column))
         let width = (width == nil ? LXW_DEF_COL_WIDTH : Double(width!))
         if hidden {
             var options = lxw_row_col_options()
             options.hidden = 1
-            worksheet_set_column_opt(worksheet, column, column, width, format, &options)
+            worksheet_set_column_opt(worksheet, column, toColumn, width, format, &options)
         } else {
-            worksheet_set_column_opt(worksheet, column, column, width, format, nil)
+            worksheet_set_column_opt(worksheet, column, toColumn, width, format, nil)
         }
     }
     

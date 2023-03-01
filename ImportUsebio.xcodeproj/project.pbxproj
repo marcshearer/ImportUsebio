@@ -12,6 +12,7 @@
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
 		B28D69082994CDCD00BA73E5 /* File System.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69072994CDCD00BA73E5 /* File System.swift */; };
 		B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */ = {isa = PBXBuildFile; fileRef = B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */; };
+		B2A784EA29AE293F000425C4 /* Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784E929AE293F000425C4 /* Import.swift */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -61,6 +62,7 @@
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
 		B28D69072994CDCD00BA73E5 /* File System.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "File System.swift"; sourceTree = "<group>"; };
 		B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ImportUsebio.xcworkspace; sourceTree = "<group>"; };
+		B2A784E929AE293F000425C4 /* Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Import.swift; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				B2E103C22992B87300A35645 /* Parser.swift */,
 				B20CFF372994EC8800B09269 /* Validation.swift */,
 				B2E103C42994120700A35645 /* Writer.swift */,
+				B2A784E929AE293F000425C4 /* Import.swift */,
 			);
 			name = "Main Classes";
 			sourceTree = "<group>";
@@ -405,6 +408,7 @@
 				B2E103A62992806F00A35645 /* Standard View.swift in Sources */,
 				B2E1035D29927C3300A35645 /* Declarations.swift in Sources */,
 				B2E103AE2992846000A35645 /* Custom View Animations.swift in Sources */,
+				B2A784EA29AE293F000425C4 /* Import.swift in Sources */,
 				B2E103912992806F00A35645 /* Input Title.swift in Sources */,
 				B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */,
 				B2E1037229927EB100A35645 /* Other Extensions.swift in Sources */,

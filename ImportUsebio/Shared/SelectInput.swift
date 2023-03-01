@@ -133,6 +133,8 @@ struct SelectInputView: View {
                             finishButton()
                             Spacer().frame(width: 50)
                             clearButton()
+                            Spacer().frame(width: 50)
+                            pasteButton()
                             Spacer()
                         }
                         Spacer()
@@ -206,7 +208,7 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || (writer?.rounds.contains(where: {$0.name == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
    
@@ -230,6 +232,32 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(writer == nil)
+    }
+    
+    private func pasteButton() -> some View {
+        
+        return Button {
+            if let data = NSPasteboard.general.string(forType: .string) {
+                let dataLines = data.replacingOccurrences(of: "\n", with: "").components(separatedBy: "\r")
+                let lines = dataLines.map{$0.components(separatedBy: "\t")}
+                Import.process(lines) { (imported, error, warning) in
+                    if let error = error {
+                        MessageBox.shared.show(error)
+                    } else if let imported = imported {
+                        updateFromImport(imported: imported)
+                    }
+                }
+            }
+        } label: {
+            Text("Paste")
+                .foregroundColor(Palette.enabledButton.text)
+                .frame(width: 100, height: 30)
+                .font(.callout).minimumScaleFactor(0.5)
+                .background(Palette.enabledButton.background)
+                .cornerRadius(15)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(writer?.rounds.count ?? 0 > 0)
     }
     
     private func clearButton() -> some View {
@@ -261,4 +289,85 @@ struct SelectInputView: View {
             self.inputFilename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
         }
     }
+    
+    @State private var importInProgress: Import?
+    @State private var importRound: Int = 0
+    @State private var sourceDirectory: String?
+    
+    private func updateFromImport(imported: Import) {
+        FileSystem.findDirectory(prompt: "Select source directory") { (url, bookmarkData) in
+            Utility.mainThread {
+                securityBookmark = bookmarkData
+                importInProgress = imported
+                sourceDirectory = url.relativePath
+                importRound = 0
+                processNextRound()
+            }
+        }
+    }
+    
+    private func processNextRound() {
+        if importRound <= (importInProgress?.rounds.count ?? 0) - 1 {
+            let round = importInProgress!.rounds[importRound]
+            let url = URL(fileURLWithPath: sourceDirectory! + "/" + round.filename!)
+            if let data = try? Data(contentsOf: url) {
+                Utility.mainThread {
+                    round.scoreData?.fileUrl = url
+                    parser = Parser(fileUrl: url, data: data, completion: importParserComplete)
+                }
+            } else {
+                MessageBox.shared.show("Unable to access file \(round.filename!)")
+                writer = nil
+            }
+        } else {
+            eventDescription = importInProgress!.event!.description!
+            eventCode = importInProgress!.event!.code!
+            minRank = importInProgress!.event!.minRank!
+            maxRank = importInProgress!.event!.maxRank!
+            
+            writer = Writer()
+            writer!.eventDescription = eventDescription
+            writer!.eventCode = eventCode
+            writer!.minRank = minRank
+            writer!.maxRank = maxRank
+            
+            for round in importInProgress!.rounds {
+                if let scoreData = round.scoreData {
+                    roundName = round.name!
+                    nationalLocal = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
+                    maxAward = round.maxAward!
+                    minField = round.minEntry ?? 0
+                    awardTo = round.awardTo!
+                    perWin = round.perWin!
+                    
+                    scoreData.roundName = roundName
+                    scoreData.national = nationalLocal == .national
+                    scoreData.maxAward = maxAward
+                    scoreData.minField = minField
+                    scoreData.awardTo = awardTo * 100
+                    scoreData.perWin = perWin
+                    writer?.add(prefix: round.name!, scoreData: round.scoreData!)
+                }
+            }
+                    
+            importInProgress = nil
+        }
+    }
+    
+    private func importParserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
+        let (errors, warnings) = scoreData.validate()
+        if let errors = errors {
+            // TODO: Handle errors
+            print(parseErrors + errors)
+        } else {
+            if let warnings = warnings {
+                // TODO: Show warnings
+                print(parseWarnings + warnings)
+            }
+            importInProgress!.rounds[importRound].scoreData = scoreData
+        }
+        importRound += 1
+        processNextRound()
+    }
+    
 }

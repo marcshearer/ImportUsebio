@@ -159,11 +159,11 @@ extension UIImage {
         self.init(content: image.pngData()!)!
     }
     
-    convenience init?(prefixed name: String) {
-        if name.left(7) == "system." {
-            self.init(systemName: name.right(name.length-7))
+    convenience init?(prefixed shortName: String) {
+        if shortName.left(7) == "system." {
+            self.init(systemName: shortName.right(shortName.length-7))
         } else {
-            self.init(named: name)
+            self.init(named: shortName)
         }
     }
     

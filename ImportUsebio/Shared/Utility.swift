@@ -463,7 +463,7 @@ class Utility {
     
     public static func deviceName() -> String {
         #if canImport(UIKit)
-        var result = UIDevice.current.name
+        var result = UIDevice.current.shortName
         #else
         var result = Host.current().localizedName!
         #endif
