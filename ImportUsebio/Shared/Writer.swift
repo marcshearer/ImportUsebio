@@ -801,7 +801,7 @@ class RanksPlusMPsWriter: WriterBase {
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
         if (Int(player.nationalId ?? "0") ?? 0) <= 0 {
-            result = "=VLOOKUP(CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNameColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + 999, writer.missing.nationalIdColumn)),2,FALSE)"
+            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNameColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + 999, writer.missing.nationalIdColumn)),2,FALSE)"
             if writer.missingNumbers[player.name!] == nil {
                 writer.missingNumbers[player.name!] = -(writer.missingNumbers.count + 1)
             }
@@ -941,16 +941,16 @@ class RanksPlusMPsWriter: WriterBase {
         }
         writeCell(string: "Tables", format: formatRightBold)
         writeCell(string: "Boards", format: formatRightBold)
-        writeCell(string: "\(prefix)Max Award", format: formatRightBold)
+        writeCell(string: "\(prefix)Full Award", format: formatRightBold)
         if twoWinners {
-            writeCell(string: "EW Max Award", format: formatRightBold)
+            writeCell(string: "EW Full Award", format: formatRightBold)
         }
         writeCell(string: "Min Entry", format: formatRightBold)
         writeCell(string: "Entry%", format: formatRightBold)
         writeCell(string: "Factor%", format: formatRightBold)
-        writeCell(string: "\(prefix)Award", format: formatRightBold)
+        writeCell(string: "\(prefix)Max Award", format: formatRightBold)
         if twoWinners {
-            writeCell(string: "EW Award", format: formatRightBold)
+            writeCell(string: "EW Max Award", format: formatRightBold)
         }
         writeCell(string: "Award %", format: formatRightBold)
         writeCell(string: "\(prefix)Award to", format: formatRightBold)
@@ -1214,6 +1214,8 @@ class MissingNumbersWriter : WriterBase {
     override var name: String { "Missing Numbers" }
     let nameColumn = 0
     let nationalIdColumn = 1
+    let suggestColumn = 2
+    let duplicateColumn = 3
     let headerRow = 0
     let dataRow = 1
 
@@ -1227,14 +1229,39 @@ class MissingNumbersWriter : WriterBase {
         
         write(worksheet: worksheet, row: headerRow, column: nameColumn, string: "Names", format: formatBold)
         write(worksheet: worksheet, row: headerRow, column: nationalIdColumn, string: "SBU No", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow, column: suggestColumn, string: "Suggest", format: formatRightBold)
         
         var row = 0
         for (name, number) in writer.missingNumbers.sorted(by: {$0.value > $1.value}) {
             write(worksheet: worksheet, row: dataRow + row, column: nameColumn, string: name)
             write(worksheet: worksheet, row: dataRow + row, column: nationalIdColumn, integer: number, format: formatInt)
+            let xlookupStem = "IFERROR(\(fnPrefix)XLOOKUP(\(cell(dataRow + row, nameColumn, columnFixed: true)),CONCATENATE(\(vstack)(\(lookupRange(.firstName))),\" \",\(vstack)(\(lookupRange(.otherNames)))),\(vstack)(\(lookupRange(.nationalId))),\"\",FALSE"
+            write(worksheet: worksheet, row: dataRow + row, column: suggestColumn, integerFormula: "=\(xlookupStem),1),\"\")")
+            write(worksheet: worksheet, row: dataRow + row, column: duplicateColumn, integerFormula: "=IF(\(xlookupStem),-1),\"\")=\(cell(dataRow + row, suggestColumn, columnFixed: true)),\"\",\"DUPLICATES\")", format: formatBold)
             row += 1
         }
-
+    }
+    
+    enum LookupColumn {
+        case nationalId
+        case firstName
+        case otherNames
+    }
+    
+    
+    func lookupRange(_ requiredCol: LookupColumn) -> String {
+        return "\(lookupCell(true, requiredCol, true)):\(lookupCell(false, requiredCol, false))"
+    }
+    
+    func lookupCell(_ firstRow: Bool, _ requiredCol: LookupColumn, _ filename: Bool) -> String {
+        let row = (firstRow ? userDownloadMinRow : userDownloadMaxRow)
+        var column : Int
+        switch requiredCol {
+        case .nationalId: column = userDownloadNationalIdColumn
+        case .firstName: column = userDownloadFirstNameColumn
+        case .otherNames: column = userDownloadOtherNamesColumn
+        }
+        return "\(filename ? "'\(userDownloadData)'!" : "")\(cell(row, rowFixed: true, column, columnFixed: true))"
     }
 }
 // MARK - Writer base class
@@ -1242,13 +1269,20 @@ class MissingNumbersWriter : WriterBase {
 class WriterBase {
     
     let userDownloadData = "user download.csv"
-    let userDownloadRange = "$A$2:$AI$6000"
+    let userDownloadRange = "$A$2:$AI$13001"
+    let userDownloadMinRow = 1
+    let userDownloadMaxRow = 13000
+    let userDownloadNationalIdColumn = 0
+    let userDownloadFirstNameColumn = 4
+    let userDownloadOtherNamesColumn = 3
+    // TODO Sort out the range and column offsets here for the CSV Export lookups
     
     let fnPrefix = "_xlfn."
     let dynamicFnPrefix = "_xlfn._xlws."
     let paramPrefix = "_xlpm."
     
     var vstack: String { "\(fnPrefix)VSTACK" }
+    var hstack: String { "\(fnPrefix)HSTACK" }
     var arrayRef: String { "\(fnPrefix)ANCHORARRAY" }
     var filter: String { "\(dynamicFnPrefix)FILTER" }
     var sortBy: String { "\(dynamicFnPrefix)SORTBY" }
