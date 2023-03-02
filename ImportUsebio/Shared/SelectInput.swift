@@ -21,7 +21,7 @@ struct SelectInputView: View {
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
-    @State private var minField: Int = 0
+    @State private var minEntry: Int = 0
     @State private var awardTo: Float = 25
     @State private var perWin: Float = 0.25
     @State private var securityBookmark: Data? = nil
@@ -111,7 +111,7 @@ struct SelectInputView: View {
                                         
                                         InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
                                         
-                                        InputInt(title: "Min entry:", field: $minField, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                        InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
                                         
                                         InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
                                         
@@ -182,7 +182,7 @@ struct SelectInputView: View {
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
                 scoreData.maxAward = maxAward
-                scoreData.minField = minField
+                scoreData.minEntry = minEntry
                 scoreData.awardTo = awardTo
                 scoreData.perWin = perWin
                 writer?.add(name: roundName, scoreData: scoreData)
@@ -342,14 +342,14 @@ struct SelectInputView: View {
                     roundName = round.name!
                     localNational = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
                     maxAward = round.maxAward!
-                    minField = round.minEntry ?? 0
+                    minEntry = round.minEntry ?? 0
                     awardTo = round.awardTo!
                     perWin = round.perWin!
                     
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
                     scoreData.maxAward = maxAward
-                    scoreData.minField = minField
+                    scoreData.minEntry = minEntry
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
