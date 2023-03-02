@@ -1,8 +1,5 @@
 TODO
 ----
-When have multiple worksheets data seems repeated in early sheets
-Extend conditional formating to row 999
-Add conditional formating for duplicate SBU No
-Avoid duplicate round names
-Allocate negative SBU numbers on import if none found
 Highlight SBU numbers in CSV if negative
+Error handling!
+Add settings to include things like maximum National ID number

@@ -17,7 +17,7 @@ struct SelectInputView: View {
     @State private var roundName: String = ""
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
-    @State private var nationalLocal = Level.local
+    @State private var localNational = Level.local
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
@@ -94,7 +94,7 @@ struct SelectInputView: View {
                                 VStack {
                                     HStack {
                                         Spacer().frame(width: 42)
-                                        Picker("Level:             ", selection: $nationalLocal) {
+                                        Picker("Level:             ", selection: $localNational) {
                                             Text("Local").tag(Level.local)
                                             Text("National").tag(Level.national)
                                         }
@@ -180,12 +180,12 @@ struct SelectInputView: View {
                     writer?.maxRank = maxRank
                 }
                 scoreData.roundName = roundName
-                scoreData.national = (nationalLocal == .national)
+                scoreData.national = (localNational == .national)
                 scoreData.maxAward = maxAward
                 scoreData.minField = minField
                 scoreData.awardTo = awardTo
                 scoreData.perWin = perWin
-                writer?.add(prefix: roundName, scoreData: scoreData)
+                writer?.add(name: roundName, scoreData: scoreData)
                 
                 MessageBox.shared.show("Added Successfully", okAction: {
                     self.scoreData = nil
@@ -214,12 +214,18 @@ struct SelectInputView: View {
    
     private func finishButton() -> some View {
         return Button{
-            if let writer = writer {
-                writer.write()
-                MessageBox.shared.show("Written Successfully", okAction: {
-                })
-                Utility.executeAfter(delay: 2) {
-                    MessageBox.shared.hide()
+            FileSystem.findDirectory(prompt: "Select target directory") { (url, bookmarkData) in
+                Utility.mainThread {
+                    if let writer = writer {
+                        writer.write(in: url.relativePath)
+                        MessageBox.shared.show("Written Successfully", okAction: {
+                            self.writer = nil
+                        })
+                        Utility.executeAfter(delay: 2) {
+                            self.writer = nil
+                            MessageBox.shared.hide()
+                        }
+                    }
                 }
             }
         } label: {
@@ -323,7 +329,7 @@ struct SelectInputView: View {
             eventDescription = importInProgress!.event!.description!
             eventCode = importInProgress!.event!.code!
             minRank = importInProgress!.event!.minRank!
-            maxRank = importInProgress!.event!.maxRank!
+            maxRank = (importInProgress!.event!.maxRank! == 0 ? 999 : importInProgress!.event!.maxRank!)
             
             writer = Writer()
             writer!.eventDescription = eventDescription
@@ -334,19 +340,21 @@ struct SelectInputView: View {
             for round in importInProgress!.rounds {
                 if let scoreData = round.scoreData {
                     roundName = round.name!
-                    nationalLocal = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
+                    localNational = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
                     maxAward = round.maxAward!
                     minField = round.minEntry ?? 0
                     awardTo = round.awardTo!
                     perWin = round.perWin!
                     
                     scoreData.roundName = roundName
-                    scoreData.national = nationalLocal == .national
+                    scoreData.national = localNational == .national
                     scoreData.maxAward = maxAward
                     scoreData.minField = minField
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
-                    writer?.add(prefix: round.name!, scoreData: round.scoreData!)
+                    if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
+                        writerRound.toe = round.toe
+                    }
                 }
             }
                     

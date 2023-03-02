@@ -31,6 +31,7 @@ fileprivate enum EventColumn: String, EnumProtocol {
 
 fileprivate enum RoundColumn: String, EnumProtocol {
     case name = "ROUND NAME"
+    case shortName = "SHORT NAME"
     case toe = "TOE"
     case localNational = "LOCAL / NATIONAL"
     case maxAward = "MAX AWARD"
@@ -58,6 +59,7 @@ class ImportEvent {
 
 class ImportRound {
     var name: String?
+    var shortName: String?
     var toe: Int?
     var localNational: LocalNational?
     var maxAward: Float?
@@ -100,6 +102,8 @@ class Import {
             if current >= data.count {
                 if phase != .finish {
                     report(error: "Data does not contain all the required lines")
+                } else {
+                    finalChecks()
                 }
                 break
             }
@@ -152,6 +156,14 @@ class Import {
                     current += 1
                 }
             }
+        }
+    }
+    
+    private func finalChecks() {
+        let shortNames = rounds.map{$0.shortName ?? $0.name!}
+        let names = rounds.map{$0.name!}
+        if Set(names).count != names.count || Set(shortNames).count != shortNames.count {
+            report(error: "Round names / Short names must be unique")
         }
     }
     
@@ -234,6 +246,8 @@ class Import {
                     switch column {
                     case .name:
                         round.name = columnValue
+                    case .shortName:
+                        round.shortName = columnValue
                     case .toe:
                         round.toe = Int(columnValue)
                     case .localNational:
