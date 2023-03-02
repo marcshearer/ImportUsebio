@@ -126,10 +126,9 @@ class Writer: WriterBase {
         return round
     }
     
-    func write(in directory: String) {
+    func write(as filename: String) {
         // Create workbook
-        let name = "\(eventDescription.replacingOccurrences(of: "/", with: "-")).xlsm"
-        self.workbook = workbook_new("\(directory)/\(name)")
+        self.workbook = workbook_new(filename)
         setupFormats()
         // Create worksheets
         summary.prepare(workbook: workbook)
@@ -947,6 +946,7 @@ class RanksPlusMPsWriter: WriterBase {
             writeCell(string: "EW Max Award", format: formatRightBold)
         }
         writeCell(string: "Min Entry", format: formatRightBold)
+        writeCell(string: "Entry%", format: formatRightBold)
         writeCell(string: "Factor%", format: formatRightBold)
         writeCell(string: "\(prefix)Award", format: formatRightBold)
         if twoWinners {
@@ -1007,11 +1007,13 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(minEntryCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minEntryCell!), 4)))", format: formatPercent) ; let factorCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=IF(\(minEntryCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minEntryCell!), 4)))", format: formatPercent) ; let entryFactorCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=ROUNDUP(\(baseMaxAwardCell)*\(factorCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(float: round.scoreData.reducedTo, format: formatPercent) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true) ; let reduceToCell = cell(row, rowFixed: true, column, columnFixed: true)
+
+        writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "=ROUNDUP(\(baseMaxEwAwardCell)*\(factorCell),2)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxEwAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,2)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)

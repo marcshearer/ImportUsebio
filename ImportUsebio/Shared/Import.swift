@@ -35,6 +35,7 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case toe = "TOE"
     case localNational = "LOCAL / NATIONAL"
     case maxAward = "MAX AWARD"
+    case reducedTo = "REDUCED TO"
     case minEntry = "MIN ENTRY"
     case awardTo = "AWARD TO"
     case perWin = "PER WIN"
@@ -63,6 +64,7 @@ class ImportRound {
     var toe: Int?
     var localNational: LocalNational?
     var maxAward: Float?
+    var reducedTo: Float?
     var minEntry: Int?
     var awardTo: Float?
     var perWin: Float?
@@ -254,6 +256,8 @@ class Import {
                         round.localNational = LocalNational(rawValue: columnValue.uppercased())
                     case .maxAward:
                         round.maxAward = Float(columnValue)
+                    case .reducedTo:
+                        round.reducedTo = (Float(columnValue.replacingOccurrences(of: "%", with: "")) ?? 0) / 100
                     case .minEntry:
                         round.minEntry = Int(columnValue)
                     case .awardTo:
@@ -277,6 +281,8 @@ class Import {
             error = "\(RoundColumn.localNational.string) must not be blank on rounds"
         } else if round.maxAward ?? 0 <= 0 {
             error = "\(RoundColumn.maxAward.string) must be a positive number"
+        } else if round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1 {
+            error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
         } else if round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1 {
             error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
         } else if round.filename == nil {

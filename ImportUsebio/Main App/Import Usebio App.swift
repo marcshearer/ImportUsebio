@@ -25,11 +25,14 @@ struct MyScene: Scene {
         WindowGroup {
             GeometryReader { (geometry) in
                 SelectInputView()
-                .onAppear() {
-                    MyApp.format = (min(geometry.size.width, geometry.size.height) < 600 ? .phone : .tablet)
-                }
+                    .frame(minWidth: 900, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity, alignment: .center)
+                    .navigationTitle("Import XML Results Files")
+                    .onAppear() {
+                        MyApp.format = (min(geometry.size.width, geometry.size.height) < 600 ? .phone : .tablet)
+                    }
             }
         }
+        .windowResizability(.contentSize)
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 

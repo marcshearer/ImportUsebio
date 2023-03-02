@@ -1,3 +1,4 @@
 TODO
 ----
 Add settings to include things like maximum National ID number
+Window sizing

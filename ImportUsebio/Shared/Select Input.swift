@@ -102,6 +102,7 @@ struct SelectInputView: View {
                                             Text("National").tag(Level.national)
                                         }
                                         .pickerStyle(.segmented)
+                                        .focusable(false)
                                         .frame(width: 300)
                                         .font(inputFont)
                                         Spacer()
@@ -153,7 +154,7 @@ struct SelectInputView: View {
     private func finderButton() -> some View {
         
         return Button {
-            FileSystem.findFile(types: ["xml"]) { (url, bookmarkData) in
+            FileSystem.findFile(title: "Select Source File", prompt: "Select", types: ["xml"]) { (url, bookmarkData) in
                 Utility.mainThread {
                     refresh.toggle()
                     securityBookmark = bookmarkData
@@ -173,6 +174,7 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
+        .focusable(false)
     }
     
     private func addSheetButton() -> some View {
@@ -189,6 +191,7 @@ struct SelectInputView: View {
                 scoreData.national = (localNational == .national)
                 scoreData.maxAward = maxAward
                 scoreData.minEntry = minEntry
+                scoreData.reducedTo = 1
                 scoreData.awardTo = awardTo
                 scoreData.perWin = perWin
                 writer?.add(name: roundName, scoreData: scoreData)
@@ -214,16 +217,17 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
+        .focusable(false)
         .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
    
     private func finishButton() -> some View {
         return Button{
-            FileSystem.findDirectory(prompt: "Select target directory") { (url, bookmarkData) in
+            FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url, bookmarkData) in
                 Utility.mainThread {
                     if let writer = writer {
-                        writer.write(in: url.relativePath)
+                        writer.write(as: url.relativePath)
                         MessageBox.shared.show("Written Successfully", okAction: {
                             self.writer = nil
                         })
@@ -243,6 +247,7 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
+        .focusable(false)
         .disabled(writer == nil)
     }
     
@@ -259,6 +264,8 @@ struct SelectInputView: View {
                         updateFromImport(imported: imported)
                     }
                 }
+            } else {
+                MessageBox.shared.show("Invalid clipboard contents")
             }
         } label: {
             Text("Paste")
@@ -269,6 +276,7 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
+        .focusable(false)
         .disabled(writer?.rounds.count ?? 0 > 0)
     }
     
@@ -284,6 +292,7 @@ struct SelectInputView: View {
                 .cornerRadius(15)
         }
         .buttonStyle(PlainButtonStyle())
+        .focusable(false)
         .disabled(writer == nil)
     }
     
@@ -372,6 +381,7 @@ struct SelectInputView: View {
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
                     scoreData.maxAward = maxAward
+                    scoreData.reducedTo = round.reducedTo ?? 1
                     scoreData.minEntry = minEntry
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin

@@ -278,6 +278,7 @@ public class ScoreData {
     public var roundName: String?
     public var national: Bool = false
     public var maxAward: Float = 0.0
+    public var reducedTo: Float = 0.0
     public var minEntry: Int = 0
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
