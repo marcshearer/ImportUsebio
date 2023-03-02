@@ -9,9 +9,10 @@ import Foundation
 
 extension ScoreData {
     
-    public func validate() -> ([String]?, [String]?) {
+    public func validate() -> (Bool, [String]?, [String]?) {
         errors = []
         warnings = []
+        validateMissingNationalIds = false
         
         validateFile()
         if errors.isEmpty {
@@ -19,9 +20,8 @@ extension ScoreData {
             if errors.isEmpty {
                 validateParticipants()
             }
-        }
-        
-        return (errors.count == 0 ? nil : errors, warnings.count == 0 ? nil: warnings)
+        }        
+        return (validateMissingNationalIds, errors.count == 0 ? nil : errors, warnings.count == 0 ? nil: warnings)
     }
     
     // Mark: - Main file validation
@@ -164,7 +164,7 @@ extension ScoreData {
     private func validate(player: Player, errorSuffix: String = "") {
         
         if (player.nationalId ?? "") == "" || player.nationalId == "0" {
-            warning("No national ID number for \(player.description)\(errorSuffix)")
+            validateMissingNationalIds = true
         }
     }
     

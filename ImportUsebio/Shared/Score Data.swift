@@ -286,4 +286,5 @@ public class ScoreData {
     public var events: [Event] = []
     internal var errors: [String] = []
     internal var warnings: [String] = []
+    internal var validateMissingNationalIds = false
 }

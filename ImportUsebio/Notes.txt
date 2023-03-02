@@ -1,5 +1,3 @@
 TODO
 ----
-Highlight SBU numbers in CSV if negative
-Error handling!
 Add settings to include things like maximum National ID number

@@ -8,6 +8,13 @@
 import SwiftUI
 import CoreGraphics
 
+// TODO: - Should be in settings
+let maxNationalIdNumber = 30000
+let goodStatus = "Payment Confirmed by SBU"
+let maxPoints: Float = 15.0
+let largestFieldSize = 200
+let largestPlayerCount = 600
+
 // Parameters
 
 public let appGroup = "group.com.sheareronline.ImportUsebio" // Has to match entitlements

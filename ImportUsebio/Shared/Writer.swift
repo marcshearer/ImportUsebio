@@ -70,7 +70,7 @@ class Round {
         return text
     }
     
-    var maxParticipantPlayers: Int { // TODO: Parameterise
+    var maxParticipantPlayers: Int {
         var result = 0
         
         let event = scoreData.events.first!
@@ -83,9 +83,9 @@ class Round {
         return result
     }
     
-    var fieldSize: Int { 200 } //scoreData.events.first!.participants.count } // TODO: Paramterise
+    var fieldSize: Int { largestFieldSize }
     
-    var maxPlayers: Int { 600 } //maxParticipantPlayers * fieldSize } // TODO: Parameterise
+    var maxPlayers: Int { largestPlayerCount } 
     
     var nsPairs : Int? {
         let event = scoreData.events.first!
@@ -1241,9 +1241,6 @@ class WriterBase {
     
     let userDownloadData = "user download.csv"
     let userDownloadRange = "$A$2:$AI$6000"
-    let maxNationalIdNumber = 30000
-    let goodStatus = "Payment Confirmed by SBU"
-    let maxPoints: Float = 15.0
     
     let fnPrefix = "_xlfn."
     let dynamicFnPrefix = "_xlfn._xlws."

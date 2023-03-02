@@ -1,5 +1,5 @@
 //
-//  SelectInput.swift
+//  Select Input.swift
 //  ImportUsebio
 //
 //  Created by Marc Shearer on 07/02/2023.
@@ -30,6 +30,9 @@ struct SelectInputView: View {
     @State private var parser: Parser? = nil
     @State private var writer: Writer? = nil
     @State private var scoreData: ScoreData? = nil
+    @State private var roundErrors: [RoundErrorList] = []
+    @State private var showErrors = false
+    @State private var missingNationalIds = false
 
     var body: some View {
         
@@ -141,6 +144,9 @@ struct SelectInputView: View {
                     }}
                 Spacer()
             }
+            .sheet(isPresented: $showErrors) {
+                ShowErrors(roundErrors: roundErrors)
+            }
         }
     }
     
@@ -154,7 +160,7 @@ struct SelectInputView: View {
                     if let data = try? Data(contentsOf: url) {
                         parser = Parser(fileUrl: url, data: data, completion: parserComplete)
                     } else {
-                        // TODO: Handle failure
+                        MessageBox.shared.show("Unable to read data")
                     }
                 }
             }
@@ -282,17 +288,32 @@ struct SelectInputView: View {
     }
     
     private func parserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
-        let (errors, warnings) = scoreData.validate()
+        let (roundMissingNationalId, errors, warnings) = scoreData.validate()
+        missingNationalIds = roundMissingNationalId
+
+        let filename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
+        var errorList = RoundErrorList(name: filename, errors: [], warnings: [])
+
         if let errors = errors {
-            // TODO: Handle errors
-            print(parseErrors + errors)
+            errorList.errors = parseErrors + errors
+        }
+        if let warnings = warnings {
+            errorList.warnings = parseWarnings + warnings
+        }
+        
+        roundErrors = []
+        if errors != nil || warnings != nil {
+            roundErrors.append(errorList)
+        }
+        if errors != nil {
+            self.scoreData = nil
         } else {
-            if let warnings = warnings {
-                // TODO: Show warnings
-                print(parseWarnings + warnings)
-            }
             self.scoreData = scoreData
-            self.inputFilename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
+            self.inputFilename = filename
+        }
+        addMissingNationalIdWarning()
+        if !roundErrors.isEmpty {
+            showErrors = true
         }
     }
     
@@ -307,6 +328,8 @@ struct SelectInputView: View {
                 importInProgress = imported
                 sourceDirectory = url.relativePath
                 importRound = 0
+                roundErrors = []
+                missingNationalIds = false
                 processNextRound()
             }
         }
@@ -359,23 +382,35 @@ struct SelectInputView: View {
             }
                     
             importInProgress = nil
+            addMissingNationalIdWarning()
+            if !roundErrors.isEmpty {
+                showErrors = true
+            }
         }
     }
     
     private func importParserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
-        let (errors, warnings) = scoreData.validate()
+        let (roundMissingNationalIds, errors, warnings) = scoreData.validate()
+        missingNationalIds = missingNationalIds || roundMissingNationalIds
+        var errorList = RoundErrorList(name: importInProgress!.rounds[importRound].name!, errors: [], warnings: [])
         if let errors = errors {
-            // TODO: Handle errors
-            print(parseErrors + errors)
-        } else {
-            if let warnings = warnings {
-                // TODO: Show warnings
-                print(parseWarnings + warnings)
-            }
-            importInProgress!.rounds[importRound].scoreData = scoreData
+            errorList.errors = parseErrors + errors
         }
+        if let warnings = warnings {
+            errorList.warnings = parseWarnings + warnings
+        }
+        if !errorList.errors.isEmpty || !errorList.warnings.isEmpty {
+            roundErrors.append(errorList)
+        }
+        importInProgress!.rounds[importRound].scoreData = scoreData
         importRound += 1
         processNextRound()
+    }
+    
+    private func addMissingNationalIdWarning() {
+        if missingNationalIds {
+            roundErrors.append(RoundErrorList(name: "General", errors: [], warnings: ["Some players have missing National Ids"]))
+        }
     }
     
 }

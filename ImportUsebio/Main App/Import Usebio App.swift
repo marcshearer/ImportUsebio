@@ -22,8 +22,8 @@ struct MyScene: Scene {
     @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
-        WindowGroup {GeometryReader
-            { (geometry) in
+        WindowGroup {
+            GeometryReader { (geometry) in
                 SelectInputView()
                 .onAppear() {
                     MyApp.format = (min(geometry.size.width, geometry.size.height) < 600 ? .phone : .tablet)
