@@ -27,33 +27,42 @@ extension ScoreData {
     // Mark: - Main file validation
     
     private func validateFile() {
+        let usebio = self.fileUrl?.pathExtension.lowercased() == "xml"
         
-        if version == nil {
-            error("Invalid USEBIO file")
-        } else if version != "1.2" {
-            error("Only Usebio v1.2 is supported")
+        if usebio {
+            if version == nil {
+                error("Invalid USEBIO file")
+            } else if version != "1.2" {
+                error("Only Usebio v1.2 is supported")
+            }
         }
         if events.count > 1 {
             error("File contains more than 1 event")
         } else if events.count == 0 {
             error("No events found")
         }
-        if clubs.count > 1 {
-            error("File contains more than 1 club")
-        } else if clubs.count == 0 {
-            error("No clubs found")
+        if usebio {
+            if clubs.count > 1 {
+                error("File contains more than 1 club")
+            } else if clubs.count == 0 {
+                error("No clubs found")
+            }
         }
     }
 
     // MARK: - Event validation
         
     private func validateEvent() {
+        let csv = self.fileUrl?.pathExtension.lowercased() == "csv"
+       
         let event = events.first!
         
         if event.type == nil { 
             error("No event type specified")
         } else if !event.type!.supported {
             error("\(event.type!.string) event type not currently supported")
+        } else if csv && event.type != .pairs {
+            error ("Only pairs events supported in csv")
         }
         
         if event.boardScoring == nil {
@@ -106,8 +115,8 @@ extension ScoreData {
                 }
             }
             
-            if (participant.place ?? 0) <= 0 || (participant.place ?? 0) > (event.participants.count / event.winnerType) {
-                error("Invalid place (\(participant.place ?? 0) for \(participant.description)")
+            if (participant.place ?? 0) <= 0 || (participant.place ?? 0) > ((event.participants.count + 1) / event.winnerType) {
+                error("Invalid place (\(participant.place ?? 0)) for \(participant.description)")
             }
             
             if participant.score == nil {

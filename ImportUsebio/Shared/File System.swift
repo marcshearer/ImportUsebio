@@ -80,6 +80,7 @@ class FileSystem {
         }
         savePanel.prompt = prompt ?? "Select target"
         savePanel.nameFieldStringValue = filename
+        savePanel.canCreateDirectories = true
         savePanel.level = .floating
         savePanel.begin { result in
             if result == .OK {

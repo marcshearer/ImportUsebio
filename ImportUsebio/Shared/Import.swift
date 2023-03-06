@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-fileprivate enum Phase {
+fileprivate enum ImportPhase {
     case eventHeader
     case eventLine
     case roundHeader
@@ -97,7 +97,7 @@ class Import {
     }
     
     private func parse() {
-        var phase = Phase.eventHeader
+        var phase = ImportPhase.eventHeader
         var current = 0
         
     loop: while true {

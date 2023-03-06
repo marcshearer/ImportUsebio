@@ -35,10 +35,10 @@ fileprivate class Node {
     }
 }
 
-public class Parser: NSObject, XMLParserDelegate {
+public class UsebioParser: NSObject, XMLParserDelegate {
 
     private var data: Data!
-    private var completion: (ScoreData, [String], [String])->()
+    private var completion: (ScoreData?, String?)->()
     private var parser: XMLParser!
     private let replacingSingleQuote = "@@replacingSingleQuote@@"
     private var root: Node?
@@ -48,7 +48,7 @@ public class Parser: NSObject, XMLParserDelegate {
     private var warnings: [String] = []
     private var travellerDirection: Direction?
     
-    init(fileUrl: URL, data: Data, completion: @escaping (ScoreData, [String], [String])->()) {
+    init(fileUrl: URL, data: Data, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
@@ -64,7 +64,7 @@ public class Parser: NSObject, XMLParserDelegate {
     
     func parseComplete() {
         checkWinDraw()
-        completion(scoreData, errors, warnings)
+        completion(scoreData, nil)
     }
             
     // MARK: - Parser Delegate ========================================================================== -

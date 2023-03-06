@@ -14,6 +14,7 @@
 		B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */ = {isa = PBXBuildFile; fileRef = B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */; };
 		B2A784EA29AE293F000425C4 /* Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784E929AE293F000425C4 /* Import.swift */; };
 		B2A784EC29B09C87000425C4 /* Show Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784EB29B09C87000425C4 /* Show Errors.swift */; };
+		B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -48,7 +49,7 @@
 		B2E103B22992857D00A35645 /* Import Usebio App.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103B12992857D00A35645 /* Import Usebio App.swift */; };
 		B2E103B829928D7E00A35645 /* Overlap Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103B729928D7E00A35645 /* Overlap Button.swift */; };
 		B2E103BC29928EB900A35645 /* Select Input.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103BB29928EB900A35645 /* Select Input.swift */; };
-		B2E103C32992B87300A35645 /* XML Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C22992B87300A35645 /* XML Parser.swift */; };
+		B2E103C32992B87300A35645 /* Usebio Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C22992B87300A35645 /* Usebio Parser.swift */; };
 		B2E103C52994120700A35645 /* Writer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C42994120700A35645 /* Writer.swift */; };
 		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
 		B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F629A636FC00BD43F7 /* Input Float.swift */; };
@@ -65,6 +66,7 @@
 		B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ImportUsebio.xcworkspace; sourceTree = "<group>"; };
 		B2A784E929AE293F000425C4 /* Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Import.swift; sourceTree = "<group>"; };
 		B2A784EB29B09C87000425C4 /* Show Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Show Errors.swift"; sourceTree = "<group>"; };
+		B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BridgeWebs Csv Parser.swift"; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -101,7 +103,7 @@
 		B2E103B12992857D00A35645 /* Import Usebio App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Import Usebio App.swift"; sourceTree = "<group>"; };
 		B2E103B729928D7E00A35645 /* Overlap Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Overlap Button.swift"; sourceTree = "<group>"; };
 		B2E103BB29928EB900A35645 /* Select Input.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Select Input.swift"; path = "ImportUsebio/Shared/Select Input.swift"; sourceTree = SOURCE_ROOT; };
-		B2E103C22992B87300A35645 /* XML Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XML Parser.swift"; sourceTree = "<group>"; };
+		B2E103C22992B87300A35645 /* Usebio Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Usebio Parser.swift"; sourceTree = "<group>"; };
 		B2E103C42994120700A35645 /* Writer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Writer.swift; sourceTree = "<group>"; };
 		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
 		B2FEA7F629A636FC00BD43F7 /* Input Float.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Float.swift"; sourceTree = "<group>"; };
@@ -272,7 +274,8 @@
 			isa = PBXGroup;
 			children = (
 				B28D69052994C87E00BA73E5 /* Score Data.swift */,
-				B2E103C22992B87300A35645 /* XML Parser.swift */,
+				B2E103C22992B87300A35645 /* Usebio Parser.swift */,
+				B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */,
 				B20CFF372994EC8800B09269 /* Validation.swift */,
 				B2E103C42994120700A35645 /* Writer.swift */,
 				B2A784E929AE293F000425C4 /* Import.swift */,
@@ -430,6 +433,7 @@
 				B2E103BC29928EB900A35645 /* Select Input.swift in Sources */,
 				B2E1038F2992806F00A35645 /* Message Box.swift in Sources */,
 				B2E1039D2992806F00A35645 /* Popup Menu.swift in Sources */,
+				B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */,
 				B2E1037329927EB100A35645 /* Themes.swift in Sources */,
 				B2E103932992806F00A35645 /* Toolbar View.swift in Sources */,
 				B2E103B22992857D00A35645 /* Import Usebio App.swift in Sources */,
@@ -444,7 +448,7 @@
 				B2E103B829928D7E00A35645 /* Overlap Button.swift in Sources */,
 				B2E1036029927E0600A35645 /* Version.swift in Sources */,
 				B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */,
-				B2E103C32992B87300A35645 /* XML Parser.swift in Sources */,
+				B2E103C32992B87300A35645 /* Usebio Parser.swift in Sources */,
 				B2E1035929927A6A00A35645 /* MyApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

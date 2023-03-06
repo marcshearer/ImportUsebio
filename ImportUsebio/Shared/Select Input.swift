@@ -27,7 +27,6 @@ struct SelectInputView: View {
     @State private var securityBookmark: Data? = nil
     @State private var refresh = true
     @State private var content: [String] = []
-    @State private var parser: Parser? = nil
     @State private var writer: Writer? = nil
     @State private var scoreData: ScoreData? = nil
     @State private var roundErrors: [RoundErrorList] = []
@@ -154,12 +153,19 @@ struct SelectInputView: View {
     private func finderButton() -> some View {
         
         return Button {
-            FileSystem.findFile(title: "Select Source File", prompt: "Select", types: ["xml"]) { (url, bookmarkData) in
+            FileSystem.findFile(title: "Select Source File", prompt: "Select", types: ["xml", "csv"]) { (url, bookmarkData) in
                 Utility.mainThread {
                     refresh.toggle()
                     securityBookmark = bookmarkData
                     if let data = try? Data(contentsOf: url) {
-                        parser = Parser(fileUrl: url, data: data, completion: parserComplete)
+                        let type = url.pathExtension.lowercased()
+                        if type == "xml" {
+                            _ = UsebioParser(fileUrl: url, data: data, completion: parserComplete)
+                        } else if type == "csv" {
+                            _ = BridgeWebsCsvParser(fileUrl: url, data: data, completion: parserComplete)
+                        } else {
+                            MessageBox.shared.show("File type \(type) not supported")
+                        }
                     } else {
                         MessageBox.shared.show("Unable to read data")
                     }
@@ -296,33 +302,40 @@ struct SelectInputView: View {
         .disabled(writer == nil)
     }
     
-    private func parserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
-        let (roundMissingNationalId, errors, warnings) = scoreData.validate()
-        missingNationalIds = roundMissingNationalId
-
-        let filename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
-        var errorList = RoundErrorList(name: filename, errors: [], warnings: [])
-
-        if let errors = errors {
-            errorList.errors = parseErrors + errors
-        }
-        if let warnings = warnings {
-            errorList.warnings = parseWarnings + warnings
-        }
-        
-        roundErrors = []
-        if errors != nil || warnings != nil {
-            roundErrors.append(errorList)
-        }
-        if errors != nil {
-            self.scoreData = nil
+    private func parserComplete(scoreData: ScoreData?, message: String?) {
+        if let scoreData = scoreData {
+            let (roundMissingNationalId, errors, warnings) = scoreData.validate()
+            missingNationalIds = roundMissingNationalId
+            
+            let filename = scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? ""
+            
+            var errorList = RoundErrorList(name: filename, errors: [], warnings: [])
+            if let errors = errors {
+                errorList.errors = errors
+            }
+            if let warnings = warnings {
+                errorList.warnings = warnings
+            }
+            
+            roundErrors = []
+            if errors != nil || warnings != nil {
+                roundErrors.append(errorList)
+            }
+            if errors != nil {
+                self.scoreData = nil
+            } else {
+                self.scoreData = scoreData
+                self.inputFilename = filename
+            }
+            addMissingNationalIdWarning()
+            if !roundErrors.isEmpty {
+                showErrors = true
+            }
         } else {
-            self.scoreData = scoreData
-            self.inputFilename = filename
-        }
-        addMissingNationalIdWarning()
-        if !roundErrors.isEmpty {
-            showErrors = true
+            MessageBox.shared.show(message ?? "Unable to parse file \(inputFilename)")
+            self.scoreData = nil
+            self.inputFilename = ""
+            self.roundName = ""
         }
     }
     
@@ -351,7 +364,14 @@ struct SelectInputView: View {
             if let data = try? Data(contentsOf: url) {
                 Utility.mainThread {
                     round.scoreData?.fileUrl = url
-                    parser = Parser(fileUrl: url, data: data, completion: importParserComplete)
+                    let type = url.pathExtension.lowercased()
+                    if type == "xml" {
+                        _ = UsebioParser(fileUrl: url, data: data, completion: importParserComplete)
+                    } else if type == "csv" {
+                        _ = BridgeWebsCsvParser(fileUrl: url, data: data, completion: importParserComplete)
+                    } else {
+                        MessageBox.shared.show("File type \(type) not supported")
+                    }
                 }
             } else {
                 MessageBox.shared.show("Unable to access file \(round.filename!)")
@@ -399,22 +419,33 @@ struct SelectInputView: View {
         }
     }
     
-    private func importParserComplete(scoreData: ScoreData, parseErrors: [String], parseWarnings: [String]) {
-        let (roundMissingNationalIds, errors, warnings) = scoreData.validate()
-        missingNationalIds = missingNationalIds || roundMissingNationalIds
-        var errorList = RoundErrorList(name: importInProgress!.rounds[importRound].name!, errors: [], warnings: [])
-        if let errors = errors {
-            errorList.errors = parseErrors + errors
+    private func importParserComplete(scoreData: ScoreData?, message: String?) {
+        if let scoreData = scoreData {
+            let (roundMissingNationalIds, errors, warnings) = scoreData.validate()
+            missingNationalIds = missingNationalIds || roundMissingNationalIds
+            
+            var errorList = RoundErrorList(name: importInProgress!.rounds[importRound].name!, errors: [], warnings: [])
+            if let errors = errors {
+                errorList.errors =  errors
+            }
+            if let warnings = warnings {
+                errorList.warnings = warnings
+            }
+            if !errorList.errors.isEmpty || !errorList.warnings.isEmpty {
+                roundErrors.append(errorList)
+            }
+            
+            importInProgress!.rounds[importRound].scoreData = scoreData
+            importRound += 1
+            processNextRound()
+            
+        } else {
+            MessageBox.shared.show(message ?? "Unable to parse file \(importInProgress!.rounds[importRound].filename!)")
+            self.writer = nil
+            self.scoreData = nil
+            self.inputFilename = ""
+            self.roundName = ""
         }
-        if let warnings = warnings {
-            errorList.warnings = parseWarnings + warnings
-        }
-        if !errorList.errors.isEmpty || !errorList.warnings.isEmpty {
-            roundErrors.append(errorList)
-        }
-        importInProgress!.rounds[importRound].scoreData = scoreData
-        importRound += 1
-        processNextRound()
     }
     
     private func addMissingNationalIdWarning() {
