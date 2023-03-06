@@ -109,8 +109,9 @@ class Import {
                 }
                 break
             }
-            if data[current].allSatisfy({$0.isEmpty}) {
+            if data[current].allSatisfy({$0.isEmpty || $0 == "0"}) {
                 current += 1
+                continue
             }
             switch phase {
             case .eventHeader:

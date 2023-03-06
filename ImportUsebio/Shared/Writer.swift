@@ -1327,7 +1327,8 @@ class WriterBase {
             fullName += round.shortName + " "
         }
         fullName += name
-        self.worksheet = workbook_add_worksheet(workbook, fullName)
+        worksheet = workbook_add_worksheet(workbook, fullName)
+        worksheet_set_zoom(worksheet, UInt16(defaultWorksheetZoom))
         if let writer = writer {
             // Copy from writer
             self.formatString = writer.formatString

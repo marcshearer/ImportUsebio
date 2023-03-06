@@ -14,6 +14,16 @@ let goodStatus = "Payment Confirmed by SBU"
 let maxPoints: Float = 15.0
 let largestFieldSize = 200
 let largestPlayerCount = 600
+let defaultWorksheetZoom = 125
+
+let userDownloadData = "user download.csv"
+let userDownloadRange = "$A$2:$AI$13001"
+let userDownloadMinRow = 1
+let userDownloadMaxRow = 13000
+let userDownloadNationalIdColumn = 0
+let userDownloadFirstNameColumn = 4
+let userDownloadOtherNamesColumn = 3
+// TODO Sort out the range and colum
 
 // Parameters
 
