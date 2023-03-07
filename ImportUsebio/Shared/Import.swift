@@ -35,6 +35,8 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case toe = "TOE"
     case localNational = "LOCAL / NATIONAL"
     case maxAward = "MAX AWARD"
+    case nsMaxAward = "NS MAX AWARD"
+    case ewMaxAward = "EW MAX AWARD"
     case reducedTo = "REDUCED TO"
     case minEntry = "MIN ENTRY"
     case awardTo = "AWARD TO"
@@ -64,6 +66,7 @@ class ImportRound {
     var toe: Int?
     var localNational: LocalNational?
     var maxAward: Float?
+    var ewMaxAward: Float?
     var reducedTo: Float?
     var minEntry: Int?
     var awardTo: Float?
@@ -234,7 +237,13 @@ class Import {
             }
         }
         
-        error = checkExists(in: roundColumns, columns: .name, .maxAward, .awardTo, .filename)
+        error = checkExists(in: roundColumns, columns: .name, .awardTo, .filename)
+        if error == nil {
+            error = checkExists(in: roundColumns, columns: .nsMaxAward, .ewMaxAward)
+            if error != nil {
+                error = checkExists(in: roundColumns, columns: .maxAward)
+            }
+        }
         
         return error
     }
@@ -255,8 +264,10 @@ class Import {
                         round.toe = Int(columnValue)
                     case .localNational:
                         round.localNational = LocalNational(rawValue: columnValue.uppercased())
-                    case .maxAward:
+                    case .maxAward, .nsMaxAward:
                         round.maxAward = Float(columnValue)
+                    case .ewMaxAward:
+                        round.ewMaxAward = Float(columnValue)
                     case .reducedTo:
                         round.reducedTo = (Float(columnValue.replacingOccurrences(of: "%", with: "")) ?? 0) / 100
                     case .minEntry:

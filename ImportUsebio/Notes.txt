@@ -2,4 +2,4 @@ TODO
 ----
 Add settings to include things like maximum National ID number
 Window sizing
-Not correct adjustments for sitouts & 2 winners - need to import both NS & EW max awards
+Output file has to already exist!

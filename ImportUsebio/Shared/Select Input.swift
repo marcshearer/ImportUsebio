@@ -21,6 +21,7 @@ struct SelectInputView: View {
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
+    @State private var ewMaxAward: Float = 0.0
     @State private var minEntry: Int = 0
     @State private var awardTo: Float = 25
     @State private var perWin: Float = 0.25
@@ -107,16 +108,26 @@ struct SelectInputView: View {
                                         Spacer()
                                     }
                                     
-                                    Spacer().frame(height: 16)
+                                    Spacer().frame(height: 10)
                                     
                                     HStack(spacing: 0) {
                                         Spacer().frame(width: 30)
                                         
                                         InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
                                         
+                                        InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                        
+                                        Spacer()
+                                    }
+                                    
+                                    Spacer().frame(height: 10)
+                                    
+                                    HStack(spacing: 0) {
+                                        Spacer().frame(width: 30)
+                                        
                                         InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
                                         
-                                        InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                        InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
                                         
                                         InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
                                         
@@ -127,8 +138,7 @@ struct SelectInputView: View {
                             Spacer()
                         }
                         
-                        Spacer().frame(height: 60)
-                        
+                        Spacer().frame(height: 20)
                         HStack {
                             Spacer().frame(width: 16)
                             addSheetButton()
@@ -196,6 +206,7 @@ struct SelectInputView: View {
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
                 scoreData.maxAward = maxAward
+                scoreData.ewMaxAward = (ewMaxAward != 0 ? ewMaxAward : nil)
                 scoreData.minEntry = minEntry
                 scoreData.reducedTo = 1
                 scoreData.awardTo = awardTo
@@ -394,13 +405,15 @@ struct SelectInputView: View {
                     roundName = round.name!
                     localNational = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
                     maxAward = round.maxAward!
+                    ewMaxAward = round.ewMaxAward!
                     minEntry = round.minEntry ?? 0
                     awardTo = round.awardTo!
-                    perWin = round.perWin!
+                    perWin = round.perWin ?? 0
                     
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
                     scoreData.maxAward = maxAward
+                    scoreData.ewMaxAward = ewMaxAward
                     scoreData.reducedTo = round.reducedTo ?? 1
                     scoreData.minEntry = minEntry
                     scoreData.awardTo = awardTo * 100

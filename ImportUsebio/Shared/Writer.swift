@@ -606,7 +606,7 @@ class RanksPlusMPsWriter: WriterBase {
     var entryCell: String?
     var tablesCell: String?
     var maxAwardCell: String?
-    var maxEwAwardCell: String?
+    var ewMaxAwardCell: String?
     var minEntryCell: String?
     var awardToCell: String?
     var ewAwardToCell: String?
@@ -825,7 +825,7 @@ class RanksPlusMPsWriter: WriterBase {
         
         if event.winnerType == 2 && event.type?.participantType == .pair {
             let directionCell = cell(rowNumber, directionColumn!, columnFixed: true)
-            useAwardCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(maxAwardCell!),\(maxEwAwardCell!))"
+            useAwardCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(maxAwardCell!),\(ewMaxAwardCell!))"
             useAwardToCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(awardToCell!),\(ewAwardToCell!))"
             allPositionsRange = "\(filter)(\(vstack)(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true))),\(vstack)(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)))=\(directionCell))"
         } else {
@@ -999,10 +999,10 @@ class RanksPlusMPsWriter: WriterBase {
         
         writeCell(integer: event.boards ?? 0)
         
-        var baseMaxEwAwardCell = ""
+        var baseEwMaxAwardCell: String?
         writeCell(floatFormula: "=ROUND(\(scoreData.maxAward),2)") ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "ROUNDUP(\(baseMaxAwardCell)*\(ewEntryRef)/\(entryCell!),2)") ; baseMaxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(floatFormula: "=ROUND(\(scoreData.ewMaxAward ?? scoreData.maxAward),2)") ; baseEwMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true)
@@ -1013,7 +1013,7 @@ class RanksPlusMPsWriter: WriterBase {
 
         writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxEwAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxEwAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseEwMaxAwardCell!)*\(entryFactorCell),2)*\(reduceToCell),2)") ; ewMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,2)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
