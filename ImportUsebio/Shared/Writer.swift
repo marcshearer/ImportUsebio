@@ -100,7 +100,7 @@ class Round {
 
 class Writer: WriterBase {
     var summary: SummaryWriter!
-    var csvExport:CsvExportWriter!
+    var csvImport:CsvImportWriter!
     var consolidated: ConsolidatedWriter!
     var missing: MissingNumbersWriter!
     var rounds: [Round] = []
@@ -115,7 +115,7 @@ class Writer: WriterBase {
     init() {
         super.init()
         summary = SummaryWriter(writer: self)
-        csvExport = CsvExportWriter(writer: self)
+        csvImport = CsvImportWriter(writer: self)
         consolidated = ConsolidatedWriter(writer: self)
         missing = MissingNumbersWriter(writer: self)
     }
@@ -132,7 +132,7 @@ class Writer: WriterBase {
         setupFormats()
         // Create worksheets
         summary.prepare(workbook: workbook)
-        csvExport.prepare(workbook: workbook)
+        csvImport.prepare(workbook: workbook)
         consolidated.prepare(workbook: workbook)
         missing.prepare(workbook: workbook)
         for round in rounds {
@@ -149,7 +149,7 @@ class Writer: WriterBase {
             round.individualMPs.write()
         }
         consolidated.write()
-        csvExport.write()
+        csvImport.write()
         summary.write()
         if missingNumbers.count > 0 {
             missing.write()
@@ -245,11 +245,11 @@ class SummaryWriter : WriterBase {
         writeTotal(column: nationalMPsColumn)
         writeTotal(column: checksumColumn)
         
-        let csvExport = writer.csvExport!
+        let csvImport = writer.csvImport!
         write(worksheet: worksheet, row: exportedRow!, column: descriptionColumn!, string: "Exported totals", format: formatBold)
-        write(worksheet: worksheet, row: exportedRow!, column: localMPsColumn!, formula: "=\(cell(writer: csvExport, csvExport.localMpsCell!))", format: formatZeroFloat)
-        write(worksheet: worksheet, row: exportedRow!, column: nationalMPsColumn!, formula: "=\(cell(writer: csvExport, csvExport.nationalMpsCell!))", format: formatZeroFloat)
-        write(worksheet: worksheet, row: exportedRow!, column: checksumColumn!, formula: "=\(cell(writer: csvExport, csvExport.checksumCell!))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: localMPsColumn!, formula: "=\(cell(writer: csvImport, csvImport.localMpsCell!))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: nationalMPsColumn!, formula: "=\(cell(writer: csvImport, csvImport.nationalMpsCell!))", format: formatZeroFloat)
+        write(worksheet: worksheet, row: exportedRow!, column: checksumColumn!, formula: "=\(cell(writer: csvImport, csvImport.checksumCell!))", format: formatZeroFloat)
         
         for column in [localMPsColumn, nationalMPsColumn, checksumColumn] {
             highlightTotalDifferent(row: exportedRow!, compareRow: totalRow!, column: column!)
@@ -271,8 +271,8 @@ class SummaryWriter : WriterBase {
 
 // MARK: - Export CSV
 
-class CsvExportWriter: WriterBase {
-    override var name: String { "Export" }
+class CsvImportWriter: WriterBase {
+    override var name: String { "Import" }
     var localMpsCell: String?
     var nationalMpsCell: String?
     var checksumCell: String?
@@ -293,7 +293,7 @@ class CsvExportWriter: WriterBase {
     let valuesColumn = 1
     let firstNameColumn = 0
     let otherNamesColumn = 1
-    let eventDataColumn = 2
+    let eventDateColumn = 2
     let nationalIdColumn = 3
     let eventCodeColumn = 4
     let clubCodeColumn = 5
@@ -312,11 +312,27 @@ class CsvExportWriter: WriterBase {
     }
     
     func write() {
+        // Define ranges
+        workbook_define_name(writer.workbook, "DateArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, eventDateColumn, columnFixed: true)))")
+        workbook_define_name(writer.workbook, "TitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, eventDateColumn, columnFixed: true)):\(cell(titleRow, rowFixed: true, nationalMPsColumn, columnFixed: true))")
+
+        // Add macro button
+        var options = lxw_button_options()
+        var macro = "CopyImport"
+        var title = "Copy Import"
+        options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
+        options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
+        options.height = 30
+        options.width = 80
+        worksheet_insert_button(worksheet, 1, 4, &options)
+        
+        // Format rows/columns
+        setRow(worksheet: worksheet, row: titleRow, height: 30)
         
         setColumn(worksheet: worksheet, column: titleColumn, width: 12)
         setColumn(worksheet: worksheet, column: valuesColumn, width: 16)
-        setColumn(worksheet: worksheet, column: eventDataColumn, width: 10, format: formatDate)
-        setColumn(worksheet: worksheet, column: nationalIdColumn, format: formatInt)
+        setColumn(worksheet: worksheet, column: eventDateColumn, width: 10, format: formatDate)
+        setColumn(worksheet: worksheet, column: nationalIdColumn, width: 13, format: formatInt)
         setColumn(worksheet: worksheet, column: localMPsColumn, format: formatFloat)
         setColumn(worksheet: worksheet, column: nationalMPsColumn, format: formatFloat)
         
@@ -365,10 +381,10 @@ class CsvExportWriter: WriterBase {
         write(worksheet: worksheet, row: titleRow, column: otherNamesColumn, string: "", format: formatBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.otherNamesColumn!, columnFixed: true)))")
         
-        write(worksheet: worksheet, row: titleRow, column: eventDataColumn, string: "Event date", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: eventDataColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        write(worksheet: worksheet, row: titleRow, column: eventDateColumn, string: "Claim Date", format: formatBoldUnderline)
+        write(worksheet: worksheet, row: dataRow, column: eventDateColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
-        write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "MemNo", format: formatRightBoldUnderline)
+        write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "Membership ID", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
         
         write(worksheet: worksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
@@ -376,10 +392,10 @@ class CsvExportWriter: WriterBase {
         
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
-        write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local", format: formatRightBoldUnderline)
+        write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local Points", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
         
-        write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn, string: "National", format: formatRightBoldUnderline)
+        write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn, string: "National Points", format: formatRightBoldUnderline)  
         write(worksheet: worksheet, row: dataRow, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
         
         //Lookups
@@ -394,7 +410,7 @@ class CsvExportWriter: WriterBase {
         highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
         highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupStatusColumn, format: formatGrey)
         highlightBadNationalId(column: nationalIdColumn, firstNameColumn: firstNameColumn)
-        highlightBadDate(column: eventDataColumn, firstNameColumn: firstNameColumn)
+        highlightBadDate(column: eventDateColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: localMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: nationalMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadRank(column: lookupRankColumn)
@@ -1446,10 +1462,12 @@ class WriterBase {
         formatBoldUnderline = workbook_add_format(workbook)
         format_set_bold(formatBoldUnderline)
         format_set_bottom(formatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_text_wrap(formatBoldUnderline)
         formatRightBoldUnderline = workbook_add_format(workbook)
         format_set_bold(formatRightBoldUnderline)
         format_set_align(formatRightBoldUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
         format_set_bottom(formatRightBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_text_wrap(formatRightBoldUnderline)
         format_set_num_format(formatRightBoldUnderline, "0;-0;")
         formatFloatBoldUnderline = workbook_add_format(workbook)
         format_set_bold(formatFloatBoldUnderline)
@@ -1579,8 +1597,9 @@ class WriterBase {
         }
     }
     
-    func setRow(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+    func setRow(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, format: UnsafeMutablePointer<lxw_format>? = nil, height: Float? = nil) {
         let row = lxw_row_t(Int32(row))
-        worksheet_set_row(worksheet, row,  LXW_DEF_ROW_HEIGHT, format)
+        let height = (height == nil ? LXW_DEF_ROW_HEIGHT : Double(height!))
+        worksheet_set_row(worksheet, row, height, format)
     }
 }
