@@ -3,3 +3,5 @@ TODO
 Add settings to include things like maximum National ID number
 Window sizing
 Output file has to already exist!
+Freeze panes in Formatted
+Sort out Formatted for single events (without extra players)
