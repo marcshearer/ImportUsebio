@@ -14,8 +14,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1234"
-            endingLineNumber = "1234"
+            startingLineNumber = "1252"
+            endingLineNumber = "1252"
             landmarkName = "writeheader()"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,10 +30,58 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1066"
-            endingLineNumber = "1066"
+            startingLineNumber = "1084"
+            endingLineNumber = "1084"
             landmarkName = "playerNationalId(_:player:playerNumber:rowNumber:)"
             landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "FA9B0A36-71DF-4B5D-90D6-B9FEECC3264B"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "ImportUsebio/Shared/Writer.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "448"
+            endingLineNumber = "448"
+            landmarkName = "ranksNamesRef()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "FA9B0A36-71DF-4B5D-90D6-B9FEECC3264B - a2840f5bc5790426"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "default argument 1 of ImportUsebio.FormattedWriter.zeroFiltered(column: Swift.Int, columnFixed: Swift.Bool) -&gt; Swift.String"
+                  moduleName = "ImportUsebio"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/marcshearer/Documents/Xcode%20projects/ImportUsebio/ImportUsebio/Shared/Writer.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "450"
+                  endingLineNumber = "450"
+                  offsetFromSymbolStart = "6">
+               </Location>
+               <Location
+                  uuid = "FA9B0A36-71DF-4B5D-90D6-B9FEECC3264B - ad06ac707511cd90"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "ImportUsebio.FormattedWriter.zeroFiltered(column: Swift.Int, columnFixed: Swift.Bool) -&gt; Swift.String"
+                  moduleName = "ImportUsebio"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/marcshearer/Documents/Xcode%20projects/ImportUsebio/ImportUsebio/Shared/Writer.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "451"
+                  endingLineNumber = "451"
+                  offsetFromSymbolStart = "184">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

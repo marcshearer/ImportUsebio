@@ -339,11 +339,9 @@ class FormattedWriter: WriterBase {
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: column.title, format: bannerFormat)
             
             if singleEvent {
-                /*
                 if let referenceDynamic = column.referenceDynamic {
                     writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: { referenceDynamic() }, format: column.format ?? bodyFormat)
                 }
-                 */
             } else {
                 let consolidated = writer.consolidated!
                 if let referenceDynamic = column.referenceDynamic {
@@ -373,9 +371,9 @@ class FormattedWriter: WriterBase {
             let round = writer.rounds.first!
             let ranksPlusMPs = round.ranksPlusMps!
             
-            columns.append(Column(title: "Position", referenceDynamic: { [self] in ranksArrayRef(content: ranksContent(column: ranksPlusMPs.positionColumn!)) }, cellType: .string, width: 30))
+            columns.append(Column(title: "Position", referenceDynamic: { [self] in "=\(ranksArrayRef(column: ranksPlusMPs.positionColumn!))" }, cellType: .string, width: 30))
             
-            columns.append(Column(title: "Names", content: { [self] (participant, _) in ranksArrayRef(content: names(participant)) }, cellType: .string, width: 30))
+            columns.append(Column(title: "Names", referenceDynamic: { [self] in ranksNamesRef() }, cellType: .string, width: 30))
             
         } else {
             
@@ -412,47 +410,67 @@ class FormattedWriter: WriterBase {
         return "\(arrayRef)(\(cell(writer: writer.consolidated, writer.consolidated.dataRow!, rowFixed: true, column, columnFixed: columnFixed)))"
     }
     
-    private func ranksContent(column: Int, columnFixed: Bool = false) -> String {
-        let ranksPlusMps = writer.rounds.first!.ranksPlusMps!
-        let event = writer.rounds.first!.scoreData.events.first!
-        
-        return "\(arrayRef)(\(cell(writer: ranksPlusMps, ranksPlusMps.dataRow, rowFixed: true, column, columnFixed: columnFixed)))"
-    }
-    
-    private func ranksArrayRef(content: String) -> String {
+    private func ranksArrayRef(column: Int, columnFixed: Bool = true) -> String {
         let ranksPlusMps = writer.rounds.first!.ranksPlusMps!
         let event = writer.rounds.first!.scoreData.events.first!
         let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
-
-        var result = "=\(sortBy)(\(content), "
+        
+        var result = "\(sortBy)(\(zeroFiltered(column: column, columnFixed: columnFixed)), "
         
         if twoWinners {
-            let direction = "\(arrayRef)(\(cell(writer: ranksPlusMps, ranksPlusMps.dataRow, rowFixed: true, ranksPlusMps.directionColumn!, columnFixed: true)))"
+            let direction = zeroFiltered(column: ranksPlusMps.directionColumn!)
             result += "\(direction), -1, "
         }
         
-        let position = "\(arrayRef)(\(cell(writer: ranksPlusMps, ranksPlusMps.dataRow, rowFixed: true, ranksPlusMps.positionColumn!, columnFixed: true)))"
+        let position = zeroFiltered(column: ranksPlusMps.positionColumn!)
         result += "\(position), 1)"
         
         return result
     }
     
-    private func zeroFiltered(columnReference: Int) -> String {
+    private func ranksNamesRef() -> String {
+        let round = writer.rounds.first!
+        let ranksPlusMps = round.ranksPlusMps!
         
-        var result = "\(filter)(\(vstack)("
-        
-        result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, columnReference)
-        result += ":"
-        result += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, columnReference)
-        
-        result += "),\(vstack)("
-        
-        result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, round.ranksPlusMps.totalMPColumn.first!)
-            result += ":"
-        result += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, round.ranksPlusMps.totalMPColumn.first!)
-        result += ")<>0)"
-        
+        var result = "=CONCATENATE("
+        for playerNumber in 0..<round.maxParticipantPlayers {
+            var name = "CONCATENATE("
+            name += "\(arrayRef)(\(cell(ranksPlusMps.dataRow, rowFixed: true,  ranksPlusMps.firstNameColumn[playerNumber], columnFixed: true)))"
+            name += ", \" \", "
+            name += "\(arrayRef)(\(cell(ranksPlusMps.dataRow, rowFixed: true,  ranksPlusMps.firstNameColumn[playerNumber], columnFixed: true)))"
+
+            if playerNumber != 0 {
+                result += "IF(\(name)=\"\",\"\",\", \")"
+            }
+            result += name + ")"
+        }
+        result += ")"
         return result
+    }
+    
+    private func zeroFiltered(column: Int, columnFixed: Bool = true) -> String {
+        let round = writer.rounds.first!
+        
+        var content = "\(filter)(\(vstack)("
+        
+        content += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, column, columnFixed: columnFixed)
+        content += ":"
+        content += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, column, columnFixed: columnFixed)
+        
+        content += "),\(vstack)("
+        
+        content += sourceRef(round.ranksPlusMps.dataRow)
+        content += ")<>0)"
+        
+        return content
+    }
+    
+    private func sourceRef(column: Int) -> String {
+        var content = ""
+        content += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, column, columnFixed: true)
+        content += ":"
+        content += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, column, columnFixed: true)
+        return content
     }
     
     private func names(_ participant: Participant) -> String {
