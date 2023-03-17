@@ -71,7 +71,7 @@ class FileSystem {
 #endif
     }
     
-    static public func saveFile(relativeTo: URL? = nil, title: String? = nil, prompt: String? = nil, filename: String, completion: @escaping (URL, Data)->()) {
+    static public func saveFile(relativeTo: URL? = nil, title: String? = nil, prompt: String? = nil, filename: String, completion: @escaping (URL)->()) {
 #if canImport(AppKit)
         let savePanel = NSSavePanel()
         savePanel.canCreateDirectories = true
@@ -85,13 +85,7 @@ class FileSystem {
         savePanel.begin { result in
             if result == .OK {
                 if let url = savePanel.url {
-                    do {
-                        let content = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: relativeTo)
-                        completion(url, content)
-                    } catch {
-                        // Ignore error
-                        print(error.localizedDescription)
-                    }
+                    completion(url)
                 }
             }
         }

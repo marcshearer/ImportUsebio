@@ -241,7 +241,7 @@ struct SelectInputView: View {
    
     private func finishButton() -> some View {
         return Button{
-            FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url, bookmarkData) in
+            FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url) in
                 Utility.mainThread {
                     if let writer = writer {
                         writer.write(as: url.relativePath)
