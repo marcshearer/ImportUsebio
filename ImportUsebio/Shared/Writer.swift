@@ -231,6 +231,8 @@ class SummaryWriter : WriterBase {
         options.y_offset = 5
         worksheet_insert_button(worksheet, 1, 9, &options)
         
+        freezePanes(worksheet: worksheet, row: detailRow!, column: 0)
+        
         setColumn(worksheet: worksheet, column: descriptionColumn!, width: 30)
         setColumn(worksheet: worksheet, column: localMPsColumn!, width: 12)
         setColumn(worksheet: worksheet, column: nationalMPsColumn!, width: 12)
