@@ -103,6 +103,7 @@ class Round {
 }
 
 class Writer: WriterBase {
+    var parameters: ParametersWriter!
     var summary: SummaryWriter!
     var csvImport:CsvImportWriter!
     var consolidated: ConsolidatedWriter!
@@ -119,6 +120,7 @@ class Writer: WriterBase {
     
     init() {
         super.init()
+        parameters = ParametersWriter(writer: self)
         summary = SummaryWriter(writer: self)
         csvImport = CsvImportWriter(writer: self)
         consolidated = ConsolidatedWriter(writer: self)
@@ -148,6 +150,7 @@ class Writer: WriterBase {
         for round in rounds {
             round.individualMPs.prepare(workbook: workbook)
         }
+        parameters.prepare(workbook: workbook)
         workbook_add_vba_project(workbook, "./Award.bin")
         
         // Process data
@@ -156,6 +159,7 @@ class Writer: WriterBase {
             round.individualMPs.write()
         }
         consolidated.write()
+        parameters.writeSortBy()
         csvImport.write()
         summary.write()
         if missingNumbers.count > 0 {
@@ -164,6 +168,8 @@ class Writer: WriterBase {
             worksheet_hide(missing.worksheet)
         }
         formatted.write()
+        parameters.write()
+        worksheet_hide(parameters.worksheet)
         
         // Finish up
         workbook_close(workbook)
@@ -182,6 +188,64 @@ class Writer: WriterBase {
         return formula
     }
 }
+
+// MARK: Parameters Writer
+
+class ParametersWriter : WriterBase {
+    override var name: String { "Parameters" }
+    let sortNameColumn = 0
+    let sortAddressColumn = 1
+    let sortDirectionColumn = 2
+   
+    let headerRow = 0
+    let dataRow = 1
+    
+    var sortByNameRange: String!
+    var sortByAddressRange: String!
+    var sortByDirectionRange: String!
+    
+    var sortData: [(name: String, column: Int, direction: Int)] = []
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+    }
+    
+    func write() {
+        freezePanes(worksheet: worksheet, row: dataRow, column: 0)
+    }
+    
+    func writeSortBy() {
+        let consolidated = writer.consolidated!
+        
+        sortData =
+        [("National Id",  consolidated.nationalIdColumn!, 1),
+         ("Local MPs",    consolidated.localMPsColumn!, -1),
+         ("National MPs", consolidated.nationalMPsColumn!, -1),
+         ("First Name", consolidated.firstNameColumn!, 1),
+         ("Other Names", consolidated.otherNamesColumn!, 1)]
+        
+        for column in 0...sortDirectionColumn {
+                setColumn(worksheet: worksheet, column: column, width: 17)
+        }
+        
+        for (column, header) in ["Sort Text", "Sort Address", "Sort Direction"].enumerated() {
+            write(worksheet: worksheet, row: headerRow, column: column, string: header, format: formatBold)
+        }
+        
+        for (row,element) in sortData.enumerated() {
+            write(worksheet: worksheet, row: dataRow + row, column: sortNameColumn, string: element.name)
+            let arrayAddress = cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, element.column, columnFixed: true)
+            write(worksheet: worksheet, row: dataRow + row, column: sortAddressColumn, formula: "=ADDRESS(ROW(\(arrayAddress)),COLUMN(\(arrayAddress)),1,1,\"\(consolidated.name)\")")
+            write(worksheet: worksheet, row: dataRow + row, column: sortDirectionColumn, integer: element.direction)
+        }
+        
+        sortByNameRange = "\(cell(writer: self, dataRow, rowFixed: true, sortNameColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortNameColumn, columnFixed: true))"
+        sortByAddressRange = "\(cell(writer: self, dataRow, rowFixed: true, sortAddressColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortAddressColumn, columnFixed: true))"
+        sortByDirectionRange = "\(cell(writer: self, dataRow, rowFixed: true, sortDirectionColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortDirectionColumn, columnFixed: true))"
+    }
+}
+
 
 // MARK: - Summary
     
@@ -317,7 +381,6 @@ class FormattedWriter: WriterBase {
     
     var singleEvent: Bool {
         let rounds = writer.rounds
-        let round = rounds.first!
         return (rounds.count == 1)
     }
     
@@ -487,7 +550,7 @@ class FormattedWriter: WriterBase {
             }
             arrayContent += sourceRef(column: ranksPlusMps.firstNameColumn[playerNumber])
             arrayContent += ","
-            arrayContent += sourceRef(column: ranksPlusMps.otherNameColumn[playerNumber])
+            arrayContent += sourceRef(column: ranksPlusMps.otherNamesColumn[playerNumber])
         }
         arrayContent += ")"
         
@@ -598,11 +661,14 @@ class CsvImportWriter: WriterBase {
     let maxRankRow = 3
     let eventDateRow = 4
     let licenseNoRow = 5
-    let localMPsRow = 7
-    let nationalMPsRow = 8
-    let checksumRow = 9
-    let titleRow = 11
-    let dataRow = 12
+    let sortByRow = 7
+    let awardsRow = 8
+    let localMPsRow = 9
+    let nationalMPsRow = 10
+    let checksumRow = 11
+    
+    let titleRow = 13
+    let dataRow = 14
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -682,6 +748,16 @@ class CsvImportWriter: WriterBase {
         
         write(worksheet: worksheet, row: licenseNoRow, column: titleColumn, string: "License no:", format: formatBold)
         
+        write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
+        let parameters = writer.parameters!
+        let sortData = parameters.sortData
+        let validationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.sortNameColumn, columnFixed: true)):\(cell(parameters.dataRow + sortData.count - 1, rowFixed: true, parameters.sortNameColumn, columnFixed: true))"
+        setDataValidation(row: sortByRow, column: valuesColumn, formula: validationRange)
+        write(worksheet: worksheet, row: sortByRow, column: valuesColumn, string: sortData.first!.name, format: formatInt)
+
+        write(worksheet: worksheet, row: awardsRow, column: titleColumn, string: "Award count:", format: formatBold)
+        write(worksheet: worksheet, row: awardsRow, column: valuesColumn, dynamicFormula: "=ROWS(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))))", format: formatZeroInt)
+        
         write(worksheet: worksheet, row: localMPsRow, column: titleColumn, string: "Local MPs:", format: formatBold)
         write(worksheet: worksheet, row: localMPsRow, column: valuesColumn, dynamicFormula: "=ROUND(SUM(\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn, columnFixed: true)))),2)", format: formatZeroFloat)
         localMpsCell = cell(localMPsRow, rowFixed: true, valuesColumn, columnFixed: true)
@@ -696,17 +772,20 @@ class CsvImportWriter: WriterBase {
         
         // Data
         let consolidated = writer.consolidated!
+        let sortByCell = cell(sortByRow, rowFixed: true, valuesColumn, columnFixed: true)
+        let sortByLogic = ",\(fnPrefix)INDIRECT(\(fnPrefix)XLOOKUP(\(sortByCell),\(parameters.sortByNameRange!),\(parameters.sortByAddressRange!),,0)&\"#\"),\(fnPrefix)XLOOKUP(\(sortByCell),\(parameters.sortByNameRange!),\(parameters.sortByDirectionRange!),,0)"
+        
         write(worksheet: worksheet, row: titleRow, column: firstNameColumn, string: "Names", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: firstNameColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.firstNameColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow, column: firstNameColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.firstNameColumn!))\(sortByLogic))")
         
         write(worksheet: worksheet, row: titleRow, column: otherNamesColumn, string: "", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: otherNamesColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.otherNamesColumn!, columnFixed: true)))")
+        write(worksheet: worksheet, row: dataRow, column: otherNamesColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.otherNamesColumn!))\(sortByLogic))")
         
         write(worksheet: worksheet, row: titleRow, column: eventDateColumn, string: "Claim Date", format: formatBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: eventDateColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "Membership ID", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: nationalIdColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))", format: formatInt)
+        write(worksheet: worksheet, row: dataRow, column: nationalIdColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.nationalIdColumn!))\(sortByLogic))", format: formatInt)
         
         write(worksheet: worksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))")
@@ -714,10 +793,10 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
         
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local Points", format: formatRightBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.localMPsColumn!))\(sortByLogic))", format: formatFloat)
         
         write(worksheet: worksheet, row: titleRow, column: nationalMPsColumn, string: "National Points", format: formatRightBoldUnderline)  
-        write(worksheet: worksheet, row: dataRow, column: nationalMPsColumn, dynamicFormula: "=\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true)))", format: formatFloat)
+        write(worksheet: worksheet, row: dataRow, column: nationalMPsColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.nationalMPsColumn!))\(sortByLogic))", format: formatFloat)
         
         //Lookups
         writeLookup(title: "First Name", column: lookupFirstNameColumn, lookupColumn: 5)
@@ -736,6 +815,11 @@ class CsvImportWriter: WriterBase {
         highlightBadMPs(column: nationalMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadRank(column: lookupRankColumn)
         highlightBadStatus(column: lookupStatusColumn)
+    }
+    
+    private func sourceArray(_ column: Int) -> String {
+        let consolidated = writer.consolidated!
+        return "\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))"
     }
     
     private func writeLookup(title: String, column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -934,7 +1018,7 @@ class RanksPlusMPsWriter: WriterBase {
     var directionColumn: Int?
     var participantNoColumn: Int?
     var firstNameColumn: [Int] = []
-    var otherNameColumn: [Int] = []
+    var otherNamesColumn: [Int] = []
     var nationalIdColumn: [Int] = []
     var boardsPlayedColumn: [Int] = []
     var winDrawColumn: [Int] = []
@@ -988,7 +1072,7 @@ class RanksPlusMPsWriter: WriterBase {
         for playerNumber in 0..<round.maxParticipantPlayers {
             let nationalIdColumn = nationalIdColumn[playerNumber]
             let firstNameColumn = firstNameColumn[playerNumber]
-            let otherNamesColumn = otherNameColumn[playerNumber]
+            let otherNamesColumn = otherNamesColumn[playerNumber]
             let firstNameNonBlank = "\(cell(dataRow, firstNameColumn, columnFixed: true))<>\"\""
             let otherNamesNonBlank = "\(cell(dataRow, otherNamesColumn, columnFixed: true))<>\"\""
             let nationalIdZero = "\(cell(dataRow, nationalIdColumn, columnFixed: true))<=0"
@@ -1088,7 +1172,7 @@ class RanksPlusMPsWriter: WriterBase {
             firstNameColumn.append(columns.count - 1)
             
             columns.append(Column(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name!, element: 1) }, playerNumber: playerNumber, cellType: .string))
-            otherNameColumn.append(columns.count - 1)
+            otherNamesColumn.append(columns.count - 1)
             
             columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
             nationalIdColumn.append(columns.count - 1)
@@ -1144,7 +1228,7 @@ class RanksPlusMPsWriter: WriterBase {
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
         if (Int(player.nationalId ?? "0") ?? 0) <= 0 {
-            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNameColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + largestPlayerCount, writer.missing.nationalIdColumn)),2,FALSE)"
+            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + largestPlayerCount, writer.missing.nationalIdColumn)),2,FALSE)"
             if writer.missingNumbers[player.name!] == nil {
                 writer.missingNumbers[player.name!] = -(writer.missingNumbers.count + 1)
             }
@@ -1478,7 +1562,7 @@ class IndividualMPsWriter: WriterBase {
         
         columns.append(Column(title: "Names", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.firstNameColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; firstNameColumn = columns.count - 1
         
-        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.otherNameColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; let otherNamesColumn = columns.count - 1
+        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.otherNamesColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; let otherNamesColumn = columns.count - 1
         
         columns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; nationalIdColumn = columns.count - 1
         
@@ -1916,6 +2000,16 @@ class WriterBase {
             
             worksheet_conditional_format_range(worksheet, lxw_row_t(Int32(fromRow)), lxw_col_t(Int32(fromColumn)), lxw_row_t(Int32(toRow)), lxw_col_t(Int32(toColumn)), &dupFormat)
         }
+    }
+            
+    func setDataValidation(row: Int, column: Int, formula: String) {
+        let row = lxw_row_t(Int32(row))
+        let column = lxw_col_t(Int32(column))
+        var validation = lxw_data_validation()
+        validation.validate = UInt8(LXW_VALIDATION_TYPE_LIST_FORMULA.rawValue)
+        validation.criteria = UInt8(LXW_VALIDATION_CRITERIA_EQUAL_TO.rawValue)
+        validation.value_formula = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
+        worksheet_data_validation_cell(worksheet, row, column, &validation)
     }
     
     func setColumn(worksheet: UnsafeMutablePointer<lxw_worksheet>?, column: Int, toColumn: Int? = nil, width: Float? = nil, hidden: Bool = false, format: UnsafeMutablePointer<lxw_format>? = nil) {
