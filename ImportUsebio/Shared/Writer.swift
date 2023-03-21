@@ -87,9 +87,9 @@ class Round {
         return result
     }
     
-    var fieldSize: Int { largestFieldSize }
+    var fieldSize: Int { Settings.current.largestFieldSize }
     
-    var maxPlayers: Int { largestPlayerCount } 
+    var maxPlayers: Int { Settings.current.largestPlayerCount }
     
     var nsPairs : Int? {
         let event = scoreData.events.first!
@@ -446,8 +446,8 @@ class FormattedWriter: WriterBase {
             formula += "A$1=\"\(column)\""
         }
         formula += "))"
-        if twoWinners {
-            let columnRef = columnRef(column: directionColumn!, fixed: true)
+        if singleEvent && twoWinners{
+            let columnRef = columnRef(directionColumn!, fixed: true)
             let directionFormula = "AND($A2<>\"\",\(columnRef)1<>\(columnRef)2, ROW($A2)<>2)"
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(formula), \(directionFormula))", stopIfTrue: false, format: formatLeftRightTop!)
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: directionFormula, stopIfTrue: false, format: formatTop!)
@@ -799,12 +799,12 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow, column: nationalMPsColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.nationalMPsColumn!))\(sortByLogic))", format: formatFloat)
         
         //Lookups
-        writeLookup(title: "First Name", column: lookupFirstNameColumn, lookupColumn: 5)
-        writeLookup(title: "Other Names", column: lookupOtherNamesColumn, lookupColumn: 4)
-        writeLookup(title: "Home Club", column: lookupHomeClubColumn, lookupColumn: 19)
-        writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: 6, format: formatRightBoldUnderline)
-        writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: 8)
-        writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: 25)
+        writeLookup(title: "First Name", column: lookupFirstNameColumn, lookupColumn: Settings.current.userDownloadFirstNameColumn)
+        writeLookup(title: "Other Names", column: lookupOtherNamesColumn, lookupColumn: Settings.current.userDownloadOtherNamesColumn)
+        writeLookup(title: "Home Club", column: lookupHomeClubColumn, lookupColumn: Settings.current.userDownloadHomeClubColumn)
+        writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: Settings.current.userDownloadRankColumn, format: formatRightBoldUnderline)
+        writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: Settings.current.userDownloadEmailColumn)
+        writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: Settings.current.userDownloadStatusColumn)
         
         highlightLookupDifferent(column: firstNameColumn, lookupColumn: lookupFirstNameColumn, format: formatYellow)
         highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
@@ -822,9 +822,13 @@ class CsvImportWriter: WriterBase {
         return "\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))"
     }
     
-    private func writeLookup(title: String, column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+    private func writeLookup(title: String, column: Int, lookupColumn: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
         write(worksheet: worksheet, row: titleRow, column: column, string: title, format: format ?? formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=VLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),'\(userDownloadData)'!\(userDownloadRange),\(lookupColumn),FALSE)")
+        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(lookupColumn))),,0)")
+    }
+    
+    private func lookupRange(_ column: String) -> String {
+        return "'\(Settings.current.userDownloadData!)'!\(column)\(Settings.current.userDownloadMinRow!):\(column)\(Settings.current.userDownloadMaxRow!)"
     }
     
     private func highlightLookupDifferent(column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -842,21 +846,21 @@ class CsvImportWriter: WriterBase {
     
     private func highlightBadStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let statusCell = "\(cell(dataRow, column, columnFixed: true))"
-        let formula = "=AND(\(statusCell)<>\"\(goodStatus)\", \(statusCell)<>\"\")"
+        let formula = "=AND(\(statusCell)<>\"\(Settings.current.goodStatus!)\", \(statusCell)<>\"\")"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightBadNationalId(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let nationalIdCell = cell(dataRow, column, columnFixed: true)
         let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
-        let formula = "=AND(\(firstNameCell)<>\"\", OR(\(nationalIdCell)<=0, \(nationalIdCell)>\(maxNationalIdNumber), NOT(ISNUMBER(\(nationalIdCell)))))"
+        let formula = "=AND(\(firstNameCell)<>\"\", OR(\(nationalIdCell)<=0, \(nationalIdCell)>\(Settings.current.maxNationalIdNumber!), NOT(ISNUMBER(\(nationalIdCell)))))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, checkDuplicates: true, format: format ?? formatRed!, duplicateFormat: formatRedHatched!)
     }
     
     private func highlightBadMPs(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let pointsCell = cell(dataRow, column, columnFixed: true)
         let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
-        let formula = "=AND(\(firstNameCell)<>\"\", OR(\(pointsCell)>\(maxPoints), AND(\(pointsCell)<>\"\", NOT(ISNUMBER(\(pointsCell))))))"
+        let formula = "=AND(\(firstNameCell)<>\"\", OR(\(pointsCell)>\(Settings.current.maxPoints!), AND(\(pointsCell)<>\"\", NOT(ISNUMBER(\(pointsCell))))))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
@@ -1076,7 +1080,7 @@ class RanksPlusMPsWriter: WriterBase {
             let firstNameNonBlank = "\(cell(dataRow, firstNameColumn, columnFixed: true))<>\"\""
             let otherNamesNonBlank = "\(cell(dataRow, otherNamesColumn, columnFixed: true))<>\"\""
             let nationalIdZero = "\(cell(dataRow, nationalIdColumn, columnFixed: true))<=0"
-            let nationalIdLarge = "\(cell(dataRow, nationalIdColumn, columnFixed: true))>\(maxNationalIdNumber)"
+            let nationalIdLarge = "\(cell(dataRow, nationalIdColumn, columnFixed: true))>\(Settings.current.maxNationalIdNumber!)"
             let formula = "=AND(OR(\(firstNameNonBlank),\(otherNamesNonBlank)), OR(\(nationalIdZero),\(nationalIdLarge)))"
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: nationalIdColumn, toRow: dataRow + round.fieldSize - 1, toColumn: nationalIdColumn, formula: formula, format: formatRed!)
         }
@@ -1228,7 +1232,7 @@ class RanksPlusMPsWriter: WriterBase {
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
         if (Int(player.nationalId ?? "0") ?? 0) <= 0 {
-            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + largestPlayerCount, writer.missing.nationalIdColumn)),2,FALSE)"
+            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, writer.missing.nationalIdColumn)),2,FALSE)"
             if writer.missingNumbers[player.name!] == nil {
                 writer.missingNumbers[player.name!] = -(writer.missingNumbers.count + 1)
             }
@@ -1597,7 +1601,7 @@ class IndividualMPsWriter: WriterBase {
         result += "\(position), 1)"
         
         let column = lxw_col_t(Int32(columnNumber))
-        let maxRow = lxw_row_t(Int32(largestPlayerCount))
+        let maxRow = lxw_row_t(Int32(Settings.current.largestPlayerCount))
         worksheet_write_dynamic_array_formula(worksheet, 1, column, maxRow, column, result, formatFrom(cellType: cellType))
     }
     
@@ -1679,28 +1683,19 @@ class MissingNumbersWriter : WriterBase {
     }
     
     func lookupCell(_ firstRow: Bool, _ requiredCol: LookupColumn, _ filename: Bool) -> String {
-        let row = (firstRow ? userDownloadMinRow : userDownloadMaxRow)
+        let row = (firstRow ? Settings.current.userDownloadMinRow! : Settings.current.userDownloadMaxRow!)
         var column : Int
         switch requiredCol {
-        case .nationalId: column = userDownloadNationalIdColumn
-        case .firstName: column = userDownloadFirstNameColumn
-        case .otherNames: column = userDownloadOtherNamesColumn
+        case .nationalId: column = columnNumber(Settings.current.userDownloadNationalIdColumn)
+        case .firstName: column = columnNumber(Settings.current.userDownloadFirstNameColumn)
+        case .otherNames: column = columnNumber(Settings.current.userDownloadOtherNamesColumn)
         }
-        return "\(filename ? "'\(userDownloadData)'!" : "")\(cell(row, rowFixed: true, column, columnFixed: true))"
+        return "\(filename ? "'\(Settings.current.userDownloadData!)'!" : "")\(cell(row, rowFixed: true, column, columnFixed: true))"
     }
 }
 // MARK - Writer base class
 
 class WriterBase {
-    
-    let userDownloadData = "user download.csv"
-    let userDownloadRange = "$A$2:$AI$13001"
-    let userDownloadMinRow = 1
-    let userDownloadMaxRow = 13000
-    let userDownloadNationalIdColumn = 0
-    let userDownloadFirstNameColumn = 4
-    let userDownloadOtherNamesColumn = 3
-    // TODO Sort out the range and column offsets here for the CSV Export lookups
     
     let fnPrefix = "_xlfn."
     let dynamicFnPrefix = "_xlfn._xlws."
@@ -1753,7 +1748,7 @@ class WriterBase {
         }
         fullName += name
         worksheet = workbook_add_worksheet(workbook, fullName)
-        worksheet_set_zoom(worksheet, UInt16(defaultWorksheetZoom))
+        worksheet_set_zoom(worksheet, UInt16(Settings.current.defaultWorksheetZoom))
         if let writer = writer {
             // Copy from writer
             self.formatString = writer.formatString
@@ -1806,8 +1801,8 @@ class WriterBase {
     }
     
     func cell(writer: WriterBase? = nil, _ row: Int, rowFixed: Bool = false, _ column: Int, columnFixed: Bool = false) -> String {
-        let rowRef = rowRef(row: row, fixed: rowFixed)
-        let columnRef = columnRef(column: column, fixed: columnFixed)
+        let rowRef = rowRef(row, fixed: rowFixed)
+        let columnRef = columnRef(column, fixed: columnFixed)
         return cell(writer: writer, "\(columnRef)\(rowRef)")
     }
     
@@ -1823,12 +1818,12 @@ class WriterBase {
         return "\(roundRef)\(cellRef)"
     }
     
-    func rowRef(row: Int, fixed: Bool = false) -> String {
+    func rowRef(_ row: Int, fixed: Bool = false) -> String {
         let rowRef = (fixed ? "$" : "") + "\(row + 1)"
         return rowRef
     }
     
-    func columnRef(column: Int, fixed: Bool = false) -> String {
+    func columnRef(_ column: Int, fixed: Bool = false) -> String {
         var columnRef = ""
         var remaining = column
         while remaining >= 0 {
@@ -1837,6 +1832,15 @@ class WriterBase {
             remaining = ((remaining - letter) / 26) - 1
         }
         return (fixed ? "$" : "") + columnRef
+    }
+    
+    func columnNumber(_ ref: String) -> Int {
+        var result = 0
+        for index in 0..<ref.count {
+            let letter = ref.mid(index,1)
+            result = (result * 26) + ("ABCDEFGHIJKLMNOPQRSTUVWXYZ".position(letter) ?? 0)
+        }
+        return result
     }
     
     func setupFormats() {
@@ -1978,7 +1982,7 @@ class WriterBase {
         
         let row = lxw_row_t(Int32(rowNumber))
         let column = lxw_col_t(Int32(columnNumber))
-        let maxRow = lxw_row_t(Int32(largestPlayerCount + rowNumber - 1))
+        let maxRow = lxw_row_t(Int32(Settings.current.largestPlayerCount + rowNumber - 1))
         let format = format ?? formatFrom(cellType: cellType)
         worksheet_write_dynamic_array_formula(worksheet, row, column, maxRow, column, content(), format)
     }

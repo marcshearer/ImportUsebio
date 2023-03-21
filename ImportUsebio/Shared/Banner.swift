@@ -137,6 +137,8 @@ struct Banner: View {
                     }
                     .foregroundColor(backButtonColor.opacity(enabled ? 1.0 : 0.5))
                 })
+                .buttonStyle(.plain)
+                .focusable(false)
                 .disabled(!(enabled))
             } else {
                 EmptyView()

@@ -32,11 +32,13 @@ struct SelectInputView: View {
     @State private var scoreData: ScoreData? = nil
     @State private var roundErrors: [RoundErrorList] = []
     @State private var showErrors = false
+    @State private var showSettings = false
     @State private var missingNationalIds = false
+    @State private var editSettings = Settings.current.copy()
 
     var body: some View {
         
-            // Just to trigger view refresh
+        // Just to trigger view refresh
         if refresh { EmptyView() }
         
         StandardView("Select Input") {
@@ -49,6 +51,12 @@ struct SelectInputView: View {
                         
                         HStack {
                             Input(title: "Event Description:", field: $eventDescription, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                            Spacer()
+                            VStack {
+                                settingsButton()
+                                Spacer()
+                            }
+                            Spacer().frame(width: 8)
                         }
                         
                         HStack {
@@ -57,6 +65,7 @@ struct SelectInputView: View {
                         }
                         
                         InputTitle(title: "Ranking restrictions:", topSpace: 16)
+                        Spacer().frame(height: 8)
                         HStack {
                             Spacer().frame(width: 30)
                             
@@ -155,9 +164,22 @@ struct SelectInputView: View {
                 Spacer()
             }
             .sheet(isPresented: $showErrors) {
-                ShowErrors(roundErrors: roundErrors)
+                ShowErrorsView(roundErrors: roundErrors)
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(settings: editSettings)
             }
         }
+    }
+    
+    private func settingsButton() -> some View {
+        return Button {
+            showSettings = true
+        } label: {
+            Image(systemName: "gearshape.fill").font(.largeTitle).foregroundColor(Palette.banner.background)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .focusable(false)
     }
     
     private func finderButton() -> some View {

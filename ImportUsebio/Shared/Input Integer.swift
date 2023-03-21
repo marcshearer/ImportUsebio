@@ -34,7 +34,8 @@ struct InputInt : View {
                 HStack {
                     InputTitle(title: title, message: message, topSpace: topSpace)
                 }
-           } else {
+                Spacer().frame(height: 8)
+            } else {
                 Spacer().frame(height: topSpace)
             }
             
@@ -64,9 +65,13 @@ struct InputInt : View {
                 .background(Palette.input.background)
                 .cornerRadius(8)
                 
-                if width == nil {
+                if width == nil || !inlineTitle {
                     Spacer()
                 }
+            }
+            .frame(height: self.height)
+            .if(width != nil && inlineTitle) { (view) in
+                view.frame(width: width! + leadingSpace + (inlineTitle ? inlineTitleWidth : 0) + 32)
             }
         }
         .font(inputFont)
@@ -75,10 +80,6 @@ struct InputInt : View {
         }
         .onChange(of: field.wrappedValue) { (field) in
             text = "\(field)"
-        }
-        .frame(height: self.height + ((self.inlineTitle ? 0 : self.topSpace) + (title == nil || inlineTitle ? 0 : 30)))
-        .if(width != nil) { (view) in
-            view.frame(width: width! + leadingSpace + (inlineTitle ? inlineTitleWidth : 0) + 32)
         }
     }
 }

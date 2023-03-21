@@ -16,8 +16,11 @@ struct Input : View {
     var placeHolder: String = ""
     var secure: Bool = false
     var topSpace: CGFloat = inputTopHeight
+    var leadingSpace: CGFloat = 0
     var height: CGFloat = inputDefaultHeight
     var width: CGFloat = 1000
+    var inlineTitle: Bool = false
+    var inlineTitleWidth: CGFloat = 150
     var keyboardType: KeyboardType = .default
     var autoCapitalize: AutoCapitalization = .sentences
     var autoCorrect: Bool = true
@@ -27,94 +30,102 @@ struct Input : View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if title != nil {
+            if title != nil && !inlineTitle {
                 InputTitle(title: title, message: message, messageOffset: messageOffset, topSpace: topSpace, isEnabled: isEnabled)
+                    .frame(width: width + (inlineTitle ? inlineTitleWidth : 0) + leadingSpace + 67)
                 Spacer().frame(height: 8)
             }
-            GeometryReader { geometry in
-                HStack {
+            HStack {
+                if title != nil && inlineTitle {
+                    Spacer().frame(width: leadingSpace)
+                    HStack {
+                        
+                        Text(title!)
+                            .font(inputFont)
+                        Spacer()
+                    }
+                    .frame(width: inlineTitleWidth)
+                } else {
                     Spacer().frame(width: 32)
-                    ZStack(alignment: .leading){
-                        HStack {
-                            Rectangle()
-                                .foregroundColor(Palette.input.background)
-                                .cornerRadius(8)
-                        }
-                        if isEnabled && field.isEmpty {
-                            VStack {
-                                Spacer().frame(height: 10)
-                                HStack {
-                                    Spacer().frame(width: 10)
-                                    Text(placeHolder)
-                                        .foregroundColor(Palette.input.faintText)
-                                }
-                                Spacer()
+                }
+                ZStack(alignment: .leading){
+                    HStack {
+                        Rectangle()
+                            .foregroundColor(Palette.input.background)
+                            .cornerRadius(8)
+                    }
+                    if isEnabled && field.isEmpty {
+                        VStack {
+                            Spacer().frame(height: 10)
+                            HStack {
+                                Spacer().frame(width: 10)
+                                Text(placeHolder)
+                                    .foregroundColor(Palette.input.faintText)
                             }
+                            Spacer()
                         }
-                        HStack {
-                            if secure {
-                                VStack {
-                                    Spacer().frame(height: (MyApp.target == .macOS ? 2 :10))
-                                    SecureField("", text: $field)
-                                        .font(inputFont)
-                                        .onChange(of: field, perform: { (value) in onChange?(value) })
-                                        .textFieldStyle(PlainTextFieldStyle())
-                                        .disabled(!isEnabled || isReadOnly)
-                                        .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
-                                        .inputStyle(width: width, height: inputDefaultHeight)
-                                        .frame(width: geometry.size.width - 56)
-                                    Spacer()
-                                }
-                            } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
-                                VStack {
-                                    if isEnabled && !isReadOnly {
-                                        TextEditor(text: $field)
-                                            .font(inputFont)
-                                            .onChange(of: field, perform: { (value) in onChange?(value) })
-                                            .disabled(!isEnabled || isReadOnly)
-                                            .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
-                                            .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
-                                            .myKeyboardType(self.keyboardType)
-                                            .myAutocapitalization(autoCapitalize)
-                                            .disableAutocorrection(!autoCorrect)
-                                    } else {
-                                        VStack {
-                                            HStack {
-                                                Spacer().frame(width: 10)
-                                                Text(field)
-                                                    .foregroundColor(Palette.input.faintText)
-                                                    .font(inputFont)
-                                                    .frame(height: height)
-                                                Spacer()
-                                            }
-                                            Spacer()
-                                        }
-                                    }
-                                }
-                                .font(inputFont)
-                                .frame(height: height)
-                            } else {
-                                TextField("", text: $field)
+                    }
+                    HStack {
+                        if secure {
+                            VStack {
+                                Spacer().frame(height: (MyApp.target == .macOS ? 2 :10))
+                                SecureField("", text: $field)
                                     .font(inputFont)
                                     .onChange(of: field, perform: { (value) in onChange?(value) })
                                     .textFieldStyle(PlainTextFieldStyle())
-                                    .foregroundColor(Palette.input.text)
-                                    .background(Palette.input.background)
-                                    .inputStyle(width: width, height: height)
-                                    .myKeyboardType(self.keyboardType)
-                                    .myAutocapitalization(autoCapitalize)
-                                    .disableAutocorrection(!autoCorrect)
-                                    .frame(height: height)
+                                    .disabled(!isEnabled || isReadOnly)
+                                    .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
+                                    .inputStyle(width: width, height: inputDefaultHeight)
+                                Spacer()
                             }
+                        } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
+                            VStack {
+                                if isEnabled && !isReadOnly {
+                                    TextEditor(text: $field)
+                                        .font(inputFont)
+                                        .onChange(of: field, perform: { (value) in onChange?(value) })
+                                        .disabled(!isEnabled || isReadOnly)
+                                        .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
+                                        .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
+                                        .myKeyboardType(self.keyboardType)
+                                        .myAutocapitalization(autoCapitalize)
+                                        .disableAutocorrection(!autoCorrect)
+                                } else {
+                                    VStack {
+                                        HStack {
+                                            Spacer().frame(width: 10)
+                                            Text(field)
+                                                .foregroundColor(Palette.input.faintText)
+                                                .font(inputFont)
+                                                .frame(height: height)
+                                            Spacer()
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .font(inputFont)
+                            .frame(height: height)
+                        } else {
+                            TextField("", text: $field)
+                                .font(inputFont)
+                                .onChange(of: field, perform: { (value) in onChange?(value) })
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .foregroundColor(Palette.input.text)
+                                .background(Palette.input.background)
+                                .inputStyle(width: width, height: height)
+                                .myKeyboardType(self.keyboardType)
+                                .myAutocapitalization(autoCapitalize)
+                                .disableAutocorrection(!autoCorrect)
+                                .frame(height: height)
                         }
                     }
-                    .frame(width: min(width, geometry.size.width - 56))
-                    Spacer().frame(width: 24)
                 }
+                .frame(width: width)
             }
             Spacer().frame(height: 8)
         }
-        .frame(height: self.height + self.topSpace + (title == nil ? 0 : 20))
+        .frame(height: self.height + self.topSpace + (title == nil || inlineTitle ? 0 : 20))
     }
 }
 

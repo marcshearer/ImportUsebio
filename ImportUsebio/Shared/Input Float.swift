@@ -42,6 +42,7 @@ struct InputFloat : View {
                 HStack {
                     InputTitle(title: title, message: message, topSpace: topSpace)
                 }
+                Spacer().frame(height: 8)
             } else {
                 Spacer().frame(height: topSpace)
             }
@@ -89,7 +90,7 @@ struct InputFloat : View {
                 .background(Palette.input.background)
                 .cornerRadius(8)
     
-                if width == nil {
+                if width == nil || !inlineTitle {
                     Spacer()
                 }
             }
@@ -105,7 +106,7 @@ struct InputFloat : View {
             }
         }
         .frame(height: self.height + ((self.inlineTitle ? 0 : self.topSpace) + (title == nil || inlineTitle ? 0 : 30)))
-        .if(width != nil) { (view) in
+        .if(width != nil && inlineTitle) { (view) in
             view.frame(width: width! + leadingSpace + (inlineTitle && title != nil ? inlineTitleWidth : 0) + 32)
         }
     }

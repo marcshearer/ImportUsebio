@@ -16,6 +16,23 @@ enum UserDefault: String, CaseIterable {
     case minMessage
     case infoMessage
     
+    case settingMaxNationalIdNumber
+    case settingGoodStatus
+    case settingMaxPoints
+    case settingLargestFieldSize
+    case settingLargestPlayerCount
+    case settingDefaultWorksheetZoom
+    case settingUserDownloadData
+    case settingUserDownloadMinRow
+    case settingUserDownloadMaxRow
+    case settingUserDownloadNationalIdColumn
+    case settingUserDownloadOtherNamesColumn
+    case settingUserDownloadFirtNameColumn
+    case settingUserDownloadRankColumn
+    case settingUserDownloadEmailColumn
+    case settingUserDownloadHomeClubColumn
+    case settingUserDownloadStatusColumn
+    
     public var defaultValue: Any? {
         switch self {
         case .database:
@@ -30,6 +47,38 @@ enum UserDefault: String, CaseIterable {
             return ""
         case .infoMessage:
             return ""
+        case .settingMaxNationalIdNumber:
+            return 30000
+        case .settingGoodStatus:
+            return "Payment Confirmed by SBU"
+        case .settingMaxPoints:
+            return 15.0
+        case .settingLargestFieldSize:
+            return 200
+        case .settingLargestPlayerCount:
+            return 600
+        case .settingDefaultWorksheetZoom:
+            return 125
+        case .settingUserDownloadData:
+            return "user download.csv"
+        case .settingUserDownloadMinRow:
+            return 2
+        case .settingUserDownloadMaxRow:
+            return 13000
+        case .settingUserDownloadNationalIdColumn:
+            return "A"
+        case .settingUserDownloadOtherNamesColumn:
+            return "D"
+        case .settingUserDownloadFirtNameColumn:
+            return "E"
+        case .settingUserDownloadRankColumn:
+            return "F"
+        case .settingUserDownloadEmailColumn:
+            return "H"
+        case .settingUserDownloadHomeClubColumn:
+            return "S"
+        case .settingUserDownloadStatusColumn:
+            return "Y"
         }
     }
     

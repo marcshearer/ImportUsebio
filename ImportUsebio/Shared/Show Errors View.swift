@@ -13,7 +13,7 @@ struct RoundErrorList {
     var warnings: [String]
 }
 
-struct ShowErrors: View {
+struct ShowErrorsView: View {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     
     @State var roundErrors: [RoundErrorList]
@@ -92,12 +92,7 @@ struct ShowErrors: View {
                     Spacer()
             }
             Spacer().frame(height: 10)
-        }.frame(width: 800, height: 540)
-    }
-}
-
-struct ShowErrors_Previews: PreviewProvider {
-    static var previews: some View {
-        ShowErrors(roundErrors: [RoundErrorList(name: "Round 1", errors: ["Error 1", "Error 2"], warnings: ["Warning 1"]),RoundErrorList(name: "Round 2", errors: ["Error 3", "Error 4"], warnings: ["Warning 2"])])
+        }
+        .frame(width: 800, height: 540)
     }
 }

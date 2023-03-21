@@ -8,23 +8,6 @@
 import SwiftUI
 import CoreGraphics
 
-// TODO: - Should be in settings
-let maxNationalIdNumber = 30000
-let goodStatus = "Payment Confirmed by SBU"
-let maxPoints: Float = 15.0
-let largestFieldSize = 200
-let largestPlayerCount = 600
-let defaultWorksheetZoom = 125
-
-let userDownloadData = "user download.csv"
-let userDownloadRange = "$A$2:$AI$13001"
-let userDownloadMinRow = 1
-let userDownloadMaxRow = 13000
-let userDownloadNationalIdColumn = 0
-let userDownloadFirstNameColumn = 4
-let userDownloadOtherNamesColumn = 3
-// TODO Sort out the range and colum
-
 // Parameters
 
 public let appGroup = "group.com.sheareronline.ImportUsebio" // Has to match entitlements
@@ -39,7 +22,7 @@ var inputToggleDefaultHeight: CGFloat { MyApp.format == .tablet ? 30.0 : 16.0 }
 var bannerHeight: CGFloat { (MyApp.format == .tablet ? 60.0 : 50.0) }
 var alternateBannerHeight: CGFloat { MyApp.format == .tablet ? 50.0 : 35.0 }
 var minimumBannerHeight: CGFloat { MyApp.format == .tablet ? 40.0 : 20.0 }
-var bannerBottom: CGFloat { (MyApp.format == .tablet ? 30.0 : 5.0) }
+var bannerBottom: CGFloat { (MyApp.format == .tablet ? 30.0 : 20.0) }
 var slideInMenuRowHeight: CGFloat { MyApp.target == .iOS ? 50 : 25 }
 
 // Fonts (Font)

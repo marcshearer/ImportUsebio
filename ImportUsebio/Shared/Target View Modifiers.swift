@@ -169,6 +169,7 @@ typealias AutoCapitalization = UITextAutocapitalizationType
 #else
 enum AutoCapitalization {
     case sentences
+    case allCharacters
     case none
 }
 #endif
