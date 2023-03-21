@@ -42,133 +42,139 @@ struct SelectInputView: View {
         if refresh { EmptyView() }
         
         StandardView("Select Input") {
-            HStack {
+            VStack {
+                Spacer().frame(height: 10)
                 
-                Spacer().frame(width: 30)
-                VStack {
-                    Spacer().frame(height: 10)
+                HStack {
+                    Spacer().frame(width: 30)
+                    
                     VStack {
-                        
-                        HStack {
-                            Input(title: "Event Description:", field: $eventDescription, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                            Spacer()
-                            VStack {
-                                settingsButton()
+                        VStack {
+                            
+                            HStack {
+                                Input(title: "Event Description:", field: $eventDescription, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                                Spacer()
+                                VStack {
+                                    settingsButton()
+                                    Spacer().frame(height:30)
+                                }
+                                    
+                                Spacer().frame(width: 8)
+                            }
+                            
+                            HStack {
+                                Input(title: "Event code:", field: $eventCode, topSpace: 16, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
                                 Spacer()
                             }
-                            Spacer().frame(width: 8)
-                        }
-                        
-                        HStack {
-                            Input(title: "Event code:", field: $eventCode, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                            Spacer()
-                        }
-                        
-                        InputTitle(title: "Ranking restrictions:", topSpace: 16)
-                        Spacer().frame(height: 8)
-                        HStack {
-                            Spacer().frame(width: 30)
                             
-                            InputInt(title: "Minimum:", field: $minRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
-                            
-                            InputInt(title: "Maximum:", field: $maxRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
-                            
-                            Spacer()
-                        }
-                        
-                        Spacer().frame(height: 8)
-                        Separator(thickness: 1)
-                        Spacer().frame(height: 16)
-                    }
-                    VStack {
-                        
-                        HStack {
-                            Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", height: 30, width: 700, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: false).frame(width: 750)
-                            
-                            VStack() {
+                            InputTitle(title: "Ranking restrictions:", topSpace: 16)
+                            Spacer().frame(height: 8)
+                            HStack {
+                                Spacer().frame(width: 30)
+                                
+                                InputInt(title: "Minimum:", field: $minRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
+                                
+                                InputInt(title: "Maximum:", field: $maxRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
+                                
                                 Spacer()
-                                self.finderButton()
-                            }.frame(height: 62)
+                            }
                             
-                            Spacer()
+                            Spacer().frame(height: 8)
+                            Separator(thickness: 1)
+                            Spacer().frame(height: 16)
                         }
-                        
-                        Spacer().frame(height: 12)
-                        
-                        HStack {
-                            Input(title: "Round name:", field: $roundName, width: 160, isEnabled: true)
-                            Spacer()
-                        }
-                        
-                        HStack {
-                            VStack {
-                                InputTitle(title: "Points Award Details:", topSpace: 16)
+                        VStack {
+                            
+                            HStack {
+                                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", height: 30, width: 700, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
+                                
+                                VStack() {
+                                    Spacer()
+                                    self.finderButton()
+                                }.frame(height: 62)
+                                
+                                Spacer()
+                            }
+                            
+                            Spacer().frame(height: 12)
+                            
+                            HStack {
+                                Input(title: "Round name:", field: $roundName, width: 160, isEnabled: true)
+                                Spacer()
+                            }
+                            
+                            HStack {
                                 VStack {
-                                    HStack {
-                                        Spacer().frame(width: 42)
-                                        Picker("Level:             ", selection: $localNational) {
-                                            Text("Local").tag(Level.local)
-                                            Text("National").tag(Level.national)
+                                    InputTitle(title: "Points Award Details:", topSpace: 16)
+                                    VStack {
+                                        HStack {
+                                            Spacer().frame(width: 42)
+                                            Picker("Level:             ", selection: $localNational) {
+                                                Text("Local").tag(Level.local)
+                                                Text("National").tag(Level.national)
+                                            }
+                                            .pickerStyle(.segmented)
+                                            .focusable(false)
+                                            .frame(width: 300)
+                                            .font(inputFont)
+                                            Spacer()
                                         }
-                                        .pickerStyle(.segmented)
-                                        .focusable(false)
-                                        .frame(width: 300)
-                                        .font(inputFont)
-                                        Spacer()
-                                    }
-                                    
-                                    Spacer().frame(height: 10)
-                                    
-                                    HStack(spacing: 0) {
-                                        Spacer().frame(width: 30)
                                         
-                                        InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                        Spacer().frame(height: 10)
                                         
-                                        InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                        HStack(spacing: 0) {
+                                            Spacer().frame(width: 30)
+                                            
+                                            InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                            
+                                            InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                            
+                                            Spacer()
+                                        }
                                         
-                                        Spacer()
-                                    }
-                                    
-                                    Spacer().frame(height: 10)
-                                    
-                                    HStack(spacing: 0) {
-                                        Spacer().frame(width: 30)
+                                        Spacer().frame(height: 10)
                                         
-                                        InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
-                                        
-                                        InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
-                                        
-                                        InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
-                                        
-                                        Spacer()
+                                        HStack(spacing: 0) {
+                                            Spacer().frame(width: 30)
+                                            
+                                            InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                            
+                                            InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                            
+                                            InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
+                                            
+                                            Spacer()
+                                        }
                                     }
                                 }
+                                Spacer()
                             }
+                            
                             Spacer()
-                        }
-                        
-                        Spacer().frame(height: 20)
-                        HStack {
-                            Spacer().frame(width: 16)
-                            addSheetButton()
-                            Spacer().frame(width: 50)
-                            finishButton()
-                            Spacer().frame(width: 50)
-                            clearButton()
-                            Spacer().frame(width: 50)
-                            pasteButton()
-                            Spacer()
+                            HStack {
+                                Spacer().frame(width: 16)
+                                addSheetButton()
+                                Spacer().frame(width: 50)
+                                finishButton()
+                                Spacer().frame(width: 50)
+                                clearButton()
+                                Spacer().frame(width: 50)
+                                pasteButton()
+                                Spacer()
+                            }
+                            Spacer().frame(height: 10)
                         }
                         Spacer()
-                    }}
-                Spacer()
+                    }
+                }
             }
-            .sheet(isPresented: $showErrors) {
-                ShowErrorsView(roundErrors: roundErrors)
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView(settings: editSettings)
-            }
+            Spacer()
+        }
+        .sheet(isPresented: $showErrors) {
+            ShowErrorsView(roundErrors: roundErrors)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(settings: editSettings)
         }
     }
     

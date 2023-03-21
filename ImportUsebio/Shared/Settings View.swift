@@ -116,6 +116,6 @@ struct SettingsView: View {
                 }
             }
         }
-        .frame(width: 800, height: 550)
+        .frame(width: 800, height: 580)
     }
 }
