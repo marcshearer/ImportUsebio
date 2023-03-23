@@ -40,14 +40,14 @@ struct Banner: View {
     @Environment(\.presentationMode) private var presentationMode: Binding<PresentationMode>
 
     @Binding var title: String
-    var alternateStyle: Bool = false
+    var alternateStyle: Bool = true
     var bottomSpace: Bool = true
     var back: Bool = true
     var backEnabled: (()->(Bool))?
     var backText: String? = nil
     var backImage: AnyView? = AnyView(Image(systemName: "chevron.left"))
     var backAction: (()->(Bool))?
-    var leftTitle: Bool?
+    var leftTitle: Bool? = true
     var optionMode: BannerOptionMode = .none
     var menuImage: AnyView? = nil
     var menuTitle: String?
@@ -105,7 +105,7 @@ struct Banner: View {
                 
                     Spacer().frame(width: 20)
                 }
-                Spacer().frame(height: (alternateStyle ? 0 : bannerBottom))
+                Spacer().frame(height: (alternateStyle ? 10 : bannerBottom))
             }
         }
         .disabled(disabled.wrappedValue)

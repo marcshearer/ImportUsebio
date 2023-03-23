@@ -53,6 +53,7 @@
 		B2E103C52994120700A35645 /* Writer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C42994120700A35645 /* Writer.swift */; };
 		B2EDF4A329C8A0D900FB4F80 /* Settings View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */; };
 		B2EDF4AA29C985D100FB4F80 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A929C985D100FB4F80 /* Settings.swift */; };
+		B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */; };
 		B2FDB96429C4644400888DD9 /* Award.bin in Resources */ = {isa = PBXBuildFile; fileRef = B2FDB96329C4644400888DD9 /* Award.bin */; };
 		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
 		B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F629A636FC00BD43F7 /* Input Float.swift */; };
@@ -110,6 +111,7 @@
 		B2E103C42994120700A35645 /* Writer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Writer.swift; sourceTree = "<group>"; };
 		B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings View.swift"; sourceTree = "<group>"; };
 		B2EDF4A929C985D100FB4F80 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B2FDB96329C4644400888DD9 /* Award.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = Award.bin; sourceTree = "<group>"; };
 		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
 		B2FEA7F629A636FC00BD43F7 /* Input Float.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Float.swift"; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 			children = (
 				B2E10357299279D700A35645 /* Standard Components */,
 				B2E1034B2992785200A35645 /* Preview Content */,
+				B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */,
 			);
 			path = "Main App";
 			sourceTree = "<group>";
@@ -365,6 +368,7 @@
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
 				B2FDB96429C4644400888DD9 /* Award.bin in Resources */,
+				B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -90,6 +90,7 @@ struct Input : View {
                                         .myKeyboardType(self.keyboardType)
                                         .myAutocapitalization(autoCapitalize)
                                         .disableAutocorrection(!autoCorrect)
+                                        .textCase(.uppercase)
                                 } else {
                                     VStack {
                                         HStack {

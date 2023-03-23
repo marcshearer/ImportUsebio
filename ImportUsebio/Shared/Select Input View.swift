@@ -79,7 +79,7 @@ struct SelectInputView: View {
                                 Spacer()
                             }
                             
-                            Spacer().frame(height: 8)
+                            Spacer().frame(height: 16)
                             Separator(thickness: 1)
                             Spacer().frame(height: 16)
                         }
@@ -150,9 +150,11 @@ struct SelectInputView: View {
                                 Spacer()
                             }
                             
-                            Spacer()
+                            Spacer().frame(height: 24)
+                            Separator(thickness: 1)
+                            Spacer().frame(height: 16)
                             HStack {
-                                Spacer().frame(width: 16)
+                                Spacer()
                                 addSheetButton()
                                 Spacer().frame(width: 50)
                                 finishButton()
@@ -162,9 +164,8 @@ struct SelectInputView: View {
                                 pasteButton()
                                 Spacer()
                             }
-                            Spacer().frame(height: 10)
+                            Spacer().frame(height: 20)
                         }
-                        Spacer()
                     }
                 }
             }
@@ -313,9 +314,9 @@ struct SelectInputView: View {
                 MessageBox.shared.show("Invalid clipboard contents")
             }
         } label: {
-            Text("Paste")
+            Text("Paste Config")
                 .foregroundColor(Palette.enabledButton.text)
-                .frame(width: 100, height: 30)
+                .frame(width: 120, height: 30)
                 .font(.callout).minimumScaleFactor(0.5)
                 .background(Palette.enabledButton.background)
                 .cornerRadius(15)

@@ -6,6 +6,7 @@
 //
 
 import xlsxwriter
+import SwiftUI
 
 enum CellType {
     case string
@@ -603,7 +604,7 @@ class FormattedWriter: WriterBase {
         format_set_align(formatBannerString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         format_set_bold(formatBannerString)
         format_set_pattern (formatBannerString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerString, LXW_COLOR_BLUE.rawValue)
+        format_set_bg_color(formatBannerString, UInt32(0x1F036C))
         format_set_font_color(formatBannerString, LXW_COLOR_WHITE.rawValue)
         format_set_text_wrap(formatBannerString)
         format_set_indent(formatBannerString, 2)
@@ -613,7 +614,7 @@ class FormattedWriter: WriterBase {
         format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         format_set_bold(formatBannerFloat)
         format_set_pattern (formatBannerFloat, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerFloat, LXW_COLOR_BLUE.rawValue)
+        format_set_bg_color(formatBannerFloat, UInt32(0x1F036C))
         format_set_font_color(formatBannerFloat, LXW_COLOR_WHITE.rawValue)
         format_set_text_wrap(formatBannerFloat)
         
@@ -645,6 +646,11 @@ class FormattedWriter: WriterBase {
         formatTop = workbook_add_format(workbook)
         format_set_top(formatTop, UInt8(LXW_BORDER_THIN.rawValue))
     }
+    
+    func colorValue(_ color: Color) -> UInt32 {
+        let color = NSColor(color)
+        return UInt32((((color.redComponent * 256) + color.greenComponent) * 256) + color.blueComponent)
+    }
 }
 
 // MARK: - Export CSV
@@ -660,7 +666,7 @@ class CsvImportWriter: WriterBase {
     let minRankRow = 2
     let maxRankRow = 3
     let eventDateRow = 4
-    let licenseNoRow = 5
+    let clubCodeRow = 5
     let sortByRow = 7
     let awardsRow = 8
     let localMPsRow = 9
@@ -746,7 +752,8 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: eventDateRow, column: titleColumn, string: "Event Date:", format: formatBold)
         write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(writer.maxEventDate)", format: formatDate)
         
-        write(worksheet: worksheet, row: licenseNoRow, column: titleColumn, string: "License no:", format: formatBold)
+        write(worksheet: worksheet, row: clubCodeRow, column: titleColumn, string: "Club Code:", format: formatBold)
+        write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: "", format: formatString)
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
         let parameters = writer.parameters!
@@ -782,15 +789,19 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow, column: otherNamesColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.otherNamesColumn!))\(sortByLogic))")
         
         write(worksheet: worksheet, row: titleRow, column: eventDateColumn, string: "Claim Date", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: eventDateColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
+        let firstNameCell = cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true)
+        write(worksheet: worksheet, row: dataRow, column: eventDateColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(firstNameCell)), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)))))", format: formatDate)
         
         write(worksheet: worksheet, row: titleRow, column: nationalIdColumn, string: "Membership ID", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: nationalIdColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.nationalIdColumn!))\(sortByLogic))", format: formatInt)
         
         write(worksheet: worksheet, row: titleRow, column: eventCodeColumn, string: "Event Code", format: formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", \(cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)))))")
+        let eventCell = cell(eventCodeRow, rowFixed: true, valuesColumn, columnFixed: true)
+        write(worksheet: worksheet, row: dataRow, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", IF(\(eventCell)=0,\"\",\(eventCell)))))")
         
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
+        let clubCell = cell(clubCodeRow, rowFixed: true, valuesColumn, columnFixed: true)
+        write(worksheet: worksheet, row: dataRow, column: clubCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(firstNameCell)), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\",\"\", IF(\(clubCell)=0,\"\",\(clubCell)))))")
         
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local Points", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.localMPsColumn!))\(sortByLogic))", format: formatFloat)

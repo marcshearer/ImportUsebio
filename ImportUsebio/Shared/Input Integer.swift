@@ -56,6 +56,7 @@ struct InputInt : View {
                             .lineLimit(1)
                             .padding(.all, 1)
                             .disableAutocorrection(false)
+                            .textFieldStyle(.plain)
                     }
                 }
                 .if(width != nil) { (view) in

@@ -362,7 +362,7 @@ class Themes {
         .standard : ThemeConfig(
             background: [
                 .clear                       : ThemeColor(#colorLiteral(red: 0, green: 0, blue: 0, alpha: 0), nil, .lightBackground, .darkBackground),
-                .banner                      : ThemeColor(#colorLiteral(red: 0, green: 0.5152708056, blue: 0.7039544028, alpha: 1), #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1), .darkBackground, .darkBackground),
+                .banner                      : ThemeColor(#colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1), #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1), .darkBackground, .darkBackground),
                 .bannerShadow                : ThemeColor(#colorLiteral(red: 0, green: 0.5529411765, blue: 0.7647058824, alpha: 1), nil, .lightBackground),
                 .bannerButton                : ThemeColor(#colorLiteral(red: 0, green: 0.5158219337, blue: 0.7037338614, alpha: 1), nil, .lightBackground),
                 .alternateBanner             : ThemeColor(#colorLiteral(red: 0.8784313725, green: 0.8784313725, blue: 0.8784313725, alpha: 1), #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1), .midBackground, .darkBackground),
@@ -407,7 +407,7 @@ class Themes {
             ],
             specific: [
                 .bannerBackButton            : ThemeTraitColor(#colorLiteral(red: 0.9411764706, green: 0.9411764706, blue: 0.9411764706, alpha: 1), #colorLiteral(red: 0.9411764706, green: 0.9411764706, blue: 0.9411764706, alpha: 1)),
-                .alternateBannerBackButton   : ThemeTraitColor(#colorLiteral(red: 0.0166248735, green: 0.4766505957, blue: 0.9990670085, alpha: 1), #colorLiteral(red: 0.0166248735, green: 0.4766505957, blue: 0.9990670085, alpha: 1)),
+                .alternateBannerBackButton   : ThemeTraitColor(#colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1), #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)),
                 .maskBackground              : ThemeTraitColor(#colorLiteral(red: 0, green: 0, blue: 0, alpha: 0.3003128759), #colorLiteral(red: 0.999904573, green: 1, blue: 0.9998808503, alpha: 0.2982953811)),
                 .clickableBackground         : ThemeTraitColor(#colorLiteral(red: 0, green: 0, blue: 0, alpha: 0.02357007967), #colorLiteral(red: 0.999904573, green: 1, blue: 0.9998808503, alpha: 0.02027367603)),
                 .gridLine                    : ThemeTraitColor(#colorLiteral(red: 0, green: 0.5152708056, blue: 0.7039544028, alpha: 1), #colorLiteral(red: 0, green: 0.5152708056, blue: 0.7039544028, alpha: 1)),
