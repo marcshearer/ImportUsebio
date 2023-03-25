@@ -50,6 +50,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     init(fileUrl: URL, data: Data, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
+        self.scoreData.source = .usebio
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
         let replacedQuote = string.replacingOccurrences(of: "&#39;", with: replacingSingleQuote)

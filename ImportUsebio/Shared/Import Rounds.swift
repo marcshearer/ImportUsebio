@@ -75,8 +75,8 @@ class ImportRound {
     var scoreData: ScoreData?
 }
 
-class Import {
-    private var completion: (Import?, String?, String?)->()
+class ImportRounds {
+    private var completion: (ImportRounds?, String?, String?)->()
     private var data: [[String]]
     public var event: ImportEvent?
     public var rounds: [ImportRound] = []
@@ -86,13 +86,13 @@ class Import {
     private var roundColumns: [RoundColumn:Int] = [:]
     private var failed = false
     
-    private init(_ data: [[String]], completion: @escaping (Import?, String?, String?)->()) {
+    private init(_ data: [[String]], completion: @escaping (ImportRounds?, String?, String?)->()) {
         self.data = data
         self.completion = completion
     }
     
-    public static func process(_ data: [[String]], completion: @escaping (Import?, String?, String?)->()) {
-        let imported = Import(data, completion: completion)
+    public static func process(_ data: [[String]], completion: @escaping (ImportRounds?, String?, String?)->()) {
+        let imported = ImportRounds(data, completion: completion)
         imported.parse()
         if !imported.failed {
             completion(imported, nil, nil)

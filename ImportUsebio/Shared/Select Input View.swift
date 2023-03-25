@@ -201,7 +201,9 @@ struct SelectInputView: View {
                         if type == "xml" {
                             _ = UsebioParser(fileUrl: url, data: data, completion: parserComplete)
                         } else if type == "csv" {
-                            _ = BridgeWebsCsvParser(fileUrl: url, data: data, completion: parserComplete)
+                            if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
+                                MessageBox.shared.show("Invalid data")
+                            }
                         } else {
                             MessageBox.shared.show("File type \(type) not supported")
                         }
@@ -303,7 +305,7 @@ struct SelectInputView: View {
             if let data = NSPasteboard.general.string(forType: .string) {
                 let dataLines = data.replacingOccurrences(of: "\n", with: "").components(separatedBy: "\r")
                 let lines = dataLines.map{$0.components(separatedBy: "\t")}
-                Import.process(lines) { (imported, error, warning) in
+                ImportRounds.process(lines) { (imported, error, warning) in
                     if let error = error {
                         MessageBox.shared.show(error)
                     } else if let imported = imported {
@@ -379,11 +381,11 @@ struct SelectInputView: View {
         }
     }
     
-    @State private var importInProgress: Import?
+    @State private var importInProgress: ImportRounds?
     @State private var importRound: Int = 0
     @State private var sourceDirectory: String?
     
-    private func updateFromImport(imported: Import) {
+    private func updateFromImport(imported: ImportRounds) {
         FileSystem.findDirectory(prompt: "Select source directory") { (url, bookmarkData) in
             Utility.mainThread {
                 securityBookmark = bookmarkData
@@ -408,7 +410,9 @@ struct SelectInputView: View {
                     if type == "xml" {
                         _ = UsebioParser(fileUrl: url, data: data, completion: importParserComplete)
                     } else if type == "csv" {
-                        _ = BridgeWebsCsvParser(fileUrl: url, data: data, completion: importParserComplete)
+                        if GenericCsvParser(fileUrl: url, data: data, completion: importParserComplete) == nil {
+                            MessageBox.shared.show("Invalid data")
+                        }
                     } else {
                         MessageBox.shared.show("File type \(type) not supported")
                     }

@@ -66,7 +66,6 @@ public class BridgeWebsCsvParser {
     
     private var data: [[String]]
     private var completion: (ScoreData?, String?)->()
-    private var parser: XMLParser!
     private let scoreData = ScoreData()
     private var errors: [String] = []
     private var warnings: [String] = []
@@ -76,15 +75,11 @@ public class BridgeWebsCsvParser {
     private var travellerColumns: [String] = []
     private var direction: Direction?
     
-    init(fileUrl: URL, data: Data, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: [[String]], completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
+        self.scoreData.source = .bridgewebs
         self.completion = completion
-        if let dataString = String(data: data, encoding: .utf8) {
-            let dataLines = dataString.replacingOccurrences(of: "\n", with: "").components(separatedBy: "\r")
-            self.data = dataLines.map{$0.components(separatedBy: ";")}
-        } else {
-            self.data = []
-        }
+        self.data = data
         self.parse()
     }
     
@@ -134,7 +129,7 @@ public class BridgeWebsCsvParser {
                 phase = .headerLine
             case .headerLine:
                 processHeaderElement(columns)
-            case.scores:
+            case .scores:
                 phase = .scoresHeader
             case .scoresHeader:
                 scoreColumns = columns.map{$0.uppercased()}

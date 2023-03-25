@@ -53,16 +53,15 @@ extension ScoreData {
     // MARK: - Event validation
         
     private func validateEvent() {
-        let csv = self.fileUrl?.pathExtension.lowercased() == "csv"
-       
+        
         let event = events.first!
         
         if event.type == nil { 
             error("No event type specified")
         } else if !event.type!.supported {
             error("\(event.type!.string) event type not currently supported")
-        } else if csv && event.type != .pairs {
-            error ("Only pairs events supported in csv")
+        } else if source == .bridgewebs && event.type != .pairs {
+            error ("Only pairs events supported in BridgeWebs csv")
         }
         
         if event.boardScoring == nil {

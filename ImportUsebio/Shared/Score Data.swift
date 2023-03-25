@@ -25,6 +25,12 @@ public class Club {
     var id: String?
 }
 
+public enum Source {
+    case usebio
+    case bridgewebs
+    case manual
+}
+
 public enum EventType: String {
     case ko
     case ladder
@@ -274,6 +280,7 @@ public class Match {
 }
 
 public class ScoreData {
+    public var source: Source?
     public var fileUrl: URL?
     public var roundName: String?
     public var national: Bool = false
