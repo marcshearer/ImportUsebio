@@ -149,7 +149,15 @@ extension ScoreData {
             }
             
             if (event.type?.requiresWinDraw ?? false) && participant.winDraw == nil {
-                error("No wins/draws for \(participant.description)")
+                var found = true
+                for player in participant.member.playerList {
+                    if player.accumulatedWinDraw == nil {
+                        found = false
+                    }
+                }
+                if !found {
+                    error("Missing wins/draws for \(participant.description)")
+                }
             }
         }
         // Report duplicate National IDs
@@ -185,8 +193,14 @@ extension ScoreData {
     
     private func validate(team: Team, errorSuffix: String = "") {
         
-        if team.pairs.count < 2 {
-            error("Team \(team.description) has \(team.pairs.count) pairs\(errorSuffix)")
+        if team.pairs.count == 0 && team.players.count == 0 {
+            error("Team \(team.description) has no pairs or players\(errorSuffix)")
+        } else if team.pairs.count > 0 && team.players.count > 0 {
+                error("Team \(team.description) has both pairs and players\(errorSuffix)")
+        } else if team.pairs.count > 0 && team.pairs.count < 2 {
+            error("Team \(team.description) has only \(team.pairs.count) pairs\(errorSuffix)")
+        } else if team.players.count > 0 && team.players.count < 4 {
+            error("Team \(team.description) has only \(team.players.count) players\(errorSuffix)")
         }
     }
        

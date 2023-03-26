@@ -16,7 +16,7 @@ public enum ScoringMethod: String {
     case aggregate
     
     init?(_ string: String) {
-        self.init(rawValue: string.lowercased())
+        self.init(rawValue: string.lowercased().replacing(" ", with: "_"))
     }
 }
 
@@ -219,22 +219,27 @@ public class Pair : Member {
 
 public class Team : Member {
     var pairs: [Pair] = []
+    var players: [Player] = [] // Data may contain either pairs or players - cope with both
     
     override var type: ParticipantType { .team }
     override var additional: String { "" }
     
     override var playerList: [Player] {
-        let fullList = pairs.flatMap{$0.playerList}
         var list: [Player] = []
-        for player in fullList {
-            if let existing = list.first(where: {$0.name?.lowercased() == player.name?.lowercased() && $0.nationalId == player.nationalId}) {
-                existing.accumulatedBoardsPlayed = existing.accumulatedBoardsPlayed! + (player.pair?.boardsPlayed ?? 0)
-                existing.accumulatedWinDraw = existing.accumulatedWinDraw! + (player.pair?.winDraw ?? 0)
-            } else {
-                let new = player.copy()
-                new.accumulatedBoardsPlayed = player.pair?.boardsPlayed ?? 0
-                new.accumulatedWinDraw = player.pair?.winDraw ?? 0
-                list.append(new)
+        if pairs.isEmpty {
+            list = players
+        } else {
+            let fullList = pairs.flatMap{$0.playerList}
+            for player in fullList {
+                if let existing = list.first(where: {$0.name?.lowercased() == player.name?.lowercased() && $0.nationalId == player.nationalId}) {
+                    existing.accumulatedBoardsPlayed = existing.accumulatedBoardsPlayed! + (player.pair?.boardsPlayed ?? 0)
+                    existing.accumulatedWinDraw = existing.accumulatedWinDraw! + (player.pair?.winDraw ?? 0)
+                } else {
+                    let new = player.copy()
+                    new.accumulatedBoardsPlayed = player.pair?.boardsPlayed ?? 0
+                    new.accumulatedWinDraw = player.pair?.winDraw ?? 0
+                    list.append(new)
+                }
             }
         }
         return list

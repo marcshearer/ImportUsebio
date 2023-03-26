@@ -407,9 +407,9 @@ class FormattedWriter: WriterBase {
         workbook_define_name(writer.workbook, "FormattedTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, 0, columnFixed: true)):\(cell(titleRow, rowFixed: true, columns.count - 1, columnFixed: true))")
         
         worksheet_set_default_row(worksheet, 25, 0)
-        setRow(worksheet: worksheet, row: 0, height: 50)
+        setRow(worksheet: worksheet, row: titleRow, height: 50)
         worksheet_fit_to_pages(worksheet, 1, 0)
-        freezePanes(worksheet: worksheet, row: 1, column: 0)
+        freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         for (columnNumber, column) in columns.enumerated() {
             var bannerFormat = formatBannerString
@@ -1009,9 +1009,10 @@ class ConsolidatedWriter: WriterBase {
         
         // Lookup data columns
         for (column, round) in writer.rounds.enumerated() {
-            let sourceDataRange = "\(cell(1, rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)):\(cell(writer.maxPlayers, rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true))"
-            let sourceOffset = (round.individualMPs.round.individualMPs.decimalColumn! - round.individualMPs.uniqueColumn! + 1)
-            write(worksheet: worksheet, row: dataRow!, column: dataColumn! + column, dynamicFloatFormula: "=IF(\(uniqueIdCell)=\"\",0,IFERROR(VLOOKUP(\(uniqueIdCell),\(cell(writer: round.individualMPs, sourceDataRange)),\(sourceOffset),FALSE),0))")
+            let indivUniqueArray = "\(arrayRef)(\(cell(writer: round.individualMPs,round.individualMPs.dataRow, rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)))"
+            let indivValueArray = "\(arrayRef)(\(cell(writer: round.individualMPs,round.individualMPs.dataRow, rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true)))"
+            
+            write(worksheet: worksheet, row: dataRow!, column: dataColumn! + column, dynamicFloatFormula: "=\(byRow)(\(uniqueIdCell),\(lambda)(\(lambdaParam),SUMIF(\(indivUniqueArray),\(lambdaParam),\(indivValueArray))))")
         }
     }
 }
@@ -1514,6 +1515,9 @@ class IndividualMPsWriter: WriterBase {
     var checksumColumn: Int?
     var firstNameColumn: Int?
     
+    let titleRow = 0
+    let dataRow = 1
+    
     init(writer: Writer, round: Round, scoreData: ScoreData) {
         super.init(writer: writer)
         self.scoreData = scoreData
@@ -1523,7 +1527,7 @@ class IndividualMPsWriter: WriterBase {
     func write() {
         setupColumns()
         
-        freezePanes(worksheet: worksheet, row: 1, column: nationalIdColumn!)
+        freezePanes(worksheet: worksheet, row: dataRow, column: nationalIdColumn!)
         
         for (columnNumber, column) in columns.enumerated() {
             var format = formatBold
@@ -1531,7 +1535,7 @@ class IndividualMPsWriter: WriterBase {
                 format = formatRightBold
             }
             setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
-            write(worksheet: worksheet, row: 0, column: columnNumber, string: round.replace(column.title), format: format)
+            write(worksheet: worksheet, row: titleRow, column: columnNumber, string: round.replace(column.title), format: format)
         }
         
         for (columnNumber, column) in columns.enumerated() {
@@ -1541,19 +1545,19 @@ class IndividualMPsWriter: WriterBase {
             }
             
             if let referenceDynamicContent = column.referenceDynamic {
-                writeDynamicReference(rowNumber: 1, columnNumber: columnNumber, content: referenceDynamicContent, cellType: column.cellType)
+                writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: referenceDynamicContent, cellType: column.cellType)
             }
         }
         
-        let localArrayRef = "\(arrayRef)(\(cell(1, rowFixed: true, localMPsColumn!, columnFixed: true)))"
-        write(worksheet: worksheet, row: 1, column: localTotalColumn!, floatFormula: "=SUM(\(localArrayRef))", format: formatZeroFloat)
+        let localArrayRef = "\(arrayRef)(\(cell(dataRow, rowFixed: true, localMPsColumn!, columnFixed: true)))"
+        write(worksheet: worksheet, row: dataRow, column: localTotalColumn!, floatFormula: "=SUM(\(localArrayRef))", format: formatZeroFloat)
         
-        let nationalArrayRef = "\(arrayRef)(\(cell(1, rowFixed: true, nationalMPsColumn!, columnFixed: true)))"
-        write(worksheet: worksheet, row: 1, column: nationalTotalColumn!, floatFormula: "=SUM(\(nationalArrayRef))", format: formatZeroFloat)
+        let nationalArrayRef = "\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalMPsColumn!, columnFixed: true)))"
+        write(worksheet: worksheet, row: dataRow, column: nationalTotalColumn!, floatFormula: "=SUM(\(nationalArrayRef))", format: formatZeroFloat)
         
-        let totalArrayRef = "\(arrayRef)(\(cell(1, rowFixed: true, decimalColumn!, columnFixed: true)))"
-        let nationalIdArrayRef = "\(arrayRef)(\(cell(1, rowFixed: true, nationalIdColumn!, columnFixed: true)))"
-        write(worksheet: worksheet, row: 1, column: checksumColumn!, floatFormula: "=CheckSum(\(vstack)(\(totalArrayRef)),\(vstack)(\(nationalIdArrayRef)))", format: formatZeroFloat)
+        let totalArrayRef = "\(arrayRef)(\(cell(dataRow, rowFixed: true, decimalColumn!, columnFixed: true)))"
+        let nationalIdArrayRef = "\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn!, columnFixed: true)))"
+        write(worksheet: worksheet, row: dataRow, column: checksumColumn!, floatFormula: "=CheckSum(\(vstack)(\(totalArrayRef)),\(vstack)(\(nationalIdArrayRef)))", format: formatZeroFloat)
         
         setColumn(worksheet: worksheet, column: uniqueColumn!, hidden: true)
         
@@ -1581,13 +1585,13 @@ class IndividualMPsWriter: WriterBase {
         
         columns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; nationalIdColumn = columns.count - 1
         
-        unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(1, nationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, firstNameColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(1, otherNamesColumn, columnFixed: true))))" }
+        unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(dataRow, nationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, firstNameColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, otherNamesColumn, columnFixed: true))))" }
         
         columns.append(Column(title: "Total MPs", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.totalMPColumn[playerNumber] }, cellType: .floatFormula, width: 12)) ; decimalColumn = columns.count - 1
         
-        columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))<>\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula, width: 12)) ; localMPsColumn = columns.count - 1
+        columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(dataRow, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))<>\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula, width: 12)) ; localMPsColumn = columns.count - 1
         
-        columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(1, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))=\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula, width: 12)) ; nationalMPsColumn = columns.count - 1
+        columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "=\(byRow)(\(arrayRef)(\(cell(dataRow, decimalColumn!, columnFixed: true))),\(lambda)(\(lambdaParam), IF(\(cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!))=\"National\",\(lambdaParam),0)))" }, cellType: .floatFormula, width: 12)) ; nationalMPsColumn = columns.count - 1
         
         columns.append(Column(title: "Total Local", cellType: .floatFormula, width: 12)) ; localTotalColumn = columns.count - 1
         

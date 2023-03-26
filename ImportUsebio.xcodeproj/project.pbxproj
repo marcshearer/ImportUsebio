@@ -17,6 +17,7 @@
 		B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */; };
 		B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */; };
 		B2C3247229CEC5D1005D8DED /* Generic Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */; };
+		B2C3247429CF6340005D8DED /* Award.bas in Resources */ = {isa = PBXBuildFile; fileRef = B2C3247329CF6340005D8DED /* Award.bas */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -75,6 +76,7 @@
 		B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BridgeWebs Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Manual Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Generic Csv Parser.swift"; sourceTree = "<group>"; };
+		B2C3247329CF6340005D8DED /* Award.bas */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Award.bas; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -203,6 +205,7 @@
 		B2E103542992792A00A35645 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				B2C3247329CF6340005D8DED /* Award.bas */,
 				B2FDB96329C4644400888DD9 /* Award.bin */,
 				B2E103562992797200A35645 /* Standard Components */,
 				B2C3246E29CD8A93005D8DED /* Data Structures */,
@@ -390,6 +393,7 @@
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
 				B2FDB96429C4644400888DD9 /* Award.bin in Resources */,
+				B2C3247429CF6340005D8DED /* Award.bas in Resources */,
 				B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

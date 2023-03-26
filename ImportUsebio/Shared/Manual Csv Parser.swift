@@ -159,16 +159,16 @@ public class ManualCsvParser {
                 let header = parameterColumns[columnNumber].uppercased()
                 if let entry = Parameters(rawValue: header) {
                     let string = column.ltrim().rtrim()
-                    let value = Int(string)
+                    let intValue = Int(string)
                     switch entry {
                     case .version:
                         scoreData.version = string
                     case .roundType:
                         scoreData.events.first!.type = EventType(string.uppercased())
                     case .winners:
-                        scoreData.events.first!.winnerType = value ?? 1
+                        scoreData.events.first!.winnerType = intValue ?? 1
                     case .winBonus:
-                        requiresWinDraw = true
+                        requiresWinDraw = (string.uppercased() == "YES")
                     case .maxPlayers:
                         break
                     }
@@ -185,7 +185,7 @@ public class ManualCsvParser {
                 let header = roundColumns[columnNumber].uppercased()
                 if let entry = RoundHeader(rawValue: header) {
                     let string = column.ltrim().rtrim()
-                    let value = Int(string)
+                    let intValue = Int(string)
                     switch entry {
                     case .title:
                         scoreData.events.first!.description = string
@@ -194,9 +194,9 @@ public class ManualCsvParser {
                     case .contact:
                         scoreData.events.first!.contact = string
                     case .boards:
-                        scoreData.events.first!.boards = value
+                        scoreData.events.first!.boards = intValue
                     case .rounds:
-                        rounds = value
+                        rounds = intValue
                     case .boardScoring:
                         scoreData.events.first!.boardScoring = ScoringMethod(string)
                     case .matchScoring:
@@ -208,6 +208,7 @@ public class ManualCsvParser {
     }
     
     private func processParticipantElement(_ columns: [String]) {
+        var players: [Int:Player] = [:]
         if columns.count != participantColumns.count {
             report(error: "Round column headers do not match data")
         } else {
@@ -226,11 +227,12 @@ public class ManualCsvParser {
             for (columnNumber, column) in columns.enumerated() {
                 let header = participantColumns[columnNumber].uppercased()
                 let string = column.ltrim().rtrim()
-                let value = Int(string)
+                let intValue = Int(string)
+                let floatValue = Float(string)
                 if let entry = ParticipantHeader(rawValue: header) {
                     switch entry {
                     case .place:
-                        participant.place = value
+                        participant.place = intValue
                     case .direction:
                         if let pair = participant.member as? Pair {
                             pair.direction = Direction(string)
@@ -238,44 +240,63 @@ public class ManualCsvParser {
                     case .number:
                         participant.member.number = string
                     case .score:
-                        participant.score = Float(value ?? 0)
+                        participant.score = floatValue ?? 0
                     case .boardsPlayed:
                         if let pair = participant.member as? Pair {
-                            pair.boardsPlayed = value
+                            pair.boardsPlayed = intValue
                         }
                     case .winsDraws:
-                        participant.winDraw = Float(value ?? 0)
+                        participant.winDraw = floatValue ?? 0
                     case .name, .nationalId:
                         // Only with indexes
                         break
                     }
                 } else {
-                    // Check for index
+                    // Check for index if non-blank
+                    if string != "" {
                     let components = header.split(at: "(")
-                    if components.count == 2 {
-                        let header = components[0]
-                        let components = components[1].split(at: ")")
                         if components.count == 2 {
-                            let indexString = components[0]
-                            if let index = Int(indexString) {
-                                if let entry = ParticipantHeader(rawValue: header) {
-                                    switch entry {
-                                    case .name:
-                                        participant.member.playerList[index].name = string
-                                    case .nationalId:
-                                        participant.member.playerList[index].nationalId = string
-                                    case .boardsPlayed:
-                                        participant.member.playerList[index].accumulatedBoardsPlayed = value ?? 0
-                                    case .winsDraws:
-                                        participant.member.playerList[index].accumulatedWinDraw = Float(value ?? 0)
-                                    default:
-                                        break
+                            let header = components[0].ltrim().rtrim()
+                            let components = components[1].split(at: ")")
+                            if components.count > 0 {
+                                let indexString = components[0].ltrim().rtrim()
+                                if let index = Int(indexString) {
+                                    var player: Player
+                                    if participant.type == .player {
+                                        player = participant.member as! Player
+                                    } else {
+                                        if players[index] == nil {
+                                            players[index] = Player()
+                                        }
+                                        player = players[index]!
+                                    }
+                                    if let entry = ParticipantHeader(rawValue: header) {
+                                        switch entry {
+                                        case .name:
+                                            player.name = string
+                                        case .nationalId:
+                                            player.nationalId = string
+                                        case .boardsPlayed:
+                                            player.accumulatedBoardsPlayed = intValue ?? 0
+                                        case .winsDraws:
+                                            player.accumulatedWinDraw = floatValue ?? 0
+                                        default:
+                                            break
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+            switch type {
+            case .pair:
+                (participant.member as! Pair).players = players.sorted(by: {$0.key < $1.key}).map{$0.value}
+            case .team:
+                (participant.member as! Team).players = players.sorted(by: {$0.key < $1.key}).map{$0.value}
+            case .player:
+                break
             }
         }
     }
