@@ -32,8 +32,8 @@ extension ScoreData {
         if usebio {
             if version == nil {
                 error("Invalid USEBIO file")
-            } else if version != "1.2" {
-                error("Only Usebio v1.2 is supported")
+            } else if version != "1.2" && version != "1.0" {
+                error("Only Usebio v1.0 and v1.2 and supported")
             }
         }
         if events.count > 1 {
@@ -69,7 +69,7 @@ extension ScoreData {
         }
         
         if (event.boards ?? 0) <= 0 {
-            error("Number of boards played unspecified / zero")
+            warning("Number of boards played unspecified / zero")
         }
         
         if (event.boardsPerRound ?? 0) == 0 && (event.type?.requiresWinDraw ?? false) {

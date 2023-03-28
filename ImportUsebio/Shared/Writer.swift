@@ -1389,8 +1389,8 @@ class RanksPlusMPsWriter: WriterBase {
             writeCell(string: "EW Full Award", format: formatRightBold)
         }
         writeCell(string: "Min Entry", format: formatRightBold)
-        writeCell(string: "Entry%", format: formatRightBold)
-        writeCell(string: "Factor%", format: formatRightBold)
+        writeCell(string: "Entry %", format: formatRightBold)
+        writeCell(string: "Factor %", format: formatRightBold)
         writeCell(string: "\(prefix)Max Award", format: formatRightBold)
         if twoWinners {
             writeCell(string: "EW Max Award", format: formatRightBold)
@@ -1459,7 +1459,7 @@ class RanksPlusMPsWriter: WriterBase {
             writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseEwMaxAwardCell!)*\(entryFactorCell),2)*\(reduceToCell),2)") ; ewMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,2)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,4)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {

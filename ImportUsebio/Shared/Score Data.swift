@@ -55,7 +55,7 @@ public enum EventType: String {
     var string: String { "\(self)".replacingOccurrences(of: "_", with: " ").capitalized }
     
     var supported: Bool {
-        return self == .swiss_pairs || self == .swiss_teams || self == .mp_pairs || self == .pairs || self == .cross_imps || self == .teams || self == .individual
+        return self == .swiss_pairs || self == .swiss_teams || self == .mp_pairs || self == .pairs || self == .cross_imps || self == .teams || self == .individual || self == .teams_of_four
     }
     
     var participantType: ParticipantType? {

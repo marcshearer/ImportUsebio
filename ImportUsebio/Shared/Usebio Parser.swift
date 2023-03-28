@@ -64,6 +64,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     }
     
     func parseComplete() {
+        finalUpdates()
         checkWinDraw()
         completion(scoreData, nil)
     }
@@ -248,6 +249,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         case "PAIR":
             current = current?.add(child: Node(name: name, process: processPair))
             team.pairs.append(Pair())
+        case "PLAYER":
+            current = current?.add(child: Node(name: name, process: processPlayer))
+            team.players.append(Player())
         default:
             processParticipant(participant: participant, name: name, attributes: attributes)
         }
@@ -284,13 +288,21 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     func processPlayer(name: String, attributes: [String : String]) {
         let participant = self.scoreData.events.last!.participants.last!
-        var player: Player
+        var player: Player!
         if participant.type == .team {
-            player = (participant.member as! Team).pairs.last!.players.last!
+            if let team = participant.member as? Team {
+                if team.pairs.isEmpty {
+                    player = team.players.last!
+                } else {
+                    player = team.pairs.last!.players.last!
+                }
+            }
         } else if participant.type == .pair {
-            player = (participant.member as! Pair).players.last!
+            if let pair = participant.member as? Pair {
+                player = pair.players.last!
+            }
         } else {
-            player = participant.member as! Player
+            player = participant.member as? Player
         }
         switch name {
         case "PLAYER_NUMBER":
@@ -388,6 +400,18 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             }))
         default:
             current = current?.add(child: Node(name: name))
+        }
+    }
+    
+    private func finalUpdates() {
+        if let event = scoreData.events.first {
+            if event.boardScoring == nil {
+                if event.type?.participantType?.players == 4 {
+                    event.boardScoring = .imps
+                } else {
+                    event.boardScoring = .percentage
+                }
+            }
         }
     }
 
