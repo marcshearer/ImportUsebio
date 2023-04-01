@@ -61,7 +61,12 @@ fileprivate enum ParticipantHeader: String {
     case score = "SCORE"
     case boardsPlayed = "BOARDS PLAYED"
     case winsDraws = "WINS/DRAWS"
+    case wins = "WINS"
+    case draws = "DRAWS"
     case name = "NAME"
+    case firstName = "FIRST NAME"
+    case otherNames = "OTHER NAMES"
+    case names = "NAMES"
     case nationalId = "NATIONAL ID"
 }
 
@@ -168,7 +173,7 @@ public class ManualCsvParser {
                     case .winners:
                         scoreData.events.first!.winnerType = intValue ?? 1
                     case .winBonus:
-                        requiresWinDraw = (string.uppercased() == "YES")
+                        requiresWinDraw = (string.uppercased() != "NO")
                     case .maxPlayers:
                         break
                     }
@@ -232,7 +237,7 @@ public class ManualCsvParser {
                 if let entry = ParticipantHeader(rawValue: header) {
                     switch entry {
                     case .place:
-                        participant.place = intValue
+                        participant.place = Int(string.replacingOccurrences(of: "=", with: ""))
                     case .direction:
                         if let pair = participant.member as? Pair {
                             pair.direction = Direction(string)
@@ -247,7 +252,26 @@ public class ManualCsvParser {
                         }
                     case .winsDraws:
                         participant.winDraw = floatValue ?? 0
-                    case .name, .nationalId:
+                    case .wins:
+                        participant.winDraw = Utility.round((participant.winDraw ?? 0) + (floatValue ?? 0), places: 0)
+                    case .draws:
+                        participant.winDraw = Utility.round((participant.winDraw ?? 0) + ((floatValue ?? 0) / 2), places: 1)
+                    case .names:
+                        let names = string.replacingOccurrences(of: ";", with: ",").split(at: ",")
+                        for (element, name) in names.enumerated() {
+                            let index = element + 1
+                            var player: Player
+                            if participant.type == .player {
+                                player = participant.member as! Player
+                            } else {
+                                if players[index] == nil {
+                                    players[index] = Player()
+                                }
+                                player = players[index]!
+                            }
+                            player.name = name
+                        }
+                    case .name, .firstName, .otherNames, .nationalId:
                         // Only with indexes
                         break
                     }
@@ -274,12 +298,20 @@ public class ManualCsvParser {
                                         switch entry {
                                         case .name:
                                             player.name = string
+                                        case .firstName:
+                                            player.name = string + " " + (player.name ?? "").ltrim().rtrim()
+                                        case .otherNames:
+                                            player.name = (player.name ?? "").ltrim().rtrim() + " " + string
                                         case .nationalId:
                                             player.nationalId = string
                                         case .boardsPlayed:
                                             player.accumulatedBoardsPlayed = intValue ?? 0
                                         case .winsDraws:
                                             player.accumulatedWinDraw = floatValue ?? 0
+                                        case .wins:
+                                            player.accumulatedWinDraw = Utility.round((player.accumulatedWinDraw ?? 0) + (floatValue ?? 0), places: 0)
+                                        case .draws:
+                                            player.accumulatedWinDraw = Utility.round((player.accumulatedWinDraw ?? 0) + ((floatValue ?? 0) / 2), places: 1)
                                         default:
                                             break
                                         }
