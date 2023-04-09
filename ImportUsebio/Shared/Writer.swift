@@ -433,7 +433,7 @@ class FormattedWriter: WriterBase {
             } else {
                 let consolidated = writer.consolidated!
                 if let referenceDynamic = column.referenceDynamic {
-                    let output = "=\(sortBy)(\(referenceDynamic()),\(arrayRef)(\(cell(writer: writer.consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true))),-1)"
+                    let output = "=\(sortBy)(\(referenceDynamic()),\(arrayRef)(\(cell(writer: writer.consolidated, consolidated.dataRow!, rowFixed: true, consolidated.localMPsColumn!, columnFixed: true)))+\(arrayRef)(\(cell(writer: writer.consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalMPsColumn!, columnFixed: true))),-1)"
                     writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: {output}, format: column.format ?? bodyFormat)
                 }
             }
@@ -1193,47 +1193,60 @@ class RanksPlusMPsWriter: WriterBase {
             columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
             nationalIdColumn.append(columns.count - 1)
             
-            if playerCount > event.type?.participantType?.players ?? playerCount {
+            if !scoreData.manualMPs {
                 
-                columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
-                boardsPlayedColumn.append(columns.count - 1)
-                
-                if winDraw {
-                    columns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
-                    winDrawColumn.append(columns.count - 1)
-                }
-                
-                columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
-                if !winDraw {
-                    totalMPColumn.append(columns.count - 1)
-                } else {
-                    bonusMPColumn.append(columns.count - 1)
-                    columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
-                    winDrawMPColumn.append(columns.count - 1)
+                if playerCount > event.type?.participantType?.players ?? playerCount {
                     
-                    columns.append(Column(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
-                    totalMPColumn.append(columns.count - 1)
+                    columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
+                    boardsPlayedColumn.append(columns.count - 1)
+                    
+                    if winDraw {
+                        columns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
+                        winDrawColumn.append(columns.count - 1)
+                    }
+                    
+                    columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
+                    if !winDraw {
+                        totalMPColumn.append(columns.count - 1)
+                    } else {
+                        bonusMPColumn.append(columns.count - 1)
+                        columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        winDrawMPColumn.append(columns.count - 1)
+                        
+                        columns.append(Column(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        totalMPColumn.append(columns.count - 1)
+                    }
                 }
             }
         }
         
-        if playerCount <= event.type?.participantType?.players ?? playerCount {
+        if scoreData.manualMPs {
             
-            columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", calculatedContent: bonusAward, cellType: .floatFormula))
-             
-            if !winDraw {
-                for _ in 0..<playerCount {
-                    totalMPColumn.append(columns.count - 1)
-                }
-            } else {
-                bonusMPColumn.append(columns.count - 1)
+            columns.append(Column(title: "Total MPs", content: { (participant, _) in "\(participant.manualMps ?? 0)" }, cellType: .floatFormula))
+            for _ in 0..<playerCount {
+                totalMPColumn.append(columns.count - 1)
+            }
+            
+        } else {
+            
+            if playerCount <= event.type?.participantType?.players ?? playerCount {
                 
-                columns.append(Column(title: "Win/Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
-                winDrawMPColumn.append(columns.count - 1)
+                columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", calculatedContent: bonusAward, cellType: .floatFormula))
                 
-                columns.append(Column(title: "Total MP", calculatedContent: totalAward, cellType: .floatFormula))
-                for _ in 0..<playerCount {
-                    totalMPColumn.append(columns.count - 1)
+                if !winDraw {
+                    for _ in 0..<playerCount {
+                        totalMPColumn.append(columns.count - 1)
+                    }
+                } else {
+                    bonusMPColumn.append(columns.count - 1)
+                    
+                    columns.append(Column(title: "Win/Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
+                    winDrawMPColumn.append(columns.count - 1)
+                    
+                    columns.append(Column(title: "Total MP", calculatedContent: totalAward, cellType: .floatFormula))
+                    for _ in 0..<playerCount {
+                        totalMPColumn.append(columns.count - 1)
+                    }
                 }
             }
         }
@@ -1318,12 +1331,17 @@ class RanksPlusMPsWriter: WriterBase {
     }
     
     private func playerTotalAward(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        let event = scoreData.events.first!
+        let winDraw = event.type?.requiresWinDraw ?? false
         var result = ""
         
-        let bonusMPCell = cell(rowNumber, bonusMPColumn[playerNumber ?? 0], columnFixed: true)
-        let winDrawMPCell = cell(rowNumber, winDrawMPColumn[playerNumber ?? 0], columnFixed: true)
-        result = "\(bonusMPCell)+\(winDrawMPCell)"
         
+        let bonusMPCell = cell(rowNumber, bonusMPColumn[playerNumber ?? 0], columnFixed: true)
+        result = bonusMPCell
+        if winDraw {
+            let winDrawMPCell = cell(rowNumber, winDrawMPColumn[playerNumber ?? 0], columnFixed: true)
+            result += "+\(winDrawMPCell)"
+        }
         return result
     }
     

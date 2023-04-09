@@ -68,6 +68,7 @@ fileprivate enum ParticipantHeader: String {
     case otherNames = "OTHER NAMES"
     case names = "NAMES"
     case nationalId = "NATIONAL ID"
+    case manualMPs = "MANUAL MPS"
 }
 
 public class ManualCsvParser {
@@ -271,6 +272,9 @@ public class ManualCsvParser {
                             }
                             player.name = name
                         }
+                    case .manualMPs:
+                        participant.manualMps = floatValue
+                        scoreData.manualMPs = true
                     case .name, .firstName, .otherNames, .nationalId:
                         // Only with indexes
                         break

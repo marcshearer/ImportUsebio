@@ -250,6 +250,7 @@ public class Participant {
     var place: Int?
     var score: Float?
     var winDraw: Float?
+    var manualMps: Float?
     var member: Member
     weak var event: Event?
     
@@ -289,6 +290,7 @@ public class ScoreData {
     public var fileUrl: URL?
     public var roundName: String?
     public var national: Bool = false
+    public var manualMPs: Bool = false
     public var maxAward: Float = 0.0
     public var ewMaxAward: Float?
     public var reducedTo: Float = 0.0

@@ -437,10 +437,10 @@ struct SelectInputView: View {
                 if let scoreData = round.scoreData {
                     roundName = round.name!
                     localNational = (round.localNational ?? importInProgress!.event!.localNational) == .national ? .national : .local
-                    maxAward = round.maxAward!
-                    ewMaxAward = round.ewMaxAward!
+                    maxAward = round.maxAward ?? 0
+                    ewMaxAward = round.ewMaxAward ?? maxAward
                     minEntry = round.minEntry ?? 0
-                    awardTo = round.awardTo!
+                    awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
                     
                     scoreData.roundName = roundName

@@ -33,6 +33,7 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case name = "ROUND NAME"
     case shortName = "SHORT NAME"
     case toe = "TOE"
+    case basis = "BASIS"
     case localNational = "LOCAL / NATIONAL"
     case maxAward = "MAX AWARD"
     case nsMaxAward = "NS MAX AWARD"
@@ -64,6 +65,7 @@ class ImportRound {
     var name: String?
     var shortName: String?
     var toe: Int?
+    var manualMPs = false
     var localNational: LocalNational?
     var maxAward: Float?
     var ewMaxAward: Float?
@@ -262,6 +264,8 @@ class ImportRounds {
                         round.shortName = columnValue
                     case .toe:
                         round.toe = Int(columnValue)
+                    case .basis:
+                        round.manualMPs = columnValue.uppercased() == "MANUAL"
                     case .localNational:
                         round.localNational = LocalNational(rawValue: columnValue.uppercased())
                     case .maxAward, .nsMaxAward:
@@ -291,11 +295,11 @@ class ImportRounds {
             error = "\(RoundColumn.name.string) must not be blank"
         } else if round.localNational == nil && event?.localNational == .byRound {
             error = "\(RoundColumn.localNational.string) must not be blank on rounds"
-        } else if round.maxAward ?? 0 <= 0 {
+        } else if !round.manualMPs && round.maxAward ?? 0 <= 0 {
             error = "\(RoundColumn.maxAward.string) must be a positive number"
-        } else if round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1 {
+        } else if !round.manualMPs && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
             error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
-        } else if round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1 {
+        } else if !round.manualMPs && (round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1) {
             error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
         } else if round.filename == nil {
             error = "\(RoundColumn.filename.string) must not be blank"
