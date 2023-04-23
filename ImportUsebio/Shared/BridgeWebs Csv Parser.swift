@@ -214,7 +214,7 @@ public class BridgeWebsCsvParser {
     }
     
     private func finalUpdates() {
-        if let boards = scoreData.events.first!.boards, let rounds = self.rounds {
+        if let boards = scoreData.events.first?.boards, let rounds = self.rounds {
             if boards != 0 && rounds != 0 {
                 scoreData.events.first!.boardsPerRound = boards / rounds
             }

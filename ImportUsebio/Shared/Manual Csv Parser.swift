@@ -258,8 +258,9 @@ public class ManualCsvParser {
                     case .draws:
                         participant.winDraw = Utility.round((participant.winDraw ?? 0) + ((floatValue ?? 0) / 2), places: 1)
                     case .names:
-                        let names = string.replacingOccurrences(of: ";", with: ",").split(at: ",")
+                        let names = string.replacingOccurrences(of: ";", with: ",").replacingOccurrences(of: "&", with: ",").split(at: ",")
                         for (element, name) in names.enumerated() {
+                            let name = name.ltrim().rtrim()
                             let index = element + 1
                             var player: Player
                             if participant.type == .player {

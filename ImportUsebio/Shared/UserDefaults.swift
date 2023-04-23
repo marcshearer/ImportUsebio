@@ -30,6 +30,7 @@ enum UserDefault: String, CaseIterable {
     case settingUserDownloadFirtNameColumn
     case settingUserDownloadRankColumn
     case settingUserDownloadEmailColumn
+    case settingUserDownloadOtherUnionColumn
     case settingUserDownloadHomeClubColumn
     case settingUserDownloadStatusColumn
     
@@ -75,6 +76,8 @@ enum UserDefault: String, CaseIterable {
             return "F"
         case .settingUserDownloadEmailColumn:
             return "H"
+        case .settingUserDownloadOtherUnionColumn:
+            return "AH"
         case .settingUserDownloadHomeClubColumn:
             return "S"
         case .settingUserDownloadStatusColumn:

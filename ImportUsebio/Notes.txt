@@ -1,3 +1,15 @@
 TODO
 ----
 Formatted version not sorted correctly if National Points - should use Local + National
+
+
+Pods problem
+In your Xcode navigate to:
+
+Pods \ Target Support Files \ Pods-Runner or Pods-App
+
+Open Pods-Runner-frameworks.sh  or Pods-App-frameworks.sh
+
+Find the line: source="$(readlink "${source}")"
+
+Replace it by: source="$(readlink -f "${source}")"

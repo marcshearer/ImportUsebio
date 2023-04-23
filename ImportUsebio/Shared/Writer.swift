@@ -688,10 +688,11 @@ class CsvImportWriter: WriterBase {
     let nationalMPsColumn = 7
     let lookupFirstNameColumn = 10
     let lookupOtherNamesColumn = 11
-    let lookupHomeClubColumn = 12
-    let lookupRankColumn = 13
-    let lookupEmailColumn = 14
-    let lookupStatusColumn = 15
+    let lookupOtherUnionColumn = 12
+    let lookupHomeClubColumn = 13
+    let lookupRankColumn = 14
+    let lookupEmailColumn = 15
+    let lookupStatusColumn = 16
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -731,6 +732,7 @@ class CsvImportWriter: WriterBase {
         
         setColumn(worksheet: worksheet, column: lookupFirstNameColumn, width: 12)
         setColumn(worksheet: worksheet, column: lookupOtherNamesColumn, width: 12)
+        setColumn(worksheet: worksheet, column: lookupOtherUnionColumn, width: 12, format: formatZeroBlank)
         setColumn(worksheet: worksheet, column: lookupHomeClubColumn, width: 25)
         setColumn(worksheet: worksheet, column: lookupRankColumn, width: 8)
         setColumn(worksheet: worksheet, column: lookupEmailColumn, width: 25)
@@ -812,6 +814,7 @@ class CsvImportWriter: WriterBase {
         //Lookups
         writeLookup(title: "First Name", column: lookupFirstNameColumn, lookupColumn: Settings.current.userDownloadFirstNameColumn)
         writeLookup(title: "Other Names", column: lookupOtherNamesColumn, lookupColumn: Settings.current.userDownloadOtherNamesColumn)
+        writeLookup(title: "Other Union", column: lookupOtherUnionColumn, lookupColumn: Settings.current.userDownloadOtherUnionColumn)
         writeLookup(title: "Home Club", column: lookupHomeClubColumn, lookupColumn: Settings.current.userDownloadHomeClubColumn)
         writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: Settings.current.userDownloadRankColumn, format: formatRightBoldUnderline)
         writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: Settings.current.userDownloadEmailColumn)
@@ -1748,6 +1751,7 @@ class WriterBase {
     var workbook: UnsafeMutablePointer<lxw_workbook>?
     var worksheet: UnsafeMutablePointer<lxw_worksheet>?
     var formatString: UnsafeMutablePointer<lxw_format>?
+    var formatZeroBlank: UnsafeMutablePointer<lxw_format>?
     var formatInt: UnsafeMutablePointer<lxw_format>?
     var formatFloat: UnsafeMutablePointer<lxw_format>?
     var formatZeroInt: UnsafeMutablePointer<lxw_format>?
@@ -1785,6 +1789,7 @@ class WriterBase {
         if let writer = writer {
             // Copy from writer
             self.formatString = writer.formatString
+            self.formatZeroBlank = writer.formatZeroBlank
             self.formatInt = writer.formatInt
             self.formatFloat = writer.formatFloat
             self.formatZeroInt = writer.formatZeroInt
@@ -1879,6 +1884,9 @@ class WriterBase {
     func setupFormats() {
         formatString = workbook_add_format(workbook)
         format_set_align(formatString, UInt8(LXW_ALIGN_LEFT.rawValue))
+        formatZeroBlank = workbook_add_format(workbook)
+        format_set_num_format(formatZeroBlank, "0;-0;")
+        format_set_align(formatZeroBlank, UInt8(LXW_ALIGN_LEFT.rawValue))
         formatInt = workbook_add_format(workbook)
         format_set_num_format(formatInt, "0;-0;")
         format_set_align(formatInt, UInt8(LXW_ALIGN_RIGHT.rawValue))

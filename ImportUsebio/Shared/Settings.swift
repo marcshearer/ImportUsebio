@@ -24,6 +24,7 @@
         @Published var userDownloadFirstNameColumn: String!
         @Published var userDownloadRankColumn: String!
         @Published var userDownloadEmailColumn: String!
+        @Published var userDownloadOtherUnionColumn: String!
         @Published var userDownloadHomeClubColumn: String!
         @Published var userDownloadStatusColumn: String!
         
@@ -56,6 +57,7 @@
             self.userDownloadFirstNameColumn = from.userDownloadFirstNameColumn
             self.userDownloadRankColumn = from.userDownloadRankColumn
             self.userDownloadEmailColumn = from.userDownloadEmailColumn
+            self.userDownloadOtherUnionColumn = from.userDownloadOtherUnionColumn
             self.userDownloadHomeClubColumn = from.userDownloadHomeClubColumn
             self.userDownloadStatusColumn = from.userDownloadStatusColumn
         }
@@ -75,6 +77,7 @@
             self.userDownloadFirstNameColumn = UserDefault.settingUserDownloadFirtNameColumn.string
             self.userDownloadRankColumn = UserDefault.settingUserDownloadRankColumn.string
             self.userDownloadEmailColumn = UserDefault.settingUserDownloadEmailColumn.string
+            self.userDownloadOtherUnionColumn = UserDefault.settingUserDownloadOtherUnionColumn.string
             self.userDownloadHomeClubColumn = UserDefault.settingUserDownloadHomeClubColumn.string
             self.userDownloadStatusColumn = UserDefault.settingUserDownloadStatusColumn.string
         }
@@ -94,6 +97,7 @@
             UserDefault.settingUserDownloadFirtNameColumn.set(self.userDownloadFirstNameColumn)
             UserDefault.settingUserDownloadRankColumn.set(self.userDownloadRankColumn)
             UserDefault.settingUserDownloadEmailColumn.set(self.userDownloadEmailColumn)
+            UserDefault.settingUserDownloadOtherUnionColumn.set(self.userDownloadOtherUnionColumn)
             UserDefault.settingUserDownloadHomeClubColumn.set(self.userDownloadHomeClubColumn)
             UserDefault.settingUserDownloadStatusColumn.set(self.userDownloadStatusColumn)
         }
