@@ -159,7 +159,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             }))
         case "DATE":
             current = current?.add(child: Node(name: name, completion: { (value) in
-                self.scoreData.events.last?.date = Utility.dateFromString(value, format: "dd/MM/yyyy")
+                self.scoreData.events.last?.date = Date(timeInterval: TimeInterval(12*60*60), since: Utility.dateFromString(value, format: "dd/MM/yyyy")!)
             }))
         case "EVENT_IDENTIFIER":
             current = current?.add(child: Node(name: name, completion: { (value) in

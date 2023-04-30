@@ -196,7 +196,7 @@ public class ManualCsvParser {
                     case .title:
                         scoreData.events.first!.description = string
                     case .date:
-                        scoreData.events.first!.date = Utility.dateFromString(string, format: "dd/MM/yyyy")
+                        scoreData.events.first!.date = Date(timeInterval: TimeInterval(12*60*60), since: Utility.dateFromString(string, format: "dd/MM/yyyy")!)
                     case .contact:
                         scoreData.events.first!.contact = string
                     case .boards:
