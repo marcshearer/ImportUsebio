@@ -115,7 +115,7 @@ class Writer: WriterBase {
     var maxRank = 9999
     var eventCode: String = ""
     var eventDescription: String = ""
-    var missingNumbers: [String: Int] = [:]
+    var missingNumbers: [String: (NationalId: Int, Nbo: String)] = [:]
     
     var maxPlayers: Int { min(1000, rounds.map{ $0.maxPlayers }.reduce(0, +)) }
     
@@ -163,9 +163,8 @@ class Writer: WriterBase {
         parameters.writeSortBy()
         csvImport.write()
         summary.write()
-        if missingNumbers.count > 0 {
-            missing.write()
-        } else {
+        missing.write()
+        if missingNumbers.count <= 0 {
             worksheet_hide(missing.worksheet)
         }
         formatted.write()
@@ -1259,13 +1258,16 @@ class RanksPlusMPsWriter: WriterBase {
     
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
-        if (Int(player.nationalId ?? "0") ?? 0) <= 0 {
-            result = "=VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, writer.missing.nameColumn)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, writer.missing.nationalIdColumn)),2,FALSE)"
+        let nationalId = Int(player.nationalId ?? "0") ?? 0
+        result = "=IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId))"
+        if (nationalId < 0 || nationalId > Settings.current.maxNationalIdNumber!) {
             if writer.missingNumbers[player.name!] == nil {
-                writer.missingNumbers[player.name!] = -(writer.missingNumbers.count + 1)
+                if nationalId == 0 {
+                    writer.missingNumbers[player.name!] = (-(writer.missingNumbers.count + 1), "")
+                } else {
+                    writer.missingNumbers[player.name!] = (nationalId, "EBU")
+                }
             }
-        } else {
-            result = "=\(player.nationalId!)"
         }
         return result
     }
@@ -1679,8 +1681,9 @@ class MissingNumbersWriter : WriterBase {
     override var name: String { "Missing Numbers" }
     let nameColumn = 0
     let nationalIdColumn = 1
-    let suggestColumn = 2
-    let duplicateColumn = 3
+    let nboColumn = 2
+    let suggestColumn = 3
+    let duplicateColumn = 4
     let headerRow = 0
     let dataRow = 1
 
@@ -1691,20 +1694,33 @@ class MissingNumbersWriter : WriterBase {
     
     func write() {
         setColumn(worksheet: worksheet, column: nameColumn, width: 30)
+        setColumn(worksheet: worksheet, column: nationalIdColumn, width: 12)
+        setColumn(worksheet: worksheet, column: nboColumn, width: 8)
         
         write(worksheet: worksheet, row: headerRow, column: nameColumn, string: "Names", format: formatBold)
         write(worksheet: worksheet, row: headerRow, column: nationalIdColumn, string: "SBU No", format: formatRightBold)
+        write(worksheet: worksheet, row: headerRow, column: nboColumn, string: "NBO", format: formatRightBold)
         write(worksheet: worksheet, row: headerRow, column: suggestColumn, string: "Suggest", format: formatRightBold)
         
-        var row = 0
-        for (name, number) in writer.missingNumbers.sorted(by: {$0.value > $1.value}) {
-            write(worksheet: worksheet, row: dataRow + row, column: nameColumn, string: name)
-            write(worksheet: worksheet, row: dataRow + row, column: nationalIdColumn, integer: number, format: formatInt)
-            let xlookupStem = "IFERROR(\(fnPrefix)XLOOKUP(\(cell(dataRow + row, nameColumn, columnFixed: true)),CONCATENATE(\(vstack)(\(lookupRange(.firstName))),\" \",\(vstack)(\(lookupRange(.otherNames)))),\(vstack)(\(lookupRange(.nationalId))),\"\",FALSE"
-            write(worksheet: worksheet, row: dataRow + row, column: suggestColumn, integerFormula: "=\(xlookupStem),1),\"\")")
-            write(worksheet: worksheet, row: dataRow + row, column: duplicateColumn, integerFormula: "=IF(\(xlookupStem),-1),\"\")=\(cell(dataRow + row, suggestColumn, columnFixed: true)),\"\",\"DUPLICATES\")", format: formatBold)
-            row += 1
+        if writer.missingNumbers.count == 0 {
+            writeLogic(row: 0)
+        } else {
+            var row = 0
+            for (name, (number, nbo)) in writer.missingNumbers.sorted(by: {$0.value > $1.value}) {
+                write(worksheet: worksheet, row: dataRow + row, column: nameColumn, string: name)
+                let nboCell = cell(dataRow + row, nboColumn, columnFixed: true)
+                write(worksheet: worksheet, row: dataRow + row, column: nationalIdColumn, formula: "=CONCATENATE(\(nboCell),IF(\(nboCell)=\"\",\"\",\"-\"),\(number))", format: formatInt)
+                write(worksheet: worksheet, row: dataRow + row, column: nboColumn, string: nbo, format: formatInt)
+                writeLogic(row: row)
+                row += 1
+            }
         }
+    }
+    
+    func writeLogic(row: Int) {
+        let xlookupStem = "IFERROR(\(fnPrefix)XLOOKUP(\(cell(dataRow + row, nameColumn, columnFixed: true)),CONCATENATE(\(vstack)(\(lookupRange(.firstName))),\" \",\(vstack)(\(lookupRange(.otherNames)))),\(vstack)(\(lookupRange(.nationalId))),\"\",FALSE"
+        write(worksheet: worksheet, row: dataRow + row, column: suggestColumn, integerFormula: "=\(xlookupStem),1),\"\")")
+        write(worksheet: worksheet, row: dataRow + row, column: duplicateColumn, integerFormula: "=IF(\(xlookupStem),-1),\"\")=\(cell(dataRow + row, suggestColumn, columnFixed: true)),\"\",\"DUPLICATES\")", format: formatBold)
     }
     
     enum LookupColumn {

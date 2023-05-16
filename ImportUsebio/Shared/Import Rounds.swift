@@ -33,6 +33,7 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case name = "ROUND NAME"
     case shortName = "SHORT NAME"
     case toe = "TOE"
+    case exclude = "EXCLUDE"
     case basis = "BASIS"
     case localNational = "LOCAL / NATIONAL"
     case maxAward = "MAX AWARD"
@@ -62,6 +63,7 @@ class ImportEvent {
 }
 
 class ImportRound {
+    var exclude = false
     var name: String?
     var shortName: String?
     var toe: Int?
@@ -258,6 +260,8 @@ class ImportRounds {
             if !columnValue.isEmpty {
                 if let column = roundColumnNumbers[columnNumber] {
                     switch column {
+                    case .exclude:
+                        round.exclude = (columnValue.uppercased().left(1) == "Y")
                     case .name:
                         round.name = columnValue
                     case .shortName:
@@ -291,20 +295,22 @@ class ImportRounds {
             }
         }
         
-        if round.name == nil {
-            error = "\(RoundColumn.name.string) must not be blank"
-        } else if round.localNational == nil && event?.localNational == .byRound {
-            error = "\(RoundColumn.localNational.string) must not be blank on rounds"
-        } else if !round.manualMPs && round.maxAward ?? 0 <= 0 {
-            error = "\(RoundColumn.maxAward.string) must be a positive number"
-        } else if !round.manualMPs && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
-            error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
-        } else if !round.manualMPs && (round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1) {
-            error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
-        } else if round.filename == nil {
-            error = "\(RoundColumn.filename.string) must not be blank"
-        } else {
-            rounds.append(round)
+        if !round.exclude {
+            if round.name == nil {
+                error = "\(RoundColumn.name.string) must not be blank"
+            } else if round.localNational == nil && event?.localNational == .byRound {
+                error = "\(RoundColumn.localNational.string) must not be blank on rounds"
+            } else if !round.manualMPs && round.maxAward ?? 0 <= 0 {
+                error = "\(RoundColumn.maxAward.string) must be a positive number"
+            } else if !round.manualMPs && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
+                error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
+            } else if !round.manualMPs && (round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1) {
+                error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
+            } else if round.filename == nil {
+                error = "\(RoundColumn.filename.string) must not be blank"
+            } else {
+                rounds.append(round)
+            }
         }
         
         return error
