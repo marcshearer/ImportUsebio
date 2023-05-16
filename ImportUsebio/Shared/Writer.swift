@@ -115,7 +115,7 @@ class Writer: WriterBase {
     var maxRank = 9999
     var eventCode: String = ""
     var eventDescription: String = ""
-    var missingNumbers: [String: (NationalId: Int, Nbo: String)] = [:]
+    var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
     
     var maxPlayers: Int { min(1000, rounds.map{ $0.maxPlayers }.reduce(0, +)) }
     
@@ -1259,13 +1259,13 @@ class RanksPlusMPsWriter: WriterBase {
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
         let nationalId = Int(player.nationalId ?? "0") ?? 0
-        result = "=IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId))"
-        if (nationalId < 0 || nationalId > Settings.current.maxNationalIdNumber!) {
+        result = "=IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId == 0 ? ("\"" + (player.nationalId ?? "0") + "\"") : player.nationalId!))"
+        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber!) {
             if writer.missingNumbers[player.name!] == nil {
-                if nationalId == 0 {
-                    writer.missingNumbers[player.name!] = (-(writer.missingNumbers.count + 1), "")
+                if player.nationalId == nil || player.nationalId == "0" {
+                    writer.missingNumbers[player.name!] = ("\(-(writer.missingNumbers.count + 1))", "")
                 } else {
-                    writer.missingNumbers[player.name!] = (nationalId, "EBU")
+                    writer.missingNumbers[player.name!] = (player.nationalId!, "EBU")
                 }
             }
         }
@@ -1707,9 +1707,16 @@ class MissingNumbersWriter : WriterBase {
         } else {
             var row = 0
             for (name, (number, nbo)) in writer.missingNumbers.sorted(by: {$0.value > $1.value}) {
+                var nbo = nbo
+                var number = number
+                let split = number.split(at: "-")
+                if split.count == 2 {
+                    nbo = split[0]
+                    number = split[1]
+                }
                 write(worksheet: worksheet, row: dataRow + row, column: nameColumn, string: name)
                 let nboCell = cell(dataRow + row, nboColumn, columnFixed: true)
-                write(worksheet: worksheet, row: dataRow + row, column: nationalIdColumn, formula: "=CONCATENATE(\(nboCell),IF(\(nboCell)=\"\",\"\",\"-\"),\(number))", format: formatInt)
+                write(worksheet: worksheet, row: dataRow + row, column: nationalIdColumn, formula: "=CONCATENATE(\(nboCell),IF(\(nboCell)=\"\",\"\",\"-\"),\"\(number)\")", format: formatInt)
                 write(worksheet: worksheet, row: dataRow + row, column: nboColumn, string: nbo, format: formatInt)
                 writeLogic(row: row)
                 row += 1
