@@ -73,7 +73,7 @@ extension ScoreData {
         }
         
         if (event.boardsPerRound ?? 0) == 0 && (event.type?.requiresWinDraw ?? false) {
-            error("Number of boards per round unspecified / invalid")
+            warning("Number of boards per round unspecified / invalid")
         }
         
         if event.sectionCount != 1 {
