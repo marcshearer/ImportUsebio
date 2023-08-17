@@ -375,9 +375,9 @@ class FormattedWriter: WriterBase {
     var formatBodyString: UnsafeMutablePointer<lxw_format>?
     var formatBodyFloat: UnsafeMutablePointer<lxw_format>?
     var formatBodyNumeric: UnsafeMutablePointer<lxw_format>?
+    var formatBottom: UnsafeMutablePointer<lxw_format>?
     var formatLeftRight: UnsafeMutablePointer<lxw_format>?
-    var formatTop: UnsafeMutablePointer<lxw_format>?
-    var formatLeftRightTop: UnsafeMutablePointer<lxw_format>?
+    var formatLeftRightBottom: UnsafeMutablePointer<lxw_format>?
     
     var singleEvent: Bool {
         let rounds = writer.rounds
@@ -409,6 +409,14 @@ class FormattedWriter: WriterBase {
         setRow(worksheet: worksheet, row: titleRow, height: 50)
         worksheet_fit_to_pages(worksheet, 1, 0)
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
+        var rows: [lxw_row_t] = []
+        for row in 1...(writer.maxPlayers / 32) {
+            rows.append(lxw_row_t(row*32 + 1))
+            worksheet_set_h_pagebreaks(worksheet, &rows)
+        }
+        worksheet_repeat_rows(worksheet, 0, 0)
+        worksheet_set_header(worksheet, "&C&14\(writer.eventDescription) - Master Point Allocations")
+        worksheet_set_footer(worksheet,"&RPage &P of &N")
 
         for (columnNumber, column) in columns.enumerated() {
             var bannerFormat = formatBannerString
@@ -438,22 +446,26 @@ class FormattedWriter: WriterBase {
             }
         }
         
-        var formula = "AND($A2<>\"\",OR("
+        var leftRightFormula = "AND($A2<>\"\",OR("
         for (columnNumber, column) in leftRightColumns.enumerated() {
             if columnNumber != 0 {
-                formula += ","
+                leftRightFormula += ","
             }
-            formula += "A$1=\"\(column)\""
+            leftRightFormula += "A$1=\"\(column)\""
         }
-        formula += "))"
+        leftRightFormula += "))"
+        
+        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),MOD(ROW($A2), 32)=1"
         if singleEvent && twoWinners{
             let columnRef = columnRef(directionColumn!, fixed: true)
-            let directionFormula = "AND($A2<>\"\",\(columnRef)1<>\(columnRef)2, ROW($A2)<>2)"
-            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(formula), \(directionFormula))", stopIfTrue: false, format: formatLeftRightTop!)
-            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: directionFormula, stopIfTrue: false, format: formatTop!)
+            bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3)))"
+        } else {
+            bottomFormula += ")"
         }
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: formula, stopIfTrue: false, format: formatLeftRight!)
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND($A2=\"\",$A1<>\"\")", stopIfTrue: false, format: formatTop!)
+        
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftRightFormula, stopIfTrue: true, format: formatLeftRight!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: bottomFormula, stopIfTrue: true, format: formatBottom!)
     }
     
     private func setupColumns() {
@@ -637,13 +649,13 @@ class FormattedWriter: WriterBase {
         format_set_left(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
         format_set_right(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
         
-        formatLeftRightTop = workbook_add_format(workbook)
-        format_set_left(formatLeftRightTop, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_right(formatLeftRightTop, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_top(formatLeftRightTop, UInt8(LXW_BORDER_THIN.rawValue))
+        formatLeftRightBottom = workbook_add_format(workbook)
+        format_set_left(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_right(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_bottom(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
         
-        formatTop = workbook_add_format(workbook)
-        format_set_top(formatTop, UInt8(LXW_BORDER_THIN.rawValue))
+        formatBottom = workbook_add_format(workbook)
+        format_set_bottom(formatBottom, UInt8(LXW_BORDER_THIN.rawValue))
     }
     
     func colorValue(_ color: Color) -> UInt32 {

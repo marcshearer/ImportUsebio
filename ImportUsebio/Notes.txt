@@ -3,7 +3,17 @@ TODO
 Formatted version not sorted correctly if National Points - should use Local + National
 
 
+TO UPDATE Award.bin (Macros)
+----------------------------
+Edit the macros in an existing spreadsheet
+Save the spreadsheet in Downloads
+Go into Terminal and navigate to Downloads
+Run "unzip <filename>.xlsm"
+Look in xl directory and move .bin file to /Users/marcshearer/Library/Containers/MarcShearer.ImportUsebio/Data directory
+Remove old Award.bin and rename new .bin file to Award.bin
+
 Pods problem
+------------
 In your Xcode navigate to:
 
 Pods \ Target Support Files \ Pods-Runner or Pods-App
