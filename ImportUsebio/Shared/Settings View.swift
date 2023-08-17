@@ -61,7 +61,19 @@ struct SettingsView: View {
                                 }
                             }
                             
-                            InputFloat(title: "Default worksheet zoom:", field: $settings.defaultWorksheetZoom, leadingSpace: 42, width: 80, inlineTitle: false)
+                            VStack {
+                                InputTitle(title: "Presentation:", topSpace: 16)
+                                Spacer().frame(height: 8)
+                                HStack {
+                                    Spacer().frame(width: 30)
+                                    
+                                    InputFloat(title: "Default zoom:", field: $settings.defaultWorksheetZoom, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
+                                    
+                                    InputInt(title: "Lines per formatted page:", field: $settings.linesPerFormattedPage, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 180)
+                                    
+                                    Spacer()
+                                }
+                            }
                             
                             VStack {
                                 InputTitle(title: "User Download Details:", topSpace: 16)

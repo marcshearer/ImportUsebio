@@ -410,8 +410,8 @@ class FormattedWriter: WriterBase {
         worksheet_fit_to_pages(worksheet, 1, 0)
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
         var rows: [lxw_row_t] = []
-        for row in 1...(writer.maxPlayers / 32) {
-            rows.append(lxw_row_t(row*32 + 1))
+        for row in 1...((writer.maxPlayers / Settings.current.linesPerFormattedPage)) {
+            rows.append(lxw_row_t(row*Settings.current.linesPerFormattedPage + 1))
             worksheet_set_h_pagebreaks(worksheet, &rows)
         }
         worksheet_repeat_rows(worksheet, 0, 0)
@@ -455,7 +455,7 @@ class FormattedWriter: WriterBase {
         }
         leftRightFormula += "))"
         
-        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),MOD(ROW($A2), 32)=1"
+        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),MOD(ROW($A2), \(Settings.current.linesPerFormattedPage ?? 32))=1"
         if singleEvent && twoWinners{
             let columnRef = columnRef(directionColumn!, fixed: true)
             bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3)))"

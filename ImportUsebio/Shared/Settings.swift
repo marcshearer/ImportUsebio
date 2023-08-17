@@ -16,6 +16,7 @@
         @Published var largestFieldSize: Int!
         @Published var largestPlayerCount: Int!
         @Published var defaultWorksheetZoom: Float!
+        @Published var linesPerFormattedPage: Int!
         @Published var userDownloadData: String!
         @Published var userDownloadMinRow: Int!
         @Published var userDownloadMaxRow: Int!
@@ -49,6 +50,7 @@
             self.largestFieldSize = from.largestFieldSize
             self.largestPlayerCount = from.largestPlayerCount
             self.defaultWorksheetZoom = from.defaultWorksheetZoom
+            self.linesPerFormattedPage = from.linesPerFormattedPage
             self.userDownloadData = from.userDownloadData
             self.userDownloadMinRow = from.userDownloadMinRow
             self.userDownloadMaxRow = from.userDownloadMaxRow
@@ -69,6 +71,7 @@
             self.largestFieldSize = UserDefault.settingLargestFieldSize.int
             self.largestPlayerCount = UserDefault.settingLargestPlayerCount.int
             self.defaultWorksheetZoom = UserDefault.settingDefaultWorksheetZoom.float
+            self.linesPerFormattedPage = UserDefault.settingLinesPerFormattedPage.int
             self.userDownloadData = UserDefault.settingUserDownloadData.string
             self.userDownloadMinRow = UserDefault.settingUserDownloadMinRow.int
             self.userDownloadMaxRow = UserDefault.settingUserDownloadMaxRow.int
@@ -89,6 +92,7 @@
             UserDefault.settingLargestFieldSize.set(self.largestFieldSize)
             UserDefault.settingLargestPlayerCount.set(self.largestPlayerCount)
             UserDefault.settingDefaultWorksheetZoom.set(self.defaultWorksheetZoom)
+            UserDefault.settingLinesPerFormattedPage.set(self.linesPerFormattedPage)
             UserDefault.settingUserDownloadData.set(self.userDownloadData)
             UserDefault.settingUserDownloadMinRow.set(self.userDownloadMinRow)
             UserDefault.settingUserDownloadMaxRow.set(self.userDownloadMaxRow)

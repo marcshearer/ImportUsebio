@@ -22,6 +22,7 @@ enum UserDefault: String, CaseIterable {
     case settingLargestFieldSize
     case settingLargestPlayerCount
     case settingDefaultWorksheetZoom
+    case settingLinesPerFormattedPage
     case settingUserDownloadData
     case settingUserDownloadMinRow
     case settingUserDownloadMaxRow
@@ -60,6 +61,8 @@ enum UserDefault: String, CaseIterable {
             return 600
         case .settingDefaultWorksheetZoom:
             return 125
+        case .settingLinesPerFormattedPage:
+            return 32
         case .settingUserDownloadData:
             return "user download.csv"
         case .settingUserDownloadMinRow:
