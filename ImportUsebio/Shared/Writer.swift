@@ -280,21 +280,7 @@ class SummaryWriter : WriterBase {
         detailRow = 1
         totalRow = detailRow! + writer.rounds.count + 1
         exportedRow = totalRow! + 1
-        
-        // Add macro button
-        var options = lxw_button_options()
-        let macro = "SelectFormatted"
-        let title = "Select Formatted"
-        options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
-        options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
-        options.height = 30
-        options.width = 80
-        options.x_scale = 1.5
-        options.y_scale = 1.5
-        options.x_offset = 2
-        options.y_offset = 5
-        worksheet_insert_button(worksheet, 1, 9, &options)
-        
+               
         freezePanes(worksheet: worksheet, row: detailRow!, column: 0)
         
         setColumn(worksheet: worksheet, column: descriptionColumn!, width: 30)
@@ -417,7 +403,11 @@ class FormattedWriter: WriterBase {
         worksheet_repeat_rows(worksheet, 0, 0)
         worksheet_set_header(worksheet, "&C&14\(writer.eventDescription) - Master Point Allocations")
         worksheet_set_footer(worksheet,"&RPage &P of &N")
-
+        
+        // Add macro buttons
+        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 1, column: columns.count)
+        writer.createMacroButton(worksheet: worksheet, title: "Select All", macro: "SelectFormatted", row: 3, column: columns.count)
+        
         for (columnNumber, column) in columns.enumerated() {
             var bannerFormat = formatBannerString
             var bodyFormat = formatBodyString
@@ -718,18 +708,7 @@ class CsvImportWriter: WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro button
-        var options = lxw_button_options()
-        let macro = "CopyImport"
-        let title = "Copy Import"
-        options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
-        options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
-        options.height = 30
-        options.width = 80
-        options.x_scale = 1.5
-        options.y_scale = 1.5
-        options.x_offset = 2
-        options.y_offset = 5
-        worksheet_insert_button(worksheet, 1, 4, &options)
+        writer.createMacroButton(worksheet: worksheet, title: "Copy Import", macro: "CopyImport", row: 1, column: 4)
         
         // Format rows/columns
         setRow(worksheet: worksheet, row: titleRow, height: 30)
@@ -1844,6 +1823,20 @@ class WriterBase {
     }
     
     // MARK: - Utility routines
+    
+    fileprivate func createMacroButton(worksheet: UnsafeMutablePointer<lxw_worksheet>?, title: String, macro: String, row: Int, column: Int, height: Int = 30, width: Int = 80, xScale: Double = 1.5, yScale: Double = 1.5, xOffset: Int = 2, yOffset: Int = 2) {
+        // Add macro buttons
+        var options = lxw_button_options()
+        options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
+        options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
+        options.height = UInt16(height)
+        options.width = UInt16(width)
+        options.x_scale = xScale
+        options.y_scale = yScale
+        options.x_offset = Int32(xOffset)
+        options.y_offset = Int32(yOffset)
+        worksheet_insert_button(worksheet, lxw_row_t(row + 1), lxw_col_t(column + 1), &options)
+    }
     
     fileprivate func formatFrom(cellType: CellType? = nil) -> UnsafeMutablePointer<lxw_format>? {
         var format = formatInt
