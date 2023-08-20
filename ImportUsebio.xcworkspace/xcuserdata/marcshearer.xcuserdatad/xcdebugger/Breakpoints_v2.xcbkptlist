@@ -30,8 +30,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1275"
-            endingLineNumber = "1275"
+            startingLineNumber = "1254"
+            endingLineNumber = "1254"
             landmarkName = "playerNationalId(_:player:playerNumber:rowNumber:)"
             landmarkType = "7">
             <Actions>
@@ -54,8 +54,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1722"
-            endingLineNumber = "1722"
+            startingLineNumber = "1701"
+            endingLineNumber = "1701"
             landmarkName = "write()"
             landmarkType = "7">
          </BreakpointContent>

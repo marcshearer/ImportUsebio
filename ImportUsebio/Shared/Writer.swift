@@ -329,6 +329,10 @@ class SummaryWriter : WriterBase {
             highlightTotalDifferent(row: exportedRow!, compareRow: totalRow!, column: column!)
         }
         
+        // Add macro buttons to summary
+        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 1, column: checksumColumn! + 1)
+        writer.createMacroButton(worksheet: worksheet, title: "Select Formatted", macro: "SelectFormatted", row: 4, column: checksumColumn! + 1)
+        
     }
     
     private func writeTotal(column: Int?, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -403,10 +407,6 @@ class FormattedWriter: WriterBase {
         worksheet_repeat_rows(worksheet, 0, 0)
         worksheet_set_header(worksheet, "&C&14\(writer.eventDescription) - Master Point Allocations")
         worksheet_set_footer(worksheet,"&RPage &P of &N")
-        
-        // Add macro buttons
-        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 1, column: columns.count)
-        writer.createMacroButton(worksheet: worksheet, title: "Select All", macro: "SelectFormatted", row: 3, column: columns.count)
         
         for (columnNumber, column) in columns.enumerated() {
             var bannerFormat = formatBannerString
