@@ -394,6 +394,7 @@ class FormattedWriter: WriterBase {
         // Define ranges
         workbook_define_name(writer.workbook, "FormattedNameArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, nameColumn, columnFixed: true)))")
         workbook_define_name(writer.workbook, "FormattedTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, 0, columnFixed: true)):\(cell(titleRow, rowFixed: true, columns.count - 1, columnFixed: true))")
+        workbook_define_name(writer.workbook, "Printing", "=false")
         
         worksheet_set_default_row(worksheet, 25, 0)
         setRow(worksheet: worksheet, row: titleRow, height: 50)
@@ -445,7 +446,7 @@ class FormattedWriter: WriterBase {
         }
         leftRightFormula += "))"
         
-        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),MOD(ROW($A2), \(Settings.current.linesPerFormattedPage ?? 32))=1"
+        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),AND(Printing,MOD(ROW($A2), \(Settings.current.linesPerFormattedPage ?? 32))=1)"
         if singleEvent && twoWinners{
             let columnRef = columnRef(directionColumn!, fixed: true)
             bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3)))"
