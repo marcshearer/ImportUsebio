@@ -1160,7 +1160,7 @@ class RanksPlusMPsWriter: WriterBase {
         let playerCount = round.maxParticipantPlayers
         let winDraw = event.type?.requiresWinDraw ?? false
         
-        columns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place!)" }, cellType: .integer))
+        columns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place ?? 0)" }, cellType: .integer))
         positionColumn = columns.count - 1
         
         if event.winnerType == 2 && event.type?.participantType == .pair {
