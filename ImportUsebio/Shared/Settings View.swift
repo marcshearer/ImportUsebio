@@ -116,6 +116,8 @@ struct SettingsView: View {
                                         
                                         Input(title: "Status:", field: $settings.userDownloadStatusColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
+                                        Input(title: "Other Union:", field: $settings.userDownloadOtherUnionColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        
                                         Spacer()
                                     }
                                 }
