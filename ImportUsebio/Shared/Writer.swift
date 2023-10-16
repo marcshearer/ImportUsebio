@@ -807,7 +807,7 @@ class CsvImportWriter: WriterBase {
         writeLookup(title: "Other Names", column: lookupOtherNamesColumn, lookupColumn: Settings.current.userDownloadOtherNamesColumn)
         writeLookup(title: "Other Union", column: lookupOtherUnionColumn, lookupColumn: Settings.current.userDownloadOtherUnionColumn)
         writeLookup(title: "Home Club", column: lookupHomeClubColumn, lookupColumn: Settings.current.userDownloadHomeClubColumn)
-        writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: Settings.current.userDownloadRankColumn, format: formatRightBoldUnderline)
+        writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: Settings.current.userDownloadRankColumn, format: formatRightBoldUnderline, numeric: true)
         writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: Settings.current.userDownloadEmailColumn)
         writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: Settings.current.userDownloadStatusColumn)
         
@@ -827,9 +827,9 @@ class CsvImportWriter: WriterBase {
         return "\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))"
     }
     
-    private func writeLookup(title: String, column: Int, lookupColumn: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+    private func writeLookup(title: String, column: Int, lookupColumn: String, format: UnsafeMutablePointer<lxw_format>? = nil, numeric: Bool = false) {
         write(worksheet: worksheet, row: titleRow, column: column, string: title, format: format ?? formatBoldUnderline)
-        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(lookupColumn))),,0)")
+        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=\(numeric ? "\(fnPrefix)NUMBERVALUE(" : "")\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(lookupColumn))),,0)\(numeric ? ")" : "")")
     }
     
     private func lookupRange(_ column: String) -> String {

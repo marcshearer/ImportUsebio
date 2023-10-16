@@ -32,8 +32,8 @@ extension ScoreData {
         if usebio {
             if version == nil {
                 error("Invalid USEBIO file")
-            } else if version != "1.2" && version != "1.0" {
-                error("Only Usebio v1.0 and v1.2 and supported")
+            } else if version != "1.3" && version != "1.2" && version != "1.0" {
+                error("Only Usebio v1.0, v1.2 and v1.3 and supported")
             }
         }
         if events.count > 1 {
