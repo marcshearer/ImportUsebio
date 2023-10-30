@@ -17,6 +17,7 @@ struct SelectInputView: View {
     @State private var roundName: String = ""
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
+    @State private var matchSessionId: String = ""
     @State private var localNational = Level.local
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
@@ -96,11 +97,20 @@ struct SelectInputView: View {
                                 Spacer()
                             }
                             
-                            Spacer().frame(height: 12)
-                            
+                            InputTitle(title: "Other details:", topSpace: 16)
+                            Spacer().frame(height: 8)
                             HStack {
-                                Input(title: "Round name:", field: $roundName, width: 160, isEnabled: true)
-                                Spacer()
+                                Spacer().frame(width: 42)
+                                HStack {
+                                    Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                    Spacer()
+                                }
+                                .frame(width: 300)
+                                Spacer().frame(width: 20)
+                                HStack {
+                                    Input(title: "Session match:", field: $matchSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                    Spacer()
+                                }
                             }
                             
                             HStack {
@@ -199,7 +209,7 @@ struct SelectInputView: View {
                     if let data = try? Data(contentsOf: url) {
                         let type = url.pathExtension.lowercased()
                         if type == "xml" {
-                            _ = UsebioParser(fileUrl: url, data: data, completion: parserComplete)
+                            _ = UsebioParser(fileUrl: url, data: data, matchSessionId: matchSessionId == "" ? nil : matchSessionId, completion: parserComplete)
                         } else if type == "csv" {
                             if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
                                 MessageBox.shared.show("Invalid data")
