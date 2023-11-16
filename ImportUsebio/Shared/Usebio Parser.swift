@@ -47,16 +47,16 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var errors: [String] = []
     private var warnings: [String] = []
     private var travellerDirection: Direction?
-    private var matchSessionId: String?
+    private var filterSessionId: String?
     
-    init(fileUrl: URL, data: Data, matchSessionId: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .usebio
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
         let replacedQuote = string.replacingOccurrences(of: "&#39;", with: replacingSingleQuote)
         self.data = replacedQuote.data(using: .utf8)
-        self.matchSessionId = matchSessionId
+        self.filterSessionId = filterSessionId
         super.init()
         root = Node(name: "MAIN", process: processMain)
         current = root
@@ -205,9 +205,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             current = current?.add(child: Node(name: name, process: processMatch))
         case "SESSION":
             var matched = true
-            if let matchSessionId = matchSessionId {
+            if let filterSessionId = filterSessionId {
                 if let id = attributes["SESSION_ID"] {
-                    if id.uppercased() != matchSessionId {
+                    if id.uppercased() != filterSessionId {
                         matched = false
                     }
                 }

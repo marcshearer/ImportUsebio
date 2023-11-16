@@ -498,7 +498,7 @@ class FormattedWriter: WriterBase {
             leftRightColumns.append(columns.last!.title)
             
             for (roundNumber, round) in rounds.enumerated() {
-                columns.append(Column(title: round.name.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10))
+                columns.append(Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10))
                 if round.scoreData.national {
                     national = true
                 } else {
@@ -1463,11 +1463,11 @@ class RanksPlusMPsWriter: WriterBase {
             writeCell(floatFormula: "=ROUND(\(scoreData.ewMaxAward ?? scoreData.maxAward),2)") ; baseEwMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(floatFormula: "=IF(\(minEntryCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minEntryCell!), 4)))", format: formatPercent) ; let entryFactorCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(float: round.scoreData.reducedTo, format: formatPercent) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true) ; let reduceToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(float: round.scoreData.reducedTo, format: formatPercent) ; let reduceToCell = cell(row, rowFixed: true, column, columnFixed: true)
 
         writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
@@ -1796,7 +1796,13 @@ class WriterBase {
         self.workbook = workbook
         var fullName = ""
         if let round = round {
-            fullName += round.shortName + " "
+            fullName += round.shortName.replacingOccurrences(of: "[", with: "")
+                                       .replacingOccurrences(of: "]", with: "")
+                                       .replacingOccurrences(of: ":", with: "-")
+                                       .replacingOccurrences(of: "*", with: "-")
+                                       .replacingOccurrences(of: "?", with: "-")
+                                       .replacingOccurrences(of: "/", with: "-")
+                                       .replacingOccurrences(of: "\\", with: "-") + " "
         }
         fullName += name
         worksheet = workbook_add_worksheet(workbook, fullName)

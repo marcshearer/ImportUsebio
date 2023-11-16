@@ -39,10 +39,11 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case maxAward = "MAX AWARD"
     case nsMaxAward = "NS MAX AWARD"
     case ewMaxAward = "EW MAX AWARD"
-    case reducedTo = "REDUCED TO"
+    case reducedTo = "REDUCED TO %"
     case minEntry = "MIN ENTRY"
     case awardTo = "AWARD TO"
     case perWin = "PER WIN"
+    case filterSessionId = "FILTER SESSION ID"
     case filename = "FILENAME"
     
     var string: String { self.rawValue.capitalized }
@@ -76,6 +77,7 @@ class ImportRound {
     var awardTo: Float?
     var perWin: Float?
     var filename: String?
+    var filterSessionId: String?
     var scoreData: ScoreData?
 }
 
@@ -288,6 +290,8 @@ class ImportRounds {
                         }
                     case .perWin:
                         round.perWin = Float(columnValue)
+                    case .filterSessionId:
+                        round.filterSessionId = columnValue
                     case .filename:
                         round.filename = columnValue
                     }

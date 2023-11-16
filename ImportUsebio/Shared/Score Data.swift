@@ -297,6 +297,7 @@ public class ScoreData {
     public var minEntry: Int = 0
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
+    public var filterSessionId: String = ""
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []

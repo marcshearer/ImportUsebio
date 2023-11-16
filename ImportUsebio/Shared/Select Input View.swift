@@ -17,7 +17,7 @@ struct SelectInputView: View {
     @State private var roundName: String = ""
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
-    @State private var matchSessionId: String = ""
+    @State private var filterSessionId: String = ""
     @State private var localNational = Level.local
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
@@ -108,7 +108,7 @@ struct SelectInputView: View {
                                 .frame(width: 300)
                                 Spacer().frame(width: 20)
                                 HStack {
-                                    Input(title: "Session match:", field: $matchSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 140, isEnabled: true)
                                     Spacer()
                                 }
                             }
@@ -209,7 +209,7 @@ struct SelectInputView: View {
                     if let data = try? Data(contentsOf: url) {
                         let type = url.pathExtension.lowercased()
                         if type == "xml" {
-                            _ = UsebioParser(fileUrl: url, data: data, matchSessionId: matchSessionId == "" ? nil : matchSessionId, completion: parserComplete)
+                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, completion: parserComplete)
                         } else if type == "csv" {
                             if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
                                 MessageBox.shared.show("Invalid data")
@@ -418,7 +418,7 @@ struct SelectInputView: View {
                     round.scoreData?.fileUrl = url
                     let type = url.pathExtension.lowercased()
                     if type == "xml" {
-                        _ = UsebioParser(fileUrl: url, data: data, completion: importParserComplete)
+                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, completion: importParserComplete)
                     } else if type == "csv" {
                         if GenericCsvParser(fileUrl: url, data: data, completion: importParserComplete) == nil {
                             MessageBox.shared.show("Invalid data")
@@ -452,6 +452,7 @@ struct SelectInputView: View {
                     minEntry = round.minEntry ?? 0
                     awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
+                    filterSessionId = round.filterSessionId ?? ""
                     
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
@@ -461,6 +462,7 @@ struct SelectInputView: View {
                     scoreData.minEntry = minEntry
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
+                    scoreData.filterSessionId = filterSessionId
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe
                     }
