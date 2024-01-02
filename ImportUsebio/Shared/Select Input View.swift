@@ -276,7 +276,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
    
