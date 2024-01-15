@@ -19,6 +19,7 @@ struct SelectInputView: View {
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
     @State private var localNational = Level.local
+    @State private var drawsRounded = false
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
@@ -105,10 +106,31 @@ struct SelectInputView: View {
                                     Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     Spacer()
                                 }
-                                .frame(width: 300)
+                                .frame(width: 270)
                                 Spacer().frame(width: 20)
                                 HStack {
-                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 140, isEnabled: true)
+                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                }
+                                .frame(width: 250)
+                                Spacer().frame(width: 20)
+                                if scoreData?.events.last?.matchScoring == .vps {
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Picker("Draws:  ", selection: $drawsRounded) {
+                                                Text("Exact").tag(false)
+                                                Text("Rounded").tag(true)
+                                            }
+                                            .pickerStyle(.segmented)
+                                            .focusable(false)
+                                            .frame(width: 200, height: 20)
+                                            .font(inputFont)
+                                            Spacer()
+                                        }
+                                        Spacer()
+                                    }
+                                    .frame(height: inputDefaultHeight)
+                                } else {
                                     Spacer()
                                 }
                             }
@@ -246,6 +268,7 @@ struct SelectInputView: View {
                 }
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
+                scoreData.roundContinuousVPDraw = drawsRounded
                 scoreData.maxAward = maxAward
                 scoreData.ewMaxAward = (ewMaxAward != 0 ? ewMaxAward : nil)
                 scoreData.minEntry = minEntry

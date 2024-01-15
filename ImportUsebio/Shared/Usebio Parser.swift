@@ -67,7 +67,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     func parseComplete() {
         finalUpdates()
-        checkWinDraw()
+        UsebioParser.calculateWinDraw(scoreData: scoreData)
         completion(scoreData, nil)
     }
             
@@ -427,10 +427,10 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         }
     }
 
-    private func checkWinDraw() {
+    public static func calculateWinDraw(scoreData: ScoreData) {
         if let event = scoreData.events.first {
             if event.type?.requiresWinDraw ?? false {
-                for participant in event.participants.filter({$0.winDraw == nil}) {
+                for participant in event.participants.filter({$0.winDraw == nil || scoreData.roundContinuousVPDraw}) {
                     
                     participant.winDraw = 0
                     if let team = participant.member as? Team {
@@ -444,6 +444,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                         var increment:Float = 0.0
                         if let score = match.score, let opposingScore = match.opposingScore {
                             if score == opposingScore {
+                                increment = 0.5
+                            } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
                                 increment = 0.5
                             } else if score > opposingScore && match.number == participant.member.number {
                                 increment = 1.0

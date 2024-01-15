@@ -301,6 +301,7 @@ public class ScoreData {
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []
+    public var roundContinuousVPDraw = false
     internal var errors: [String] = []
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false

@@ -124,7 +124,6 @@ struct Input : View {
                 }
                 .frame(width: width)
             }
-            Spacer().frame(height: 8)
         }
         .frame(height: self.height + self.topSpace + (title == nil || inlineTitle ? 0 : 20))
     }
