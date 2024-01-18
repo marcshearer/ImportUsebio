@@ -453,7 +453,7 @@ class FormattedWriter: WriterBase {
         var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),AND(Printing,MOD(ROW($A2), \(Settings.current.linesPerFormattedPage ?? 32))=1)"
         if singleEvent && twoWinners{
             let columnRef = columnRef(directionColumn!, fixed: true)
-            bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3)))"
+            bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3))"
         } else {
             bottomFormula += ")"
         }
