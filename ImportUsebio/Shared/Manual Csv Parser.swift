@@ -79,16 +79,18 @@ public class ManualCsvParser {
     private var errors: [String] = []
     private var warnings: [String] = []
     private var rounds: Int?
+    private var manualPointsColumn: String?
     private var requiresWinDraw = false
     private var parameterColumns: [String] = []
     private var roundColumns: [String] = []
     private var participantColumns: [String] = []
     
-    init(fileUrl: URL, data: [[String]], completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: [[String]], manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .manual
         self.completion = completion
         self.data = data
+        self.manualPointsColumn = manualPointsColumn
         self.parse()
     }
     
@@ -274,12 +276,17 @@ public class ManualCsvParser {
                             player.name = name
                         }
                     case .manualMPs:
-                        participant.manualMps = floatValue
-                        scoreData.manualMPs = true
+                        if manualPointsColumn == nil {
+                            participant.manualMps = floatValue
+                            scoreData.manualMPs = true
+                        }
                     case .name, .firstName, .otherNames, .nationalId:
-                        // Only with indexes
+                            // Only with indexes
                         break
                     }
+                } else if manualPointsColumn != nil && header.uppercased() == manualPointsColumn!.uppercased() {
+                    participant.manualMps = floatValue
+                    scoreData.manualMPs = true
                 } else {
                     // Check for index if non-blank
                     if string != "" {

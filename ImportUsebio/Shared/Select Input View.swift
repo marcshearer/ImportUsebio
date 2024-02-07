@@ -18,6 +18,7 @@ struct SelectInputView: View {
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
+    @State private var manualPointsColumn: String?
     @State private var localNational = Level.local
     @State private var drawsRounded = false
     @State private var minRank: Int = 0
@@ -443,7 +444,7 @@ struct SelectInputView: View {
                     if type == "xml" {
                         _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, completion: importParserComplete)
                     } else if type == "csv" {
-                        if GenericCsvParser(fileUrl: url, data: data, completion: importParserComplete) == nil {
+                        if GenericCsvParser(fileUrl: url, data: data, manualPointsColumn: round.manualPointsColumn, completion: importParserComplete) == nil {
                             MessageBox.shared.show("Invalid data")
                         }
                     } else {
@@ -476,6 +477,7 @@ struct SelectInputView: View {
                     awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
                     filterSessionId = round.filterSessionId ?? ""
+                    manualPointsColumn = round.manualPointsColumn
                     
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
@@ -486,6 +488,7 @@ struct SelectInputView: View {
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
+                    scoreData.manualPointsColumn = manualPointsColumn
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe
                     }

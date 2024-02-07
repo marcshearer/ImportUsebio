@@ -298,6 +298,7 @@ public class ScoreData {
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
     public var filterSessionId: String = ""
+    public var manualPointsColumn: String?
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []
