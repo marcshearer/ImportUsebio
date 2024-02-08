@@ -183,7 +183,7 @@ public class Player : Member {
     var accumulatedBoardsPlayed: Int?
     var accumulatedWinDraw: Float?
     
-    var boardsPlayed: Int { accumulatedBoardsPlayed ?? pair?.boardsPlayed ?? participant?.event?.boards ?? 0}
+    var boardsPlayed: Int? { accumulatedBoardsPlayed ?? pair?.boardsPlayed ?? participant?.event?.boards}
     var winDraw: Float { accumulatedWinDraw ?? pair?.winDraw ?? participant?.winDraw ?? 0}
     
     init(pair: Pair? = nil) {
@@ -232,12 +232,16 @@ public class Team : Member {
             let fullList = pairs.flatMap{$0.playerList}
             for player in fullList {
                 if let existing = list.first(where: {$0.name?.lowercased() == player.name?.lowercased() && $0.nationalId == player.nationalId}) {
-                    existing.accumulatedBoardsPlayed = existing.accumulatedBoardsPlayed! + (player.pair?.boardsPlayed ?? 0)
-                    existing.accumulatedWinDraw = existing.accumulatedWinDraw! + (player.pair?.winDraw ?? 0)
+                    if let boardsPlayed = player.pair?.boardsPlayed {
+                        existing.accumulatedBoardsPlayed = (existing.accumulatedBoardsPlayed ?? 0) + boardsPlayed
+                    }
+                    if let winDraw = player.pair?.winDraw {
+                        existing.accumulatedWinDraw = (existing.accumulatedWinDraw ?? 0) + winDraw
+                    }
                 } else {
                     let new = player.copy()
-                    new.accumulatedBoardsPlayed = player.pair?.boardsPlayed ?? 0
-                    new.accumulatedWinDraw = player.pair?.winDraw ?? 0
+                    new.accumulatedBoardsPlayed = player.pair?.boardsPlayed
+                    new.accumulatedWinDraw = player.pair?.winDraw
                     list.append(new)
                 }
             }
@@ -298,6 +302,7 @@ public class ScoreData {
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
     public var filterSessionId: String = ""
+    public var maxTeamMembers: Int?
     public var manualPointsColumn: String?
     public var version: String?
     public var clubs: [Club] = []

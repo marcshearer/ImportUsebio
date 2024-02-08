@@ -46,6 +46,7 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case filterSessionId = "FILTER SESSION ID"
     case manualPointsColumn = "POINTS COLUMN"
     case filename = "FILENAME"
+    case maxTeamMembers = "MAX TEAM MEMBERS"
     
     var string: String { self.rawValue.capitalized }
 }
@@ -80,6 +81,7 @@ class ImportRound {
     var filename: String?
     var filterSessionId: String?
     var manualPointsColumn: String?
+    var maxTeamMembers: Int?
     var scoreData: ScoreData?
 }
 
@@ -296,6 +298,8 @@ class ImportRounds {
                         round.filterSessionId = columnValue
                     case .manualPointsColumn:
                         round.manualPointsColumn = columnValue
+                    case .maxTeamMembers:
+                        round.maxTeamMembers = Int(columnValue)
                     case .filename:
                         round.filename = columnValue
                     }

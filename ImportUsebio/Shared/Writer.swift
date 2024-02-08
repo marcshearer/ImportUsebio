@@ -84,6 +84,9 @@ class Round {
         } else {
             result = event.type?.participantType?.players ?? 2
         }
+        if let maxTeamMembers = scoreData.maxTeamMembers {
+            result = max(result, maxTeamMembers)
+        }
         
         return result
     }
@@ -1080,7 +1083,7 @@ class RanksPlusMPsWriter: WriterBase {
             if let width = column.width {
                 setColumn(worksheet: worksheet, column: columnNumber, width: width)
             }
-                write(worksheet: worksheet, row: dataTitleRow, column: columnNumber, string: round.replace(column.title), format: format)
+            write(worksheet: worksheet, row: dataTitleRow, column: columnNumber, string: round.replace(column.title), format: format)
         }
         
         for playerNumber in 0..<round.maxParticipantPlayers {
@@ -1195,7 +1198,9 @@ class RanksPlusMPsWriter: WriterBase {
                 
                 if playerCount > event.type?.participantType?.players ?? playerCount {
                     
-                    columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.boardsPlayed)" }, playerNumber: playerNumber, cellType: .integer))
+                    columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
+                        "\(player.boardsPlayed ?? event.boards ?? 1)"
+                    }, playerNumber: playerNumber, cellType: .integer))
                     boardsPlayedColumn.append(columns.count - 1)
                     
                     if winDraw {

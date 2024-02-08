@@ -18,6 +18,7 @@ struct SelectInputView: View {
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
+    @State private var maxTeamMembers: Int?
     @State private var manualPointsColumn: String?
     @State private var localNational = Level.local
     @State private var drawsRounded = false
@@ -477,6 +478,7 @@ struct SelectInputView: View {
                     awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
                     filterSessionId = round.filterSessionId ?? ""
+                    maxTeamMembers = round.maxTeamMembers
                     manualPointsColumn = round.manualPointsColumn
                     
                     scoreData.roundName = roundName
@@ -488,6 +490,7 @@ struct SelectInputView: View {
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
+                    scoreData.maxTeamMembers = maxTeamMembers
                     scoreData.manualPointsColumn = manualPointsColumn
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe
