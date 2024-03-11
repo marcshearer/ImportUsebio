@@ -31,12 +31,14 @@ class Column {
     var calculatedContent: ((Int?, Int) -> String)?
     var referenceContent: ((Int)->Int)?
     var referenceDynamic: (()->String)?
+    var aggregateAs: String?
     var playerNumber: Int?
     var cellType: CellType
     var format: UnsafeMutablePointer<lxw_format>?
     var width: Float?
+    var roundNumber: Int?
     
-    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil) {
+    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil, aggregateAs: String? = nil, roundNumber: Int? = nil) {
         self.title = title
         self.content = content
         self.playerContent = playerContent
@@ -47,6 +49,8 @@ class Column {
         self.cellType = cellType
         self.format = format
         self.width = width
+        self.aggregateAs = aggregateAs
+        self.roundNumber = roundNumber
     }
 }
 
@@ -426,8 +430,8 @@ class FormattedWriter: WriterBase {
                 bannerFormat = formatBannerNumeric
                 bodyFormat = formatBodyNumeric
             }
-            if let width = column.width {
-                setColumn(worksheet: worksheet, column: columnNumber, width: width)
+            if column.width != nil || column.aggregateAs != nil {
+                setColumn(worksheet: worksheet, column: columnNumber, width: column.width, hidden: column.aggregateAs != nil)
             }
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: column.title, format: bannerFormat)
             
@@ -474,6 +478,7 @@ class FormattedWriter: WriterBase {
         let winDraw = event.type?.requiresWinDraw ?? false
         var local = false
         var national = false
+        var aggregateColumns: [String: [Column]] = [:]
             
         if (singleEvent) {
             let round = writer.rounds.first!
@@ -505,11 +510,32 @@ class FormattedWriter: WriterBase {
             leftRightColumns.append(columns.last!.title)
             
             for (roundNumber, round) in rounds.enumerated() {
-                columns.append(Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10))
+                let column = Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber)
+                columns.append(column)
                 if round.scoreData.national {
                     national = true
                 } else {
                     local = true
+                }
+                if let aggregateAs = round.scoreData.aggreateAs {
+                    // Add to list of aggregate columns
+                    var columns = aggregateColumns[aggregateAs] ?? []
+                    columns.append(column)
+                    aggregateColumns[aggregateAs] = columns
+                }
+            }
+            
+            for (title, sourceColumns) in aggregateColumns {
+                if let position = columns.lastIndex(where: {$0.aggregateAs == title}) {
+                    var reference = ""
+                    for column in sourceColumns {
+                        if reference != "" {
+                            reference += "+"
+                        }
+                        reference += "\(consolidatedArrayRef(column: consolidated.dataColumn! + column.roundNumber!))"
+                    }
+                    
+                    columns.insert(Column(title: title.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { reference }, cellType: .floatFormula, width: 10), at: position + 1)
                 }
             }
             

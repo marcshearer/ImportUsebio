@@ -490,6 +490,7 @@ struct SelectInputView: View {
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
+                    scoreData.aggreateAs = round.aggregateAs
                     scoreData.maxTeamMembers = maxTeamMembers
                     scoreData.manualPointsColumn = manualPointsColumn
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
