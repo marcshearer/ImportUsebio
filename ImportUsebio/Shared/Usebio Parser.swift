@@ -48,8 +48,10 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var warnings: [String] = []
     private var travellerDirection: Direction?
     private var filterSessionId: String?
+    private var filterParticipantNumberMin: String?
+    private var filterParticipantNumberMax: String?
     
-    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .usebio
         self.completion = completion
@@ -57,6 +59,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         let replacedQuote = string.replacingOccurrences(of: "&#39;", with: replacingSingleQuote)
         self.data = replacedQuote.data(using: .utf8)
         self.filterSessionId = filterSessionId
+        self.filterParticipantNumberMin = filterParticipantNumberMin
+        self.filterParticipantNumberMax = filterParticipantNumberMax
         super.init()
         root = Node(name: "MAIN", process: processMain)
         current = root
@@ -66,6 +70,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     }
     
     func parseComplete() {
+        filterParticipantNumbers()
         finalUpdates()
         UsebioParser.calculateWinDraw(scoreData: scoreData)
         completion(scoreData, nil)
@@ -412,6 +417,32 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             }))
         default:
             current = current?.add(child: Node(name: name))
+        }
+    }
+    
+    private func filterParticipantNumbers() {
+        var nextPlace = 1
+        if let filterParticipantNumberMin = self.filterParticipantNumberMin, let filterParticipantNumberMax = self.filterParticipantNumberMax {
+            var newParticipants: [Participant] = []
+            for participant in scoreData.events.first!.participants.sorted(by: {$0.place ?? 0 < $1.place ?? 0}) {
+                if let numericNumber = Float(participant.member.number ?? "?"), let min = Float(filterParticipantNumberMin), let max = Float(filterParticipantNumberMax) {
+                        // Integer values
+                    if numericNumber < min || numericNumber > max {
+                        continue
+                    }
+                } else if let stringNumber = participant.member.number {
+                        // String values
+                    if stringNumber < filterParticipantNumberMin || stringNumber > filterParticipantNumberMax {
+                        continue
+                    }
+                } else {
+                    continue
+                }
+                newParticipants.append(participant)
+                newParticipants.last!.place = nextPlace
+                nextPlace += 1
+            }
+            scoreData.events.first!.participants = newParticipants
         }
     }
     

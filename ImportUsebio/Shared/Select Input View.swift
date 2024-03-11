@@ -443,7 +443,7 @@ struct SelectInputView: View {
                     round.scoreData?.fileUrl = url
                     let type = url.pathExtension.lowercased()
                     if type == "xml" {
-                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, completion: importParserComplete)
+                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, filterParticipantNumberMin: round.filterParticipantNumberMin, filterParticipantNumberMax: round.filterParticipantNumberMax, completion: importParserComplete)
                     } else if type == "csv" {
                         if GenericCsvParser(fileUrl: url, data: data, manualPointsColumn: round.manualPointsColumn, completion: importParserComplete) == nil {
                             MessageBox.shared.show("Invalid data")

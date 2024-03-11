@@ -45,6 +45,8 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case perWin = "PER WIN"
     case filterSessionId = "FILTER SESSION ID"
     case aggregateAs = "AGGREGATE AS"
+    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN"
+    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX"
     case manualPointsColumn = "POINTS COLUMN"
     case filename = "FILENAME"
     case maxTeamMembers = "MAX TEAM MEMBERS"
@@ -82,6 +84,8 @@ class ImportRound {
     var filename: String?
     var filterSessionId: String?
     var aggregateAs: String?
+    var filterParticipantNumberMin: String?
+    var filterParticipantNumberMax: String?
     var manualPointsColumn: String?
     var maxTeamMembers: Int?
     var scoreData: ScoreData?
@@ -300,6 +304,10 @@ class ImportRounds {
                         round.filterSessionId = columnValue
                     case .aggregateAs:
                         round.aggregateAs = columnValue
+                    case .filterParticipantNumberMin:
+                        round.filterParticipantNumberMin = columnValue
+                    case .filterParticipantNumberMax:
+                        round.filterParticipantNumberMax = columnValue
                     case .manualPointsColumn:
                         round.manualPointsColumn = columnValue
                     case .maxTeamMembers:
