@@ -285,6 +285,8 @@ public class Match {
     var opposingNumber: String?
     var score: Float?
     var opposingScore: Float?
+    var vp: Float?
+    var opposingVP: Float?
     var pairNumbers: Set<String> = []
     var opposingPairNumbers: Set<String> = []
 }

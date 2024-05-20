@@ -381,6 +381,14 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             current = current?.add(child: Node(name: name, completion: { (value) in
                 match?.opposingScore = Float(value)
             }))
+        case "TEAM_VICTORY_POINTS", "NS_VICTORY_POINTS":
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                match?.vp = Float(value)
+            }))
+        case "OPPOSING_TEAM_VICTORY_POINTS", "EW_VICTORY_POINTS":
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                match?.opposingVP = Float(value)
+            }))
         case "BOARD":
             current = current?.add(child: Node(name: name, process: processBoard))
         default:
@@ -474,7 +482,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                             
                             // Add to participant wins/draws
                             var increment:Float = 0.0
-                            if let score = match.score, let opposingScore = match.opposingScore {
+                            if let score = match.vp ?? match.score, let opposingScore = match.opposingVP ?? match.opposingScore {
                                 if score == opposingScore {
                                     increment = 0.5
                                 } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
