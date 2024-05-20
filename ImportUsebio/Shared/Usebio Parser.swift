@@ -460,39 +460,41 @@ public class UsebioParser: NSObject, XMLParserDelegate {
 
     public static func calculateWinDraw(scoreData: ScoreData) {
         if let event = scoreData.events.first {
-            if event.type?.requiresWinDraw ?? false {
-                for participant in event.participants.filter({$0.winDraw == nil || scoreData.roundContinuousVPDraw}) {
-                    
-                    participant.winDraw = 0
-                    if let team = participant.member as? Team {
-                        for pair in team.pairs {
-                            pair.winDraw = 0
-                        }
-                    }
-                    for match in event.matches.filter({$0.number == participant.member.number || $0.opposingNumber == participant.member.number}) {
+            if !event.matches.isEmpty {
+                if event.type?.requiresWinDraw ?? false {
+                    for participant in event.participants {
                         
-                        // Add to participant wins/draws
-                        var increment:Float = 0.0
-                        if let score = match.score, let opposingScore = match.opposingScore {
-                            if score == opposingScore {
-                                increment = 0.5
-                            } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
-                                increment = 0.5
-                            } else if score > opposingScore && match.number == participant.member.number {
-                                increment = 1.0
-                            } else if score < opposingScore && match.number != participant.member.number {
-                                increment = 1.0
+                        participant.winDraw = 0
+                        if let team = participant.member as? Team {
+                            for pair in team.pairs {
+                                pair.winDraw = 0
                             }
                         }
-                        participant.winDraw! += increment
+                        for match in event.matches.filter({$0.number == participant.member.number || $0.opposingNumber == participant.member.number}) {
+                            
+                            // Add to participant wins/draws
+                            var increment:Float = 0.0
+                            if let score = match.score, let opposingScore = match.opposingScore {
+                                if score == opposingScore {
+                                    increment = 0.5
+                                } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
+                                    increment = 0.5
+                                } else if score > opposingScore && match.number == participant.member.number {
+                                    increment = 1.0
+                                } else if score < opposingScore && match.number != participant.member.number {
+                                    increment = 1.0
+                                }
+                            }
+                            participant.winDraw! += increment
 
-                        // Add to wins/draws in teams pairs if relevant
-                        if increment != 0 {
-                            if let team = participant.member as? Team {
-                                for pair in team.pairs {
-                                    if (match.number == participant.member.number &&            match.pairNumbers.contains(pair.number!)) ||
-                                        (match.opposingNumber == participant.member.number && match.opposingPairNumbers.contains(pair.number!)) {
-                                        pair.winDraw = pair.winDraw! + increment
+                            // Add to wins/draws in teams pairs if relevant
+                            if increment != 0 {
+                                if let team = participant.member as? Team {
+                                    for pair in team.pairs {
+                                        if (match.number == participant.member.number && match.pairNumbers.contains(pair.number!)) ||
+                                            (match.opposingNumber == participant.member.number && match.opposingPairNumbers.contains(pair.number!)) {
+                                            pair.winDraw = pair.winDraw! + increment
+                                        }
                                     }
                                 }
                             }
