@@ -1206,7 +1206,7 @@ class RanksPlusMPsWriter: WriterBase {
         columns.append(Column(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float)); scoreColumn = columns.count - 1
         
         if winDraw && playerCount <= event.type?.participantType?.players ?? playerCount {
-            columns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw!)" }, cellType: .float))
+            columns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw ?? 0)" }, cellType: .float))
             winDrawColumn.append(columns.count - 1)
         }
         
@@ -1900,11 +1900,11 @@ class WriterBase {
     fileprivate func nameColumn(name: String, element: Int) -> String {
         let names = name.components(separatedBy: " ")
         if element == 0 {
-            return names[0]
-        } else {
             var otherNames = names
-            otherNames.removeFirst()
+            otherNames.removeLast()
             return otherNames.joined(separator: " ")
+        } else {
+            return names.last!
         }
     }
     

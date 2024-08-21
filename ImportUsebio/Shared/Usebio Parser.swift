@@ -72,6 +72,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     func parseComplete() {
         filterParticipantNumbers()
         finalUpdates()
+        UsebioParser.calculatePlace(scoreData: scoreData)
         UsebioParser.calculateWinDraw(scoreData: scoreData)
         completion(scoreData, nil)
     }
@@ -466,6 +467,26 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         }
     }
 
+    public static func calculatePlace(scoreData: ScoreData) {
+        if let event = scoreData.events.first {
+            if event.participants.contains(where: {($0.place ?? 0) == 0}) {
+                var lastScore: Float?
+                var lastPlace = 1
+                var count = 0
+                for participant in event.participants.sorted(by: { $0.score ?? 0 > $1.score ?? 0 }) {
+                    count += 1
+                    if participant.score ?? 0 == lastScore {
+                        participant.place = lastPlace
+                    } else {
+                        participant.place = count
+                        lastPlace = count
+                    }
+                    lastScore = participant.score ?? 0
+                }
+            }
+        }
+    }
+    
     public static func calculateWinDraw(scoreData: ScoreData) {
         if let event = scoreData.events.first {
             if !event.matches.isEmpty {
