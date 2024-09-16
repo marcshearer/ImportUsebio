@@ -728,6 +728,7 @@ class CsvImportWriter: WriterBase {
     let lookupRankColumn = 14
     let lookupEmailColumn = 15
     let lookupStatusColumn = 16
+    let lookupPaymentStatusColumn = 17
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -756,11 +757,12 @@ class CsvImportWriter: WriterBase {
         
         setColumn(worksheet: worksheet, column: lookupFirstNameColumn, width: 12)
         setColumn(worksheet: worksheet, column: lookupOtherNamesColumn, width: 12)
-        setColumn(worksheet: worksheet, column: lookupOtherUnionColumn, width: 12, format: formatZeroBlank)
+        setColumn(worksheet: worksheet, column: lookupOtherUnionColumn, width: 24, format: formatZeroBlank)
         setColumn(worksheet: worksheet, column: lookupHomeClubColumn, width: 25)
         setColumn(worksheet: worksheet, column: lookupRankColumn, width: 8)
         setColumn(worksheet: worksheet, column: lookupEmailColumn, width: 25)
-        setColumn(worksheet: worksheet, column: lookupStatusColumn, width: 25)
+        setColumn(worksheet: worksheet, column: lookupStatusColumn, width: 8)
+        setColumn(worksheet: worksheet, column: lookupPaymentStatusColumn, width: 25)
         
         // Parameters etc
         write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event:", format: formatBold)
@@ -843,16 +845,18 @@ class CsvImportWriter: WriterBase {
         writeLookup(title: "Rank", column: lookupRankColumn, lookupColumn: Settings.current.userDownloadRankColumn, format: formatRightBoldUnderline, numeric: true)
         writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: Settings.current.userDownloadEmailColumn)
         writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: Settings.current.userDownloadStatusColumn)
+        writeLookup(title: "Payment status", column: lookupPaymentStatusColumn, lookupColumn: Settings.current.userDownloadPaymentStatusColumn)
         
         highlightLookupDifferent(column: firstNameColumn, lookupColumn: lookupFirstNameColumn, format: formatYellow)
         highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
-        highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupStatusColumn, format: formatGrey)
+        highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupPaymentStatusColumn, format: formatGrey)
         highlightBadNationalId(column: nationalIdColumn, firstNameColumn: firstNameColumn)
         highlightBadDate(column: eventDateColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: localMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: nationalMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadRank(column: lookupRankColumn)
         highlightBadStatus(column: lookupStatusColumn)
+        highlightBadPaymentStatus(column: lookupPaymentStatusColumn)
     }
     
     private func sourceArray(_ column: Int) -> String {
@@ -886,6 +890,12 @@ class CsvImportWriter: WriterBase {
         let statusCell = "\(cell(dataRow, column, columnFixed: true))"
         let formula = "=AND(\(statusCell)<>\"\(Settings.current.goodStatus!)\", \(statusCell)<>\"\")"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+    }
+
+    private func highlightBadPaymentStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let paymentStatusCell = "\(cell(dataRow, column, columnFixed: true))"
+        let formula = "=AND(\(paymentStatusCell)<>\"\(Settings.current.goodStatus!)\", \(paymentStatusCell)<>\"\")"
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatYellow!)
     }
     
     private func highlightBadNationalId(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {

@@ -12,6 +12,7 @@
         
         @Published var maxNationalIdNumber: Int!
         @Published var goodStatus: String!
+        @Published var goodPaymentStatus: String!
         @Published var maxPoints: Float!
         @Published var largestFieldSize: Int!
         @Published var largestPlayerCount: Int!
@@ -28,7 +29,8 @@
         @Published var userDownloadOtherUnionColumn: String!
         @Published var userDownloadHomeClubColumn: String!
         @Published var userDownloadStatusColumn: String!
-        
+        @Published var userDownloadPaymentStatusColumn: String!
+
         static public var current =  Settings(load: true)
         
         init(load: Bool = false) {
@@ -46,6 +48,7 @@
         public func copy(from: Settings) {
             self.maxNationalIdNumber = from.maxNationalIdNumber
             self.goodStatus = from.goodStatus
+            self.goodPaymentStatus = from.goodPaymentStatus
             self.maxPoints = from.maxPoints
             self.largestFieldSize = from.largestFieldSize
             self.largestPlayerCount = from.largestPlayerCount
@@ -62,11 +65,13 @@
             self.userDownloadOtherUnionColumn = from.userDownloadOtherUnionColumn
             self.userDownloadHomeClubColumn = from.userDownloadHomeClubColumn
             self.userDownloadStatusColumn = from.userDownloadStatusColumn
+            self.userDownloadPaymentStatusColumn = from.userDownloadPaymentStatusColumn
         }
         
         public func load() {
             self.maxNationalIdNumber = UserDefault.settingMaxNationalIdNumber.int
             self.goodStatus = UserDefault.settingGoodStatus.string
+            self.goodPaymentStatus = UserDefault.settingGoodPaymentStatus.string
             self.maxPoints = UserDefault.settingMaxPoints.float
             self.largestFieldSize = UserDefault.settingLargestFieldSize.int
             self.largestPlayerCount = UserDefault.settingLargestPlayerCount.int
@@ -83,11 +88,13 @@
             self.userDownloadOtherUnionColumn = UserDefault.settingUserDownloadOtherUnionColumn.string
             self.userDownloadHomeClubColumn = UserDefault.settingUserDownloadHomeClubColumn.string
             self.userDownloadStatusColumn = UserDefault.settingUserDownloadStatusColumn.string
+            self.userDownloadPaymentStatusColumn = UserDefault.settingUserDownloadPaymentStatusColumn.string
         }
         
         public func save() {
             UserDefault.settingMaxNationalIdNumber.set(self.maxNationalIdNumber)
             UserDefault.settingGoodStatus.set(self.goodStatus)
+            UserDefault.settingGoodPaymentStatus.set(self.goodPaymentStatus)
             UserDefault.settingMaxPoints.set(self.maxPoints)
             UserDefault.settingLargestFieldSize.set(self.largestFieldSize)
             UserDefault.settingLargestPlayerCount.set(self.largestPlayerCount)
@@ -104,5 +111,6 @@
             UserDefault.settingUserDownloadOtherUnionColumn.set(self.userDownloadOtherUnionColumn)
             UserDefault.settingUserDownloadHomeClubColumn.set(self.userDownloadHomeClubColumn)
             UserDefault.settingUserDownloadStatusColumn.set(self.userDownloadStatusColumn)
+            UserDefault.settingUserDownloadPaymentStatusColumn.set(self.userDownloadPaymentStatusColumn)
         }
     }

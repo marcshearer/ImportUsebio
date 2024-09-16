@@ -18,6 +18,7 @@ enum UserDefault: String, CaseIterable {
     
     case settingMaxNationalIdNumber
     case settingGoodStatus
+    case settingGoodPaymentStatus
     case settingMaxPoints
     case settingLargestFieldSize
     case settingLargestPlayerCount
@@ -34,6 +35,7 @@ enum UserDefault: String, CaseIterable {
     case settingUserDownloadOtherUnionColumn
     case settingUserDownloadHomeClubColumn
     case settingUserDownloadStatusColumn
+    case settingUserDownloadPaymentStatusColumn
     
     public var defaultValue: Any? {
         switch self {
@@ -52,6 +54,8 @@ enum UserDefault: String, CaseIterable {
         case .settingMaxNationalIdNumber:
             return 30000
         case .settingGoodStatus:
+            return "Active"
+        case .settingGoodPaymentStatus:
             return "Payment Confirmed by SBU"
         case .settingMaxPoints:
             return 15.0
@@ -84,6 +88,8 @@ enum UserDefault: String, CaseIterable {
         case .settingUserDownloadHomeClubColumn:
             return "S"
         case .settingUserDownloadStatusColumn:
+            return "B"
+        case .settingUserDownloadPaymentStatusColumn:
             return "Y"
         }
     }

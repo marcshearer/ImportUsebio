@@ -42,17 +42,28 @@ struct SettingsView: View {
                                 }
                             }
                                 
-                            HStack {
-                                Input(title: "Good member status:", field: $settings.goodStatus, width: 300, isEnabled: true)
-                                Spacer()
+                            VStack {
+                                InputTitle(title: "Good Status Values:", topSpace: 16)
+                                Spacer().frame(height: 8)
+                                HStack {
+                                     
+                                    Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 42, width: 120, inlineTitle: true, inlineTitleWidth: 70, isEnabled: true)
+                                    
+                                    Spacer().frame(width: 30)
+                                    
+                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, width: 250, inlineTitle: true, inlineTitleWidth: 80, isEnabled: true)
+                                    
+                                    Spacer()
+                                }
                             }
             
                             VStack {
                                 InputTitle(title: "Maximum sizes:", topSpace: 16)
                                 Spacer().frame(height: 8)
                                 HStack {
-                                    Spacer().frame(width: 30)
                                     
+                                    Spacer().frame(width: 30)
+                                   
                                     InputInt(title: "Field entry:", field: $settings.largestFieldSize, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
                                     InputInt(title: "Players:", field: $settings.largestPlayerCount, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
@@ -116,7 +127,15 @@ struct SettingsView: View {
                                         
                                         Input(title: "Status:", field: $settings.userDownloadStatusColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
-                                        Input(title: "Other Union:", field: $settings.userDownloadOtherUnionColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        Input(title: "Payment:", field: $settings.userDownloadPaymentStatusColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        
+                                        Spacer()
+                                        
+                                    }
+                                    
+                                    HStack {
+                                        
+                                        Input(title: "Other Union:", field: $settings.userDownloadOtherUnionColumn, topSpace: 0, leadingSpace: 42, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
                                         Spacer()
                                     }
