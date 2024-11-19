@@ -50,8 +50,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var filterSessionId: String?
     private var filterParticipantNumberMin: String?
     private var filterParticipantNumberMax: String?
+    private var overrideEventType: EventType?
     
-    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .usebio
         self.completion = completion
@@ -61,6 +62,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         self.filterSessionId = filterSessionId
         self.filterParticipantNumberMin = filterParticipantNumberMin
         self.filterParticipantNumberMax = filterParticipantNumberMax
+        self.overrideEventType = overrideEventType
         super.init()
         root = Node(name: "MAIN", process: processMain)
         current = root
@@ -128,7 +130,11 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             current = current?.add(child: Node(name: name, attributes: attributes, process: processClub))
         case "EVENT":
             let event = Event()
-            event.type = EventType(attributes["EVENT_TYPE"] ?? "INVALID")
+            if let overrideEventType = overrideEventType {
+                event.type = overrideEventType
+            } else {
+                event.type = EventType(attributes["EVENT_TYPE"] ?? "INVALID")
+            }
             scoreData.events.append(event)
             current = current?.add(child: Node(name: name, attributes: attributes, process: processEvent))
         default:

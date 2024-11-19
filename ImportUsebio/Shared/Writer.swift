@@ -847,8 +847,8 @@ class CsvImportWriter: WriterBase {
         writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: Settings.current.userDownloadStatusColumn)
         writeLookup(title: "Payment status", column: lookupPaymentStatusColumn, lookupColumn: Settings.current.userDownloadPaymentStatusColumn)
         
-        highlightLookupDifferent(column: firstNameColumn, lookupColumn: lookupFirstNameColumn, format: formatYellow)
-        highlightLookupDifferent(column: otherNamesColumn, lookupColumn: lookupOtherNamesColumn)
+        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 0, format: formatYellow)
+        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 1)
         highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupPaymentStatusColumn, format: formatGrey)
         highlightBadNationalId(column: nationalIdColumn, firstNameColumn: firstNameColumn)
         highlightBadDate(column: eventDateColumn, firstNameColumn: firstNameColumn)
@@ -873,11 +873,25 @@ class CsvImportWriter: WriterBase {
         return "'\(Settings.current.userDownloadData!)'!\(column)\(Settings.current.userDownloadMinRow!):\(column)\(Settings.current.userDownloadMaxRow!)"
     }
     
-    private func highlightLookupDifferent(column: Int, lookupColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let field = "\(cell(dataRow, column, columnFixed: true))"
-        let lookupfield = "\(cell(dataRow, lookupColumn, columnFixed: true))"
-        let formula = "\(field)<>\(lookupfield)"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+    private func highlightLookupDifferent(columns: [Int], lookupColumns: [Int], keyIndex: Int = 0, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        var field = "CONCATENATE("
+        var lookupField = "CONCATENATE("
+        for index in 0..<columns.count {
+            field += columnCell(columns[index])
+            lookupField += columnCell(lookupColumns[index])
+            if index < columns.count - 1 {
+                field += ",\" \","
+                lookupField += ",\" \","
+            }
+        }
+        field += ")"
+        lookupField += ")"
+        let formula = "AND(\(field)<>\(lookupField)"+",\(columnCell(columns[keyIndex]))<>\(columnCell(lookupColumns[keyIndex])))"
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columns[keyIndex], toRow: dataRow + writer.maxPlayers - 1, toColumn: columns[keyIndex], formula: formula, format: format ?? formatRed!)
+    }
+    
+    private func columnCell(_ column: Int) -> String {
+        return cell(dataRow, column, columnFixed: true)
     }
     
     private func highlightLookupError(fromColumn: Int, toColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {

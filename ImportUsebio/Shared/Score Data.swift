@@ -46,6 +46,7 @@ public enum EventType: String {
     case swiss_pairs_butler_imps
     case pairs
     case teams
+    case head_to_head
     case invalid
     
     init?(_ string: String) {
@@ -55,7 +56,7 @@ public enum EventType: String {
     var string: String { "\(self)".replacingOccurrences(of: "_", with: " ").capitalized }
     
     var supported: Bool {
-        return self == .swiss_pairs || self == .swiss_teams || self == .mp_pairs || self == .pairs || self == .cross_imps || self == .teams || self == .individual || self == .teams_of_four
+        return self == .swiss_pairs || self == .swiss_teams || self == .mp_pairs || self == .pairs || self == .cross_imps || self == .teams || self == .individual || self == .teams_of_four || self == .head_to_head
     }
     
     var participantType: ParticipantType? {
@@ -64,7 +65,7 @@ public enum EventType: String {
             return .player
         case .mp_pairs, .butler_pairs, .swiss_pairs, .cross_imps, .aggregate, .swiss_pairs_cross_imps, .swiss_pairs_butler_imps, .pairs:
             return .pair
-        case .swiss_teams, .teams, .teams_of_four:
+        case .swiss_teams, .teams, .teams_of_four, .head_to_head:
             return .team
         default:
             return nil
@@ -73,7 +74,7 @@ public enum EventType: String {
     
     var requiresWinDraw: Bool {
         switch self {
-        case .swiss_pairs, .swiss_pairs_cross_imps, .swiss_pairs_butler_imps, .swiss_teams:
+        case .swiss_pairs, .swiss_pairs_cross_imps, .swiss_pairs_butler_imps, .swiss_teams, .head_to_head:
             return true
         default:
             return false

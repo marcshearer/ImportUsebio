@@ -74,6 +74,7 @@ class ImportRound {
     var shortName: String?
     var toe: Int?
     var manualMPs = false
+    var headToHead = false
     var localNational: LocalNational?
     var maxAward: Float?
     var ewMaxAward: Float?
@@ -281,7 +282,14 @@ class ImportRounds {
                     case .toe:
                         round.toe = Int(columnValue)
                     case .basis:
-                        round.manualMPs = columnValue.uppercased() == "MANUAL"
+                        switch columnValue.uppercased() {
+                        case "MANUAL":
+                            round.manualMPs = true
+                        case "HEAD-TO-HEAD":
+                            round.headToHead = true
+                        default:
+                            break
+                        }
                     case .localNational:
                         round.localNational = LocalNational(rawValue: columnValue.uppercased())
                     case .maxAward, .nsMaxAward:
@@ -324,7 +332,7 @@ class ImportRounds {
                 error = "\(RoundColumn.name.string) must not be blank"
             } else if round.localNational == nil && event?.localNational == .byRound {
                 error = "\(RoundColumn.localNational.string) must not be blank on rounds"
-            } else if !round.manualMPs && round.maxAward ?? 0 <= 0 {
+            } else if (!round.headToHead && !round.manualMPs) && round.maxAward ?? 0 <= 0 {
                 error = "\(RoundColumn.maxAward.string) must be a positive number"
             } else if !round.manualMPs && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
                 error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
