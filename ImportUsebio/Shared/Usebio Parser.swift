@@ -50,7 +50,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var filterSessionId: String?
     private var filterParticipantNumberMin: String?
     private var filterParticipantNumberMax: String?
-    private var overrideEventType: EventType?
+    private var overrideEventType: EventType? // Used to switch to a specific event type (currently only for head-to-head teams league)
     
     init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl

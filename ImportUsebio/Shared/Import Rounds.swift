@@ -45,8 +45,8 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case perWin = "PER WIN"
     case filterSessionId = "FILTER SESSION ID"
     case aggregateAs = "AGGREGATE AS"
-    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN"
-    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX"
+    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN" // Used when a single file/session contains multiple
+    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX" // separate teams quali events as at Peebles 2024
     case manualPointsColumn = "POINTS COLUMN"
     case filename = "FILENAME"
     case maxTeamMembers = "MAX TEAM MEMBERS"
