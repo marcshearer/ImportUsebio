@@ -43,7 +43,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private let replacingSingleQuote = "@@replacingSingleQuote@@"
     private var root: Node?
     private var current: Node?
-    private let scoreData = ScoreData()
+    private var scoreData = ScoreData()
     private var errors: [String] = []
     private var warnings: [String] = []
     private var travellerDirection: Direction?
@@ -52,9 +52,11 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var filterParticipantNumberMax: String?
     private var overrideEventType: EventType? // Used to switch to a specific event type (currently only for head-to-head teams league)
     
-    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, winDrawMethod: WinDrawMethod? = nil, mergeMatches: Bool = false, completion: @escaping (ScoreData?, String?)->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .usebio
+        self.scoreData.winDrawMethod = winDrawMethod ?? .board
+        self.scoreData.mergeMatches = mergeMatches
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
         let replacedQuote = string.replacingOccurrences(of: "&#39;", with: replacingSingleQuote)
@@ -75,8 +77,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         filterParticipantNumbers()
         finalUpdates()
         UsebioParser.calculatePlace(scoreData: scoreData)
-        UsebioParser.calculateWinDraw(scoreData: scoreData)
-        completion(scoreData, nil)
+        let message = UsebioParser.calculateWinDraw(scoreData: scoreData)
+        completion(scoreData, message)
     }
             
     // MARK: - Parser Delegate ========================================================================== -
@@ -219,13 +221,26 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             var matched = true
             if let filterSessionId = filterSessionId {
                 if let id = attributes["SESSION_ID"] {
-                    if id.uppercased() != filterSessionId {
+                    if id.uppercased() != filterSessionId.uppercased() {
                         matched = false
                     }
                 }
             }
             if matched {
+                // Matched session data
                 current = current?.add(child: Node(name: name, process: processEvent))
+            } else {
+                // Unmatched session data - gather to one side
+                let mainSessionData = scoreData
+                if mainSessionData.otherSessionData == nil {
+                    // Create scoreData object for unmatched session with a dummy event
+                    mainSessionData.otherSessionData = ScoreData()
+                    mainSessionData.otherSessionData!.events.append(Event())
+                }
+                scoreData = mainSessionData.otherSessionData!
+                current = current?.add(child: Node(name: name, process: processEvent, completion: { (_) in
+                    self.scoreData = mainSessionData
+                }))
             }
         case "SECTION":
             current = current?.add(child: Node(name: name, process: processEvent))
@@ -405,7 +420,19 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     private func processBoard(name: String, attributes: [String : String]) {
         switch name {
+        case "IMPS":
+            // Used if rescoring wins/losses at board level
+            let match = scoreData.events.last?.matches.last
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                let board = Board()
+                if let value = Float(value) {
+                    board.nsScore = value
+                    board.ewScore = -value
+                }
+                match?.boards.append(board)
+            }))
         case "TRAVELLER_LINE":
+            // Not sure this is used
             travellerDirection = nil
             current = current?.add(child: Node(name: name, process: processTravellerLine, completion: { (value) in
                 self.travellerDirection = nil
@@ -416,6 +443,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     }
 
     private func processTravellerLine(name: String, attributes: [String : String]) {
+        // Used if match doesn't have pair numbers in it so need to look at travellers
         let match = scoreData.events.last?.matches.last
         switch name {
         case "DIRECTION":
@@ -493,50 +521,170 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         }
     }
     
-    public static func calculateWinDraw(scoreData: ScoreData) {
+    public static func calculateWinDraw(scoreData: ScoreData) -> String? {
+        var useData: ScoreData?
+        var message: String?
+        var suffix: String?
+        // Use other sessions if no matches in session being filtered
         if let event = scoreData.events.first {
-            if !event.matches.isEmpty {
-                if event.type?.requiresWinDraw ?? false {
-                    for participant in event.participants {
-                        
-                        participant.winDraw = 0
-                        if let team = participant.member as? Team {
-                            for pair in team.pairs {
-                                pair.winDraw = 0
-                            }
+            if (event.matches).isEmpty {
+                useData = scoreData.otherSessionData
+                suffix = " (using scores in other sessions)"
+            } else {
+                useData = scoreData
+            }
+            if let useEvent = useData?.events.first {
+                if event.type?.requiresWinDraw ?? false && scoreData.winDrawMethod > .participant {
+                    if !useEvent.matches.isEmpty {
+                        if let matchScoring = event.matchScoring, let boardScoring = event.boardScoring {
+                            message = recalculateMatches(event: useEvent, winDrawMethod: scoreData.winDrawMethod, merge: scoreData.mergeMatches, matchScoring: matchScoring, boardScoring: boardScoring)
+                        } else {
+                            message = "Wins/draws rescored from match scores"
                         }
-                        for match in event.matches.filter({$0.number == participant.member.number || $0.opposingNumber == participant.member.number}) {
-                            
-                            // Add to participant wins/draws
-                            var increment:Float = 0.0
-                            if let score = match.vp ?? match.score, let opposingScore = match.opposingVP ?? match.opposingScore {
-                                if score == opposingScore {
-                                    increment = 0.5
-                                } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
-                                    increment = 0.5
-                                } else if score > opposingScore && match.number == participant.member.number {
-                                    increment = 1.0
-                                } else if score < opposingScore && match.number != participant.member.number {
-                                    increment = 1.0
+                        for participant in event.participants {
+                            participant.winDraw = 0
+                            if let team = participant.member as? Team {
+                                for pair in team.pairs {
+                                    pair.winDraw = 0
                                 }
                             }
-                            participant.winDraw! += increment
-
-                            // Add to wins/draws in teams pairs if relevant
-                            if increment != 0 {
-                                if let team = participant.member as? Team {
-                                    for pair in team.pairs {
-                                        if (match.number == participant.member.number && match.pairNumbers.contains(pair.number!)) ||
-                                            (match.opposingNumber == participant.member.number && match.opposingPairNumbers.contains(pair.number!)) {
-                                            pair.winDraw = pair.winDraw! + increment
+                            for match in useEvent.matches.filter({$0.number == participant.member.number || $0.opposingNumber == participant.member.number}) {
+                                
+                                // Add to participant wins/draws
+                                var increment:Float = 0.0
+                                if let score = match.vp ?? match.score, let opposingScore = match.opposingVP ?? match.opposingScore {
+                                    if score == opposingScore {
+                                        increment = 0.5
+                                    } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
+                                        increment = 0.5
+                                    } else if score > opposingScore && match.number == participant.member.number {
+                                        increment = 1.0
+                                    } else if score < opposingScore && match.number != participant.member.number {
+                                        increment = 1.0
+                                    }
+                                }
+                                participant.winDraw! += increment
+                                
+                                // Add to wins/draws in teams pairs if relevant
+                                if increment != 0 {
+                                    if let team = participant.member as? Team {
+                                        for pair in team.pairs {
+                                            if (match.number == participant.member.number && match.pairNumbers.contains(pair.number!)) ||
+                                                (match.opposingNumber == participant.member.number && match.opposingPairNumbers.contains(pair.number!)) {
+                                                pair.winDraw = pair.winDraw! + increment
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                    } else {
+                        message = "No \(scoreData.winDrawMethod.string) level data available for win/draws"
                     }
                 }
             }
+        }
+        return (message == nil ? nil : message! + (suffix ?? ""))
+    }
+    
+    private static func recalculateMatches(event: Event, winDrawMethod: WinDrawMethod, merge: Bool, matchScoring: ScoringMethod, boardScoring: ScoringMethod) -> String? {
+        var rescored = 0
+        
+        if merge {
+            UsebioParser.mergeMatches(event: event, scoring: matchScoring)
+        }
+        if winDrawMethod == .board {
+            // Re-score matches from boards
+            for match in event.matches {
+                if !match.boards.isEmpty {
+                    let boardTotal = boardScoring.combine(scores: match.boards.map{$0.nsScore})
+                    if let boardTotal = boardTotal {
+                        var score: Float? = nil
+                        switch matchScoring {
+                        case .aggregate, .cross_imps, .imps, .match_points, .percentage:
+                            if matchScoring == boardScoring {
+                                score = boardTotal
+                            }
+                        case .vps:
+                            score = BridgeImps(Int(boardTotal)).vp(boards: match.boards.count, maxVp: 20, places: 0)
+                        }
+                        if let score = score, let opposingScore = matchScoring.invert(score: score) {
+                            match.score = score
+                            match.opposingScore = opposingScore
+                            if matchScoring == .vps {
+                                match.vp = score
+                                match.opposingVP = opposingScore
+                            } else {
+                                match.vp = nil
+                                match.opposingVP = nil
+                            }
+                            rescored += 1
+                        }
+                    }
+                }
+            }
+        } else if winDrawMethod == .match {
+            rescored = event.matches.count
+        }
+        return "Wins/draws \(rescored == 0 ? "not " : (rescored == event.matches.count ? "" : "partially "))rescored from \(winDrawMethod.plural)"
+    }
+    
+    private static func mergeMatches(event: Event, scoring: ScoringMethod) {
+        var remove: [Int] = []
+        for (index, match) in event.matches.enumerated() {
+            if index < event.matches.count - 1 {
+                for subIndex in index+1..<event.matches.count {
+                    let subMatch = event.matches[subIndex]
+                    if (match.number == subMatch.number && match.opposingNumber == subMatch.opposingNumber) || (match.number == subMatch.opposingNumber && match.opposingNumber == subMatch.number) {
+                            // Match found - merge in
+                        var subScore: Float?
+                        var subOpposingScore: Float?
+                        var subVp: Float?
+                        var subOpposingVp: Float?
+                        var subPairNumbers: Set<String>
+                        var subOpposingPairNumbers: Set<String>
+                        if match.number == subMatch.number {
+                            subScore = subMatch.score
+                            subOpposingScore = subMatch.opposingScore
+                            subVp = subMatch.vp
+                            subOpposingVp = subMatch.opposingVP
+                            subPairNumbers = subMatch.pairNumbers
+                            subOpposingPairNumbers = subMatch.opposingPairNumbers
+                        } else {
+                            subScore = subMatch.opposingScore
+                            subOpposingScore = subMatch.score
+                            subVp = subMatch.opposingVP
+                            subOpposingVp = subMatch.vp
+                            subPairNumbers = subMatch.opposingPairNumbers
+                            subOpposingPairNumbers = subMatch.pairNumbers
+                        }
+                        match.score = scoring.combine(scores: match.score, subScore)
+                        match.opposingScore = scoring.combine(scores: match.opposingScore, subOpposingScore)
+                        if let vp = match.vp, let subVp = subVp {
+                            match.vp = vp + subVp
+                        }
+                        if let opposingVp = match.opposingVP, let subOpposingVp = subOpposingVp {
+                            match.opposingVP = opposingVp + subOpposingVp
+                        }
+                        match.pairNumbers = match.pairNumbers.union(subPairNumbers)
+                        match.opposingPairNumbers = match.opposingPairNumbers.union(subOpposingPairNumbers)
+                        for board in subMatch.boards {
+                            if match.number != subMatch.number {
+                                    // Swap scores if pair numbers other way round
+                                let ewScore = board.ewScore
+                                board.ewScore = board.nsScore
+                                board.nsScore = ewScore
+                            }
+                            match.boards.append(board)
+                        }
+                        remove.append(subIndex)
+                    }
+                }
+            }
+        }
+        // Now remove the duplicates
+        for removeIndex in remove.reversed() {
+            event.matches.remove(at: removeIndex)
         }
     }
  }

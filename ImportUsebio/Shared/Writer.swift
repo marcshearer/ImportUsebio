@@ -139,7 +139,7 @@ class Writer: WriterBase {
     @discardableResult func add(name: String, shortName: String? = nil, scoreData: ScoreData) -> Round {
         if scoreData.source == .usebio {
             // Need to recalculate the wins/draws in case rounding mode changed
-            UsebioParser.calculateWinDraw(scoreData: scoreData)
+            _ = UsebioParser.calculateWinDraw(scoreData: scoreData)
         }
         let round = Round(writer: self, name: name, shortName: shortName, scoreData: scoreData, workbook: workbook)
         rounds.append(round)

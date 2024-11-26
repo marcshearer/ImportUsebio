@@ -18,6 +18,64 @@ public enum ScoringMethod: String {
     init?(_ string: String) {
         self.init(rawValue: string.lowercased().replacing(" ", with: "_"))
     }
+    
+    func combine(scores: Float?...) -> Float? {
+        self.combine(scores: scores)
+    }
+    
+    func combine(scores: [Float?]) -> Float? {
+        if scores.isEmpty || scores.contains(nil) {
+            return nil
+        } else {
+            switch self {
+            case .vps, .imps, .match_points, .cross_imps, .aggregate:
+                return scores.reduce(0, {$0 + $1!})
+            case .percentage:
+                return scores.reduce(0, {$0 + $1!}) / Float(scores.count)
+            }
+        }
+    }
+    
+    func invert(score: Float?) -> Float? {
+        if let score = score {
+            switch self {
+            case .vps:
+                return 20 - score
+            case .percentage:
+                return 100 - score
+            case .imps, .cross_imps, .aggregate:
+                return -score
+            case .match_points:
+                return nil
+            }
+        } else {
+            return nil
+        }
+    }
+    
+}
+
+public enum WinDrawMethod: Int, Comparable {
+    case participant = 1
+    case match = 2
+    case board = 3
+    
+    var string: String {
+        "\(self)"
+    }
+    
+    var plural: String {
+        switch self {
+        case .match:
+            "matches"
+        default:
+            "\(self)s"
+        }
+    }
+    
+    public static func < (lhs: WinDrawMethod, rhs: WinDrawMethod) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
 }
 
 public class Club {
@@ -290,6 +348,12 @@ public class Match {
     var opposingVP: Float?
     var pairNumbers: Set<String> = []
     var opposingPairNumbers: Set<String> = []
+    var boards: [Board] = []
+}
+
+public class Board {
+    var nsScore: Float?
+    var ewScore: Float?
 }
 
 public class ScoreData {
@@ -305,6 +369,7 @@ public class ScoreData {
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
     public var filterSessionId: String = ""
+    public var otherSessionData: ScoreData? = nil
     public var aggreateAs: String?
     public var maxTeamMembers: Int?
     public var manualPointsColumn: String?
@@ -312,6 +377,8 @@ public class ScoreData {
     public var clubs: [Club] = []
     public var events: [Event] = []
     public var roundContinuousVPDraw = false
+    public var winDrawMethod: WinDrawMethod = .match
+    public var mergeMatches: Bool = false
     internal var errors: [String] = []
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false

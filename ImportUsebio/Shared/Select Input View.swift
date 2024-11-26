@@ -393,6 +393,9 @@ struct SelectInputView: View {
             if let warnings = warnings {
                 errorList.warnings = warnings
             }
+            if let message = message {
+                errorList.warnings.append(message)
+            }
             
             roundErrors = []
             if errors != nil || warnings != nil {
@@ -443,7 +446,7 @@ struct SelectInputView: View {
                     round.scoreData?.fileUrl = url
                     let type = url.pathExtension.lowercased()
                     if type == "xml" {
-                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, filterParticipantNumberMin: round.filterParticipantNumberMin, filterParticipantNumberMax: round.filterParticipantNumberMax, overrideEventType: (round.headToHead ? .head_to_head: nil), completion: importParserComplete)
+                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, filterParticipantNumberMin: round.filterParticipantNumberMin, filterParticipantNumberMax: round.filterParticipantNumberMax, overrideEventType: (round.headToHead ? .head_to_head: nil), winDrawMethod: round.winDrawMethod.winDrawMethod, mergeMatches: round.winDrawMethod.mergeMatches, completion: importParserComplete)
                     } else if type == "csv" {
                         if GenericCsvParser(fileUrl: url, data: data, manualPointsColumn: round.manualPointsColumn, completion: importParserComplete) == nil {
                             MessageBox.shared.show("Invalid data")
@@ -459,8 +462,8 @@ struct SelectInputView: View {
         } else {
             eventDescription = importInProgress!.event!.description!
             eventCode = importInProgress!.event!.code!
-            minRank = importInProgress!.event!.minRank!
-            maxRank = (importInProgress!.event!.maxRank! == 0 ? 999 : importInProgress!.event!.maxRank!)
+            minRank = importInProgress!.event!.minRank ?? 0
+            maxRank = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
             
             writer = Writer()
             writer!.eventDescription = eventDescription
@@ -518,6 +521,9 @@ struct SelectInputView: View {
             }
             if let warnings = warnings {
                 errorList.warnings = warnings
+            }
+            if let message = message {
+                errorList.warnings.append(message)
             }
             if !errorList.errors.isEmpty || !errorList.warnings.isEmpty {
                 roundErrors.append(errorList)

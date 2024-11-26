@@ -50,6 +50,7 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case manualPointsColumn = "POINTS COLUMN"
     case filename = "FILENAME"
     case maxTeamMembers = "MAX TEAM MEMBERS"
+    case winDrawMethod = "WIN DRAW METHOD"
     
     var string: String { self.rawValue.capitalized }
 }
@@ -58,6 +59,34 @@ enum LocalNational: String {
     case local = "LOCAL"
     case national = "NATIONAL"
     case byRound = "BY ROUND"
+}
+
+enum RoundWinDrawMethod: String {
+    case participant = "PARTICIPANT"
+    case match = "MATCH"
+    case mergeMatch = "MATCH MERGE"
+    case board = "BOARD"
+    case mergeBoard = "BOARD MERGE"
+    
+    var winDrawMethod: WinDrawMethod {
+        switch self {
+        case .participant:
+            return .participant
+        case .match, .mergeMatch:
+            return .match
+        case .board, .mergeBoard:
+            return .board
+        }
+    }
+    
+    var mergeMatches: Bool {
+        switch self {
+        case .participant, .match, .board:
+            false
+        case .mergeMatch, .mergeBoard:
+            true
+        }
+    }
 }
 
 class ImportEvent {
@@ -85,6 +114,7 @@ class ImportRound {
     var filename: String?
     var filterSessionId: String?
     var aggregateAs: String?
+    var winDrawMethod: RoundWinDrawMethod = .board // Start at board and then fail back to level of data available
     var filterParticipantNumberMin: String?
     var filterParticipantNumberMax: String?
     var manualPointsColumn: String?
@@ -312,6 +342,8 @@ class ImportRounds {
                         round.filterSessionId = columnValue
                     case .aggregateAs:
                         round.aggregateAs = columnValue
+                    case .winDrawMethod:
+                        round.winDrawMethod = RoundWinDrawMethod(rawValue: columnValue.uppercased()) ?? .participant
                     case .filterParticipantNumberMin:
                         round.filterParticipantNumberMin = columnValue
                     case .filterParticipantNumberMax:
@@ -334,9 +366,9 @@ class ImportRounds {
                 error = "\(RoundColumn.localNational.string) must not be blank on rounds"
             } else if (!round.headToHead && !round.manualMPs) && round.maxAward ?? 0 <= 0 {
                 error = "\(RoundColumn.maxAward.string) must be a positive number"
-            } else if !round.manualMPs && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
+            } else if !round.manualMPs && !round.headToHead && (round.reducedTo ?? 1 <= 0 || round.reducedTo ?? 1 > 1) {
                 error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
-            } else if !round.manualMPs && (round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1) {
+            } else if !round.manualMPs && !round.headToHead && (round.awardTo ?? 0 <= 0 || round.awardTo ?? 0 > 1) {
                 error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
             } else if round.filename == nil {
                 error = "\(RoundColumn.filename.string) must not be blank"
