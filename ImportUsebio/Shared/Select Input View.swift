@@ -12,10 +12,17 @@ enum Level: Int {
     case national = 1
 }
 
+enum Basis: Int {
+    case standard = 0
+    case manual = 1
+    case headToHead = 2
+}
+
 struct SelectInputView: View {
     @State private var inputFilename: String = ""
     @State private var roundName: String = ""
     @State private var eventCode: String = ""
+    @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
     @State private var maxTeamMembers: Int = 0
@@ -69,8 +76,37 @@ struct SelectInputView: View {
                                 Spacer().frame(width: 8)
                             }
                             
+                            InputTitle(title: "Coding", topSpace: 16)
+                            Spacer().frame(height: 8)
                             HStack {
-                                Input(title: "Event code:", field: $eventCode, topSpace: 16, width: 100, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                                Spacer().frame(width: 42)
+                                Input(title: "Event code:", field: $eventCode, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 90, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                                Spacer().frame(width: 40)
+                                HStack {
+                                    Picker("Calculation basis:", selection: $basis) {
+                                        Text("Standard").tag(Basis.standard)
+                                        Text("Manual").tag(Basis.manual)
+                                        Text("Head-to-head").tag(Basis.headToHead)
+                                    }
+                                    .help(Text("The method to be used for calculations\nIf this is Head-to-head this means that it is a round were only win/draw awards are applied. There is no place award.\nIf this is Manual then the MPs are not calculated. They are specified in the raw data."))
+                                    .onChange(of: basis, initial: false) {
+                                        if basis != .standard {
+                                            maxAward = 0
+                                            ewMaxAward = 0
+                                            minEntry = 0
+                                            if basis == .headToHead {
+                                                awardTo = 100
+                                            } else if basis == .manual {
+                                                awardTo = 0
+                                                perWin = 0
+                                            }
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    .focusable(false)
+                                    .frame(width: 250)
+                                    .font(inputFont)
+                                }
                                 Spacer()
                             }
                             
@@ -220,8 +256,10 @@ struct SelectInputView: View {
                                             Spacer().frame(width: 30)
                                             
                                             InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                                .disabled(basis != .standard)
                                             
                                             InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                                .disabled(basis != .standard)
                                             
                                             Spacer()
                                         }
@@ -232,10 +270,13 @@ struct SelectInputView: View {
                                             Spacer().frame(width: 30)
                                             
                                             InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
+                                                .disabled(basis != .standard)
                                             
                                             InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                                                .disabled(basis != .standard)
                                             
                                             InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
+                                                .disabled(basis != .headToHead)
                                             
                                             Spacer()
                                         }
@@ -246,7 +287,7 @@ struct SelectInputView: View {
                             
                             Spacer().frame(height: 24)
                             Separator(thickness: 1)
-                            Spacer().frame(height: 16)
+                            Spacer().frame(height: 12)
                             HStack {
                                 Spacer()
                                 addSheetButton()
@@ -293,7 +334,7 @@ struct SelectInputView: View {
                     if let data = try? Data(contentsOf: url) {
                         let type = url.pathExtension.lowercased()
                         if type == "xml" {
-                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, roundContinuousVPDraw: drawsRounded, winDrawLevel: winDrawLevel, mergeMatches: mergeMatches, vpType: vpType, completion: parserComplete)
+                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, overrideEventType: (basis == .headToHead ? .head_to_head: nil), roundContinuousVPDraw: drawsRounded, winDrawLevel: winDrawLevel, mergeMatches: mergeMatches, vpType: vpType, completion: parserComplete)
                         } else if type == "csv" {
                             if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
                                 MessageBox.shared.show("Invalid data")
