@@ -65,7 +65,7 @@ fileprivate enum Score : String {
 public class BridgeWebsCsvParser {
     
     private var data: [[String]]
-    private var completion: (ScoreData?, String?)->()
+    private var completion: (ScoreData?, [String])->()
     private let scoreData = ScoreData()
     private var errors: [String] = []
     private var warnings: [String] = []
@@ -75,7 +75,7 @@ public class BridgeWebsCsvParser {
     private var travellerColumns: [String] = []
     private var direction: Direction?
     
-    init(fileUrl: URL, data: [[String]], completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: [[String]], completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .bridgewebs
         self.completion = completion
@@ -96,7 +96,7 @@ public class BridgeWebsCsvParser {
                     report(error: "Data does not contain all the required lines")
                 }
                 finalUpdates()
-                completion(scoreData, nil)
+                completion(scoreData, [])
                 break
             }
             let columns = data[current]
@@ -214,16 +214,18 @@ public class BridgeWebsCsvParser {
     }
     
     private func finalUpdates() {
-        if let boards = scoreData.events.first?.boards, let rounds = self.rounds {
-            if boards != 0 && rounds != 0 {
-                scoreData.events.first!.boardsPerRound = boards / rounds
+        if let event = scoreData.events.first {
+            if let boards = event.boards, let rounds = self.rounds {
+                if boards != 0 && rounds != 0 {
+                    event.boardsPerRound = boards / rounds
+                }
             }
+            event.boardScoring = .imps
+            event.matchScoring = .imps
         }
-        scoreData.events.first!.boardScoring = .imps
-        scoreData.events.first!.matchScoring = .imps
     }
     
     private func report(error: String) {
-        completion(nil, error)
+        completion(nil, [error])
     }
 }

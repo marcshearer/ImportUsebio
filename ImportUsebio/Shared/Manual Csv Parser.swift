@@ -74,7 +74,7 @@ fileprivate enum ParticipantHeader: String {
 public class ManualCsvParser {
     
     private var data: [[String]]
-    private var completion: (ScoreData?, String?)->()
+    private var completion: (ScoreData?, [String])->()
     private let scoreData = ScoreData()
     private var errors: [String] = []
     private var warnings: [String] = []
@@ -85,7 +85,7 @@ public class ManualCsvParser {
     private var roundColumns: [String] = []
     private var participantColumns: [String] = []
     
-    init(fileUrl: URL, data: [[String]], manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: [[String]], manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .manual
         self.completion = completion
@@ -107,7 +107,7 @@ public class ManualCsvParser {
                     report(error: "Data does not contain all the required lines")
                 }
                 finalUpdates()
-                completion(scoreData, nil)
+                completion(scoreData, [])
                 break
             }
             var columns = data[current]
@@ -357,6 +357,6 @@ public class ManualCsvParser {
     }
     
     private func report(error: String) {
-        completion(nil, error)
+        completion(nil, [error])
     }
 }

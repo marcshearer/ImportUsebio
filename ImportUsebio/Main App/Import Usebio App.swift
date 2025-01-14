@@ -26,7 +26,7 @@ struct MyScene: Scene {
                 SelectInputView()
                     .navigationTitle("Import XML Results Files")
                     .frame(minWidth: 900, maxWidth: 900,
-                           minHeight: 600, maxHeight: 600)
+                           minHeight: 710, maxHeight: 710)
         }
         .windowResizability(.contentSize)
         .onChange(of: scenePhase) { phase in

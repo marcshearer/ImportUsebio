@@ -18,10 +18,13 @@ struct SelectInputView: View {
     @State private var eventCode: String = ""
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
-    @State private var maxTeamMembers: Int?
+    @State private var maxTeamMembers: Int = 0
     @State private var manualPointsColumn: String?
     @State private var localNational = Level.local
-    @State private var drawsRounded = false
+    @State private var drawsRounded = true
+    @State private var winDrawLevel: WinDrawLevel = .board
+    @State private var mergeMatches = false
+    @State private var vpType: VpType = .discrete
     @State private var minRank: Int = 0
     @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
@@ -88,9 +91,91 @@ struct SelectInputView: View {
                             Spacer().frame(height: 16)
                         }
                         VStack {
-                            
+                            InputTitle(title: "Import Parameters:")
                             HStack {
-                                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", height: 30, width: 700, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
+                                Spacer().frame(width: 42)
+                                HStack {
+                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                        .help(Text("Used to restrict the import of a Usebio raw data file to a specific Session Id"))
+                                }
+                                Spacer().frame(width: 10)
+                                HStack {
+                                    Picker("Win/Draws from:   ", selection: $winDrawLevel) {
+                                        Text("Pairs/Teams").tag(WinDrawLevel.participant)
+                                        Text("Matches").tag(WinDrawLevel.match)
+                                        Text("Boards").tag(WinDrawLevel.board)
+                                    }
+                                    .onChange(of: winDrawLevel, initial: false) {
+                                        if winDrawLevel == .participant {
+                                            mergeMatches = false
+                                        }
+                                        if winDrawLevel != .board {
+                                            vpType = .discrete
+                                        }
+                                    }
+                                    .help(Text("Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested"))
+                                    .pickerStyle(.menu)
+                                    .focusable(false)
+                                    .frame(width: 250)
+                                    .font(inputFont)
+                                }
+                                .frame(height: inputDefaultHeight)
+                                Spacer().frame(width: 20)
+                                HStack {
+                                    Picker("Merge matches:  ", selection: $mergeMatches) {
+                                        Text("Merge").tag(true)
+                                        Text("Don't Merge").tag(false)
+                                    }
+                                    .help(Text("Combine matches between the same teams/pairs before calculating wins/draws"))
+                                    .pickerStyle(.menu)
+                                    .focusable(false)
+                                    .frame(width: 230)
+                                    .font(inputFont)
+                                    .disabled(winDrawLevel == .participant)
+                                }
+                                .frame(height: inputDefaultHeight)
+                                Spacer()
+                            }
+                            Spacer().frame(height: 10)
+                            HStack {
+                                Spacer().frame(width: 30)
+                                HStack {
+                                    InputInt(title: "Max players:", field: $maxTeamMembers, width: 100, inlineTitle: true, inlineTitleWidth: 120)
+                                        .help(Text("Used to limit the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material"))
+                                }
+                                Spacer().frame(width: 52)
+                                HStack {
+                                    Picker("VP type:   ", selection: $vpType) {
+                                        Text("Discrete").tag(VpType.discrete)
+                                        Text("Continuous").tag(VpType.continuous)
+                                    }
+                                    .help(Text("When re-calculating from boards what sort of VPs are required?"))
+                                    .pickerStyle(.menu)
+                                    .focusable(false)
+                                    .frame(width: 180)
+                                    .font(inputFont)
+                                    .disabled(winDrawLevel == .participant)
+                                }
+                                .frame(height: inputDefaultHeight)
+                                Spacer().frame(width: 73)
+                                HStack {
+                                    Picker("VP Draws:  ", selection: $drawsRounded) {
+                                        Text("Exact").tag(false)
+                                        Text("Rounded").tag(true)
+                                    }
+                                    .help(Text("Round Continuous VPs when calculating draws"))
+                                    .pickerStyle(.menu)
+                                    .focusable(false)
+                                    .frame(width: 200)
+                                    .font(inputFont)
+                                    .disabled(winDrawLevel == .participant || vpType == .discrete)
+                                    Spacer()
+                                }
+                                .frame(height: inputDefaultHeight)
+                                Spacer()
+                            }
+                            HStack {
+                                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", height: 30, width: 684, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
                                 
                                 VStack() {
                                     Spacer()
@@ -109,32 +194,7 @@ struct SelectInputView: View {
                                     Spacer()
                                 }
                                 .frame(width: 270)
-                                Spacer().frame(width: 20)
-                                HStack {
-                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
-                                }
-                                .frame(width: 250)
-                                Spacer().frame(width: 20)
-                                if scoreData?.events.last?.matchScoring == .vps {
-                                    VStack {
-                                        Spacer()
-                                        HStack {
-                                            Picker("Draws:  ", selection: $drawsRounded) {
-                                                Text("Exact").tag(false)
-                                                Text("Rounded").tag(true)
-                                            }
-                                            .pickerStyle(.segmented)
-                                            .focusable(false)
-                                            .frame(width: 200, height: 20)
-                                            .font(inputFont)
-                                            Spacer()
-                                        }
-                                        Spacer()
-                                    }
-                                    .frame(height: inputDefaultHeight)
-                                } else {
-                                    Spacer()
-                                }
+                                Spacer()
                             }
                             
                             HStack {
@@ -233,7 +293,7 @@ struct SelectInputView: View {
                     if let data = try? Data(contentsOf: url) {
                         let type = url.pathExtension.lowercased()
                         if type == "xml" {
-                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, completion: parserComplete)
+                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, roundContinuousVPDraw: drawsRounded, winDrawLevel: winDrawLevel, mergeMatches: mergeMatches, vpType: vpType, completion: parserComplete)
                         } else if type == "csv" {
                             if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
                                 MessageBox.shared.show("Invalid data")
@@ -270,7 +330,11 @@ struct SelectInputView: View {
                 }
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
+                scoreData.maxTeamMembers = (maxTeamMembers == 0 ? nil : maxTeamMembers)
                 scoreData.roundContinuousVPDraw = drawsRounded
+                scoreData.winDrawLevel = winDrawLevel
+                scoreData.mergeMatches = mergeMatches
+                scoreData.vpType = vpType
                 scoreData.maxAward = maxAward
                 scoreData.ewMaxAward = (ewMaxAward != 0 ? ewMaxAward : nil)
                 scoreData.minEntry = minEntry
@@ -379,7 +443,7 @@ struct SelectInputView: View {
         .disabled(writer == nil)
     }
     
-    private func parserComplete(scoreData: ScoreData?, message: String?) {
+    private func parserComplete(scoreData: ScoreData?, messages: [String]) {
         if let scoreData = scoreData {
             let (roundMissingNationalId, errors, warnings) = scoreData.validate()
             missingNationalIds = roundMissingNationalId
@@ -393,8 +457,8 @@ struct SelectInputView: View {
             if let warnings = warnings {
                 errorList.warnings = warnings
             }
-            if let message = message {
-                errorList.warnings.append(message)
+            if !messages.isEmpty {
+                errorList.warnings.append(contentsOf: messages)
             }
             
             roundErrors = []
@@ -412,7 +476,7 @@ struct SelectInputView: View {
                 showErrors = true
             }
         } else {
-            MessageBox.shared.show(message ?? "Unable to parse file \(inputFilename)")
+            MessageBox.shared.show(messages.last ?? "Unable to parse file \(inputFilename)")
             self.scoreData = nil
             self.inputFilename = ""
             self.roundName = ""
@@ -446,7 +510,7 @@ struct SelectInputView: View {
                     round.scoreData?.fileUrl = url
                     let type = url.pathExtension.lowercased()
                     if type == "xml" {
-                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, filterParticipantNumberMin: round.filterParticipantNumberMin, filterParticipantNumberMax: round.filterParticipantNumberMax, overrideEventType: (round.headToHead ? .head_to_head: nil), winDrawMethod: round.winDrawMethod.winDrawMethod, mergeMatches: round.winDrawMethod.mergeMatches, completion: importParserComplete)
+                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: round.filterSessionId, filterParticipantNumberMin: round.filterParticipantNumberMin, filterParticipantNumberMax: round.filterParticipantNumberMax, overrideEventType: (round.headToHead ? .head_to_head: nil), roundContinuousVPDraw: round.roundContinuousVPDraw, winDrawLevel: round.winDrawLevel, mergeMatches: round.mergeMatches, vpType: round.vpType, completion: importParserComplete)
                     } else if type == "csv" {
                         if GenericCsvParser(fileUrl: url, data: data, manualPointsColumn: round.manualPointsColumn, completion: importParserComplete) == nil {
                             MessageBox.shared.show("Invalid data")
@@ -481,7 +545,7 @@ struct SelectInputView: View {
                     awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
                     filterSessionId = round.filterSessionId ?? ""
-                    maxTeamMembers = round.maxTeamMembers
+                    maxTeamMembers = round.maxTeamMembers ?? 0
                     manualPointsColumn = round.manualPointsColumn
                     
                     scoreData.roundName = roundName
@@ -494,7 +558,7 @@ struct SelectInputView: View {
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
                     scoreData.aggreateAs = round.aggregateAs
-                    scoreData.maxTeamMembers = maxTeamMembers
+                    scoreData.maxTeamMembers = (maxTeamMembers == 0 ? nil : maxTeamMembers)
                     scoreData.manualPointsColumn = manualPointsColumn
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe
@@ -510,7 +574,7 @@ struct SelectInputView: View {
         }
     }
     
-    private func importParserComplete(scoreData: ScoreData?, message: String?) {
+    private func importParserComplete(scoreData: ScoreData?, messages: [String]) {
         if let scoreData = scoreData {
             let (roundMissingNationalIds, errors, warnings) = scoreData.validate()
             missingNationalIds = missingNationalIds || roundMissingNationalIds
@@ -522,8 +586,8 @@ struct SelectInputView: View {
             if let warnings = warnings {
                 errorList.warnings = warnings
             }
-            if let message = message {
-                errorList.warnings.append(message)
+            if !messages.isEmpty {
+                errorList.warnings.append(contentsOf: messages)
             }
             if !errorList.errors.isEmpty || !errorList.warnings.isEmpty {
                 roundErrors.append(errorList)
@@ -534,7 +598,7 @@ struct SelectInputView: View {
             processNextRound()
             
         } else {
-            MessageBox.shared.show(message ?? "Unable to parse file \(importInProgress!.rounds[importRound].filename!)")
+            MessageBox.shared.show(messages.last ?? "Unable to parse file \(importInProgress!.rounds[importRound].filename!)")
             self.writer = nil
             self.scoreData = nil
             self.inputFilename = ""

@@ -55,10 +55,21 @@ public enum ScoringMethod: String {
     
 }
 
-public enum WinDrawMethod: Int, Comparable {
+public enum WinDrawLevel: Int, Comparable {
     case participant = 1
     case match = 2
     case board = 3
+    
+    init(_ string: String) {
+        self = switch string.uppercased() {
+        case WinDrawLevel.match.string.uppercased():
+            .match
+        case WinDrawLevel.board.string.uppercased():
+            .board
+        default:
+            .participant
+        }
+    }
     
     var string: String {
         "\(self)"
@@ -73,8 +84,26 @@ public enum WinDrawMethod: Int, Comparable {
         }
     }
     
-    public static func < (lhs: WinDrawMethod, rhs: WinDrawMethod) -> Bool {
+    public static func < (lhs: WinDrawLevel, rhs: WinDrawLevel) -> Bool {
         lhs.rawValue < rhs.rawValue
+    }
+}
+
+public enum VpType {
+    case continuous
+    case discrete
+    
+    init(_ string: String) {
+        self = switch string.uppercased() {
+        case VpType.continuous.string.uppercased():
+            .continuous
+        default:
+            .discrete
+        }
+    }
+    
+    var string: String {
+        "\(self)"
     }
 }
 
@@ -336,6 +365,10 @@ public class Participant {
         self.member = member!
         self.member.participant = self
     }
+    
+    var names: String {
+        Utility.toString(member.playerList.map{$0.name ?? "Unknown"})
+    }
 }
 
 public class Match {
@@ -376,9 +409,10 @@ public class ScoreData {
     public var version: String?
     public var clubs: [Club] = []
     public var events: [Event] = []
-    public var roundContinuousVPDraw = false
-    public var winDrawMethod: WinDrawMethod = .match
+    public var roundContinuousVPDraw = true
+    public var winDrawLevel: WinDrawLevel = .match
     public var mergeMatches: Bool = false
+    public var vpType: VpType = .discrete
     internal var errors: [String] = []
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false

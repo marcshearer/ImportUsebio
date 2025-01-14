@@ -44,13 +44,28 @@ fileprivate enum RoundColumn: String, EnumProtocol {
     case awardTo = "AWARD TO"
     case perWin = "PER WIN"
     case filterSessionId = "FILTER SESSION ID"
+                    // Used to restrict the import of a Usebio raw data file to a specific Session Id
     case aggregateAs = "AGGREGATE AS"
-    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN" // Used when a single file/session contains multiple
-    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX" // separate teams quali events as at Peebles 2024
+                    // Used to combine columns in the Formatted tab using this column title
+    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN"
+    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX"
+                    // Used when a single file/session contains multiple separate teams quali events as at Peebles 2024
     case manualPointsColumn = "POINTS COLUMN"
+                    // Column with this title in Manual CSV data will get
+                    // number of master points from column with this name
+                    // rather than the default MANUAL MPS
     case filename = "FILENAME"
+                    // Source file name
     case maxTeamMembers = "MAX TEAM MEMBERS"
-    case winDrawMethod = "WIN DRAW METHOD"
+                    // Will ignore data from team members beyond this number - useful to get rid of subs where scores not materially affected
+    case winDrawLevel = "WIN/DRAW LEVEL"
+                    // Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested
+    case mergeMatches = "MERGE MATCHES"
+                    // Only relevant if above is MATCH/BOARD
+    case vpType = "VP TYPE"
+                    // Only relevant if above is MATCH/BOARD
+    case roundContinuousVPDraw = "ROUND VP DRAWS"
+                    // If using continuous VPs then setting this to "Yes" treats a score in range 9.50-10.49 as a draw
     
     var string: String { self.rawValue.capitalized }
 }
@@ -59,34 +74,6 @@ enum LocalNational: String {
     case local = "LOCAL"
     case national = "NATIONAL"
     case byRound = "BY ROUND"
-}
-
-enum RoundWinDrawMethod: String {
-    case participant = "PARTICIPANT"
-    case match = "MATCH"
-    case mergeMatch = "MATCH MERGE"
-    case board = "BOARD"
-    case mergeBoard = "BOARD MERGE"
-    
-    var winDrawMethod: WinDrawMethod {
-        switch self {
-        case .participant:
-            return .participant
-        case .match, .mergeMatch:
-            return .match
-        case .board, .mergeBoard:
-            return .board
-        }
-    }
-    
-    var mergeMatches: Bool {
-        switch self {
-        case .participant, .match, .board:
-            false
-        case .mergeMatch, .mergeBoard:
-            true
-        }
-    }
 }
 
 class ImportEvent {
@@ -114,7 +101,10 @@ class ImportRound {
     var filename: String?
     var filterSessionId: String?
     var aggregateAs: String?
-    var winDrawMethod: RoundWinDrawMethod = .board // Start at board and then fail back to level of data available
+    var roundContinuousVPDraw: Bool = true
+    var winDrawLevel: WinDrawLevel = .board // Start at board and then fail back to level of data available
+    var mergeMatches: Bool = false
+    var vpType: VpType = .discrete
     var filterParticipantNumberMin: String?
     var filterParticipantNumberMax: String?
     var manualPointsColumn: String?
@@ -342,8 +332,14 @@ class ImportRounds {
                         round.filterSessionId = columnValue
                     case .aggregateAs:
                         round.aggregateAs = columnValue
-                    case .winDrawMethod:
-                        round.winDrawMethod = RoundWinDrawMethod(rawValue: columnValue.uppercased()) ?? .participant
+                    case .winDrawLevel:
+                        round.winDrawLevel = WinDrawLevel(columnValue)
+                    case .mergeMatches:
+                        round.mergeMatches = (columnValue.uppercased().left(1) == "Y")
+                    case .vpType:
+                        round.vpType = VpType(columnValue)
+                    case .roundContinuousVPDraw:
+                        round.roundContinuousVPDraw = (columnValue.uppercased() != "EXACT")
                     case .filterParticipantNumberMin:
                         round.filterParticipantNumberMin = columnValue
                     case .filterParticipantNumberMax:

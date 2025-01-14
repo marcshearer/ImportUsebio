@@ -9,7 +9,7 @@ import Foundation
 
 public class GenericCsvParser {
     
-    init?(fileUrl: URL, data: Data, manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, String?)->()) {
+    init?(fileUrl: URL, data: Data, manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, [String])->()) {
         if let dataString = String(data: data, encoding: .utf8) {
             let dataLines = dataString.replacingOccurrences(of: "\n", with: "").components(separatedBy: "\r")
             if let firstLine = dataLines.first(where: {!$0.isEmpty}) {

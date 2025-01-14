@@ -38,7 +38,7 @@ fileprivate class Node {
 public class UsebioParser: NSObject, XMLParserDelegate {
 
     private var data: Data!
-    private var completion: (ScoreData?, String?)->()
+    private var completion: (ScoreData?, [String])->()
     private var parser: XMLParser!
     private let replacingSingleQuote = "@@replacingSingleQuote@@"
     private var root: Node?
@@ -48,15 +48,18 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var warnings: [String] = []
     private var travellerDirection: Direction?
     private var filterSessionId: String?
+    private var roundContinuousVPDraw = true
     private var filterParticipantNumberMin: String?
     private var filterParticipantNumberMax: String?
     private var overrideEventType: EventType? // Used to switch to a specific event type (currently only for head-to-head teams league)
     
-    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, winDrawMethod: WinDrawMethod? = nil, mergeMatches: Bool = false, completion: @escaping (ScoreData?, String?)->()) {
+    init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, roundContinuousVPDraw: Bool = false, winDrawLevel: WinDrawLevel? = nil, mergeMatches: Bool = false, vpType: VpType? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
         self.scoreData.source = .usebio
-        self.scoreData.winDrawMethod = winDrawMethod ?? .board
+        self.scoreData.winDrawLevel = winDrawLevel ?? .board
+        self.scoreData.roundContinuousVPDraw = roundContinuousVPDraw
         self.scoreData.mergeMatches = mergeMatches
+        self.scoreData.vpType = vpType ?? .discrete
         self.completion = completion
         let string = String(decoding: data, as: UTF8.self)
         let replacedQuote = string.replacingOccurrences(of: "&#39;", with: replacingSingleQuote)
@@ -521,9 +524,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         }
     }
     
-    public static func calculateWinDraw(scoreData: ScoreData) -> String? {
+    public static func calculateWinDraw(scoreData: ScoreData) -> [String] {
         var useData: ScoreData?
-        var message: String?
+        var messages: [String] = []
         var suffix: String?
         // Use other sessions if no matches in session being filtered
         if let event = scoreData.events.first {
@@ -534,20 +537,22 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                 useData = scoreData
             }
             if let useEvent = useData?.events.first {
-                if event.type?.requiresWinDraw ?? false && scoreData.winDrawMethod > .participant {
+                if event.type?.requiresWinDraw ?? false && scoreData.winDrawLevel > .participant {
                     if !useEvent.matches.isEmpty {
                         if let matchScoring = event.matchScoring, let boardScoring = event.boardScoring {
-                            message = recalculateMatches(event: useEvent, winDrawMethod: scoreData.winDrawMethod, merge: scoreData.mergeMatches, matchScoring: matchScoring, boardScoring: boardScoring)
+                            if let message = recalculateMatches(event: useEvent, winDrawLevel: scoreData.winDrawLevel, merge: scoreData.mergeMatches, matchScoring: matchScoring, vpType: scoreData.vpType, boardScoring: boardScoring) {
+                                messages.append(message + (suffix ?? ""))
+                            }
                         } else {
-                            message = "Wins/draws rescored from match scores"
+                            messages.append("Wins/draws rescored from match scores" + (suffix ?? ""))
                         }
-                        for participant in event.participants {
-                            participant.winDraw = 0
+                        for participant in event.participants.sorted(by: {$0.place ?? 0 < $1.place ?? 0 }) {
                             if let team = participant.member as? Team {
                                 for pair in team.pairs {
                                     pair.winDraw = 0
                                 }
                             }
+                            var winDraw:Float = 0
                             for match in useEvent.matches.filter({$0.number == participant.member.number || $0.opposingNumber == participant.member.number}) {
                                 
                                 // Add to participant wins/draws
@@ -555,7 +560,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                 if let score = match.vp ?? match.score, let opposingScore = match.opposingVP ?? match.opposingScore {
                                     if score == opposingScore {
                                         increment = 0.5
-                                    } else if scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
+                                    } else if useEvent.matchScoring == .vps && scoreData.roundContinuousVPDraw && score.rounded() == opposingScore.rounded() {
                                         increment = 0.5
                                     } else if score > opposingScore && match.number == participant.member.number {
                                         increment = 1.0
@@ -563,9 +568,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                         increment = 1.0
                                     }
                                 }
-                                participant.winDraw! += increment
-                                
-                                // Add to wins/draws in teams pairs if relevant
+                                winDraw += increment
+                                // Add to wins/draws in teams pairs if relevant (more than 2 pairs/team)
                                 if increment != 0 {
                                     if let team = participant.member as? Team {
                                         for pair in team.pairs {
@@ -577,23 +581,28 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                     }
                                 }
                             }
+                            // Add to participant
+                            if participant.winDraw != winDraw {
+                                messages.append("Win/draws \(participant.winDraw == nil ? "set" : "updated from \(participant.winDraw!)") to \(winDraw) - \(participant.type.string) \(participant.member.name ?? participant.names)")
+                                participant.winDraw = winDraw
+                            }
                         }
                     } else {
-                        message = "No \(scoreData.winDrawMethod.string) level data available for win/draws"
+                        messages.append("No \(scoreData.winDrawLevel.string) level data available for win/draws")
                     }
                 }
             }
         }
-        return (message == nil ? nil : message! + (suffix ?? ""))
+        return messages
     }
     
-    private static func recalculateMatches(event: Event, winDrawMethod: WinDrawMethod, merge: Bool, matchScoring: ScoringMethod, boardScoring: ScoringMethod) -> String? {
+    private static func recalculateMatches(event: Event, winDrawLevel: WinDrawLevel, merge: Bool, matchScoring: ScoringMethod, vpType: VpType, boardScoring: ScoringMethod) -> String? {
         var rescored = 0
         
         if merge {
             UsebioParser.mergeMatches(event: event, scoring: matchScoring)
         }
-        if winDrawMethod == .board {
+        if winDrawLevel == .board {
             // Re-score matches from boards
             for match in event.matches {
                 if !match.boards.isEmpty {
@@ -606,7 +615,11 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                 score = boardTotal
                             }
                         case .vps:
-                            score = BridgeImps(Int(boardTotal)).vp(boards: match.boards.count, maxVp: 20, places: 0)
+                            if vpType == .discrete {
+                                score = Float(BridgeImps(Int(boardTotal)).discreteVp(boards: match.boards.count, maxVp: 20))
+                            } else {
+                                score = Float(BridgeImps(Int(boardTotal)).vp(boards: match.boards.count, maxVp: 20, places: 2))
+                            }
                         }
                         if let score = score, let opposingScore = matchScoring.invert(score: score) {
                             match.score = score
@@ -623,10 +636,10 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                     }
                 }
             }
-        } else if winDrawMethod == .match {
+        } else if winDrawLevel == .match {
             rescored = event.matches.count
         }
-        return "Wins/draws \(rescored == 0 ? "not " : (rescored == event.matches.count ? "" : "partially "))rescored from \(winDrawMethod.plural)"
+        return "Wins/draws \(rescored == 0 ? "not " : (rescored == event.matches.count ? "" : "partially "))rescored from \(winDrawLevel.plural)"
     }
     
     private static func mergeMatches(event: Event, scoring: ScoringMethod) {

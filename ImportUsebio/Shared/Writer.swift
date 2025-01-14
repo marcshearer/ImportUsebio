@@ -89,7 +89,7 @@ class Round {
             result = event.type?.participantType?.players ?? 2
         }
         if let maxTeamMembers = scoreData.maxTeamMembers {
-            result = max(result, maxTeamMembers)
+            result = min(result, maxTeamMembers)
         }
         
         return result
