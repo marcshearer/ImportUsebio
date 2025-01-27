@@ -276,7 +276,7 @@ struct SelectInputView: View {
                                                 .disabled(basis != .standard)
                                             
                                             InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
-                                                .disabled(basis != .headToHead)
+                                                .disabled(basis == Basis.manual)
                                             
                                             Spacer()
                                         }
