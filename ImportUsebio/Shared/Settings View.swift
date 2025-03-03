@@ -22,7 +22,7 @@ struct SettingsView: View {
                     Settings.current.copy(from: settings)
                     Settings.current.save()
                     return true
-                })
+                }, optionMode: .buttons, options: [versionOption])
                 HStack {
                     Spacer().frame(width: 30)
                     VStack {
@@ -151,4 +151,9 @@ struct SettingsView: View {
         }
         .frame(width: 800, height: 580)
     }
+    
+    private var versionOption: BannerOption {
+        BannerOption(text: "Version: \(Version.current.version) (Build \(Version.current.build))", likeBack: true, isEnabled: Binding.constant(false), action: {})
+    }
+    
 }
