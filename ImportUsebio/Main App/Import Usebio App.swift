@@ -29,7 +29,7 @@ struct MyScene: Scene {
                            minHeight: 710, maxHeight: 710)
         }
         .windowResizability(.contentSize)
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase, initial: false) { (_, phase) in
             if phase == .active {
                 
             }

@@ -418,12 +418,14 @@ class Themes {
     
     public static func selectTheme(_ themeName: ThemeName, changeIcon: Bool = false) {
         #if !widget
-            let oldIcon = Themes.currentTheme?.icon
+            #if canImport(UIKit)
+                let oldIcon = Themes.currentTheme?.icon
+            #endif
         #endif
         Themes.currentTheme = Theme(themeName: themeName)
         #if !widget
-            let newIcon = Themes.currentTheme.icon
             #if canImport(UIKit)
+            let newIcon = Themes.currentTheme.icon
                 if UIApplication.shared.supportsAlternateIcons && changeIcon && oldIcon != newIcon {
                     Themes.setApplicationIconName(Themes.currentTheme.icon)
                 }

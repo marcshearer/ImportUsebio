@@ -153,7 +153,7 @@ struct SettingsView: View {
     }
     
     private var versionOption: BannerOption {
-        BannerOption(text: "Version: \(Version.current.version) (Build \(Version.current.build))", likeBack: true, isEnabled: Binding.constant(false), action: {})
+        BannerOption(text: "Version: \(Version.current.version) (Build \(Version.current.build))", color: Palette.alternateBanner, likeBack: true, isEnabled: Binding.constant(false), action: {})
     }
     
 }

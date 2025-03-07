@@ -58,6 +58,7 @@
 		B2EDF4A329C8A0D900FB4F80 /* Settings View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */; };
 		B2EDF4AA29C985D100FB4F80 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A929C985D100FB4F80 /* Settings.swift */; };
 		B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */; };
+		B2EE64CF2D76027200CB73DC /* Debug Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EE64CE2D76027200CB73DC /* Debug Utilities.swift */; };
 		B2FDB96429C4644400888DD9 /* Award.bin in Resources */ = {isa = PBXBuildFile; fileRef = B2FDB96329C4644400888DD9 /* Award.bin */; };
 		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
 		B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F629A636FC00BD43F7 /* Input Float.swift */; };
@@ -120,6 +121,7 @@
 		B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings View.swift"; sourceTree = "<group>"; };
 		B2EDF4A929C985D100FB4F80 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B2EE64CE2D76027200CB73DC /* Debug Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debug Utilities.swift"; sourceTree = "<group>"; };
 		B2FDB96329C4644400888DD9 /* Award.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = Award.bin; sourceTree = "<group>"; };
 		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
 		B2FEA7F629A636FC00BD43F7 /* Input Float.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Float.swift"; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 				B2E1035F29927E0600A35645 /* Version.swift */,
 				B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */,
 				B28D69072994CDCD00BA73E5 /* File System.swift */,
+				B2EE64CE2D76027200CB73DC /* Debug Utilities.swift */,
 			);
 			name = Utilities;
 			sourceTree = "<group>";
@@ -482,6 +485,7 @@
 				B2E1037329927EB100A35645 /* Themes.swift in Sources */,
 				B2E103932992806F00A35645 /* Toolbar View.swift in Sources */,
 				B2E103B22992857D00A35645 /* Import Usebio App.swift in Sources */,
+				B2EE64CF2D76027200CB73DC /* Debug Utilities.swift in Sources */,
 				B2E1036C29927EB100A35645 /* Palette.swift in Sources */,
 				B2E1039E2992806F00A35645 /* Banner.swift in Sources */,
 				B2E1037029927EB100A35645 /* Utility Extension.swift in Sources */,
@@ -627,7 +631,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -657,7 +661,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_HARDENED_RUNTIME = YES;

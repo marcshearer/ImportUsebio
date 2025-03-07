@@ -71,7 +71,8 @@ struct Input : View {
                                 Spacer().frame(height: (MyApp.target == .macOS ? 2 :10))
                                 SecureField("", text: $field)
                                     .font(inputFont)
-                                    .onChange(of: field, perform: { (value) in onChange?(value) })
+                                    .onChange(of: field, initial: false) { (_, value) in onChange?(value)
+                                    }
                                     .textFieldStyle(PlainTextFieldStyle())
                                     .disabled(!isEnabled || isReadOnly)
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
@@ -83,7 +84,10 @@ struct Input : View {
                                 if isEnabled && !isReadOnly {
                                     TextEditor(text: $field)
                                         .font(inputFont)
-                                        .onChange(of: field, perform: { (value) in onChange?(value) })
+                                        .onChange(of: field, initial: false)
+                                        { (_, value) in
+                                            onChange?(value)
+                                        }
                                         .disabled(!isEnabled || isReadOnly)
                                         .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
                                         .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
@@ -110,7 +114,9 @@ struct Input : View {
                         } else {
                             TextField("", text: $field)
                                 .font(inputFont)
-                                .onChange(of: field, perform: { (value) in onChange?(value) })
+                                .onChange(of: field, initial: false) { (_, value) in
+                                    onChange?(value)
+                                }
                                 .textFieldStyle(PlainTextFieldStyle())
                                 .foregroundColor(Palette.input.text)
                                 .background(Palette.input.background)

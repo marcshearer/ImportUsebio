@@ -205,6 +205,7 @@ struct Banner_Buttons : View {
     var backButtonColor: Color
     
     var body: some View {
+
         HStack {
             ForEach(options.indices, id: \.self) { (index) in
                 let option = options[index]
@@ -214,38 +215,37 @@ struct Banner_Buttons : View {
                                         (option.color ?? buttonColor).faintText)
                 if !option.isHidden {
                     HStack {
-                        Button {
-                            option.action()
-                        } label: {
-                            VStack {
+                        VStack {
+                            if !option.likeBack {
+                                Spacer().frame(height: 6)
+                            }
+                            HStack {
                                 if !option.likeBack {
-                                    Spacer().frame(height: 6)
+                                    Spacer().frame(width: 16)
                                 }
-                                HStack {
-                                    if !option.likeBack {
-                                        Spacer().frame(width: 16)
-                                    }
-                                    if option.image != nil {
-                                        option.image.foregroundColor(foregroundColor)
-                                    }
-                                    if option.image != nil && option.text != nil {
-                                        Spacer().frame(width: 16)
-                                    }
-                                    if option.text != nil {
-                                        Text(option.text ?? "").foregroundColor(foregroundColor)
-                                    }
-                                    if !option.likeBack {
-                                        Spacer().frame(width: 16)
-                                    }
+                                if option.image != nil {
+                                    option.image.foregroundColor(foregroundColor)
+                                }
+                                if option.image != nil && option.text != nil {
+                                    Spacer().frame(width: 16)
+                                }
+                                if option.text != nil {
+                                    Text(option.text ?? "").foregroundColor(foregroundColor)
                                 }
                                 if !option.likeBack {
-                                    Spacer().frame(height: 6)
+                                    Spacer().frame(width: 16)
                                 }
                             }
+                            if !option.likeBack {
+                                Spacer().frame(height: 6)
+                            }
                         }
+                        .onTapGesture {
+                            option.action()
+                        }
+                        .background(backgroundColor)
                         .disabled(!option.isEnabled)
                         .font(alternateStyle || MyApp.format == .phone ? alternateBannerFont : bannerFont)
-                        .background(backgroundColor)
                         .cornerRadius(option.likeBack ? 0 : 10.0)
                         if index != options.count - 1 {
                             Spacer().frame(width: 16)

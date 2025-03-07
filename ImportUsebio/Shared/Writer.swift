@@ -370,11 +370,6 @@ class SummaryWriter : WriterBase {
         for column in [localMPsColumn, nationalMPsColumn, checksumColumn] {
             highlightTotalDifferent(row: exportedRow!, compareRow: totalRow!, column: column!)
         }
-        
-        // Add macro buttons to summary
-        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 1, column: checksumColumn! + 1)
-        writer.createMacroButton(worksheet: worksheet, title: "Select Formatted", macro: "SelectFormatted", row: 4, column: checksumColumn! + 1)
-        
     }
     
     private func writeTotal(column: Int?, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -446,11 +441,6 @@ class FormattedWriter: WriterBase {
         setRow(worksheet: worksheet, row: titleRow, height: 50)
         worksheet_fit_to_pages(worksheet, 1, 0)
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
-        var rows: [lxw_row_t] = []
-        for row in 1...((writer.maxPlayers / Settings.current.linesPerFormattedPage)) {
-            rows.append(lxw_row_t(row*Settings.current.linesPerFormattedPage + 1))
-            worksheet_set_h_pagebreaks(worksheet, &rows)
-        }
         worksheet_repeat_rows(worksheet, 0, 0)
         worksheet_set_header(worksheet, "&C&14\(writer.eventDescription) - Master Point Allocations")
         worksheet_set_footer(worksheet,"&RPage &P of &N")
@@ -476,8 +466,6 @@ class FormattedWriter: WriterBase {
             if singleEvent {
                 if let referenceDynamic = column.referenceDynamic {
                     writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: { referenceDynamic() }, format: column.format ?? bodyFormat)
-                } else if let calculatedContent = column.calculatedContent {
-                    
                 }
             } else {
                 let consolidated = writer.consolidated!
@@ -497,7 +485,8 @@ class FormattedWriter: WriterBase {
         }
         leftRightFormula += "))"
         
-        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),AND(Printing,MOD(ROW($A2), \(Settings.current.linesPerFormattedPage ?? 32))=1)"
+        let csvImport = writer.csvImport!
+        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),AND(Printing,MOD(ROW($A2),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
         if singleEvent && twoWinners{
             let columnRef = columnRef(directionColumn!, fixed: true)
             bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3))"
@@ -785,22 +774,24 @@ class CsvImportWriter: WriterBase {
     override var name: String { "Import" }
     var localMpsCell: String?
     var nationalMpsCell: String?
+    var linesPerPageCell: String?
     var checksumCell: String?
     
     let eventDescriptionRow = 0
     let eventCodeRow = 1
-    let minRankRow = 2
-    let maxRankRow = 3
-    let eventDateRow = 4
-    let clubCodeRow = 5
-    let sortByRow = 7
-    let awardsRow = 8
-    let localMPsRow = 9
-    let nationalMPsRow = 10
-    let checksumRow = 11
+    let linesPerPageRow = 2
+    let minRankRow = 3
+    let maxRankRow = 4
+    let eventDateRow = 5
+    let clubCodeRow = 6
+    let sortByRow = 8
+    let awardsRow = 9
+    let localMPsRow = 10
+    let nationalMPsRow = 11
+    let checksumRow = 12
     
-    let titleRow = 13
-    let dataRow = 14
+    let titleRow = 14
+    let dataRow = 15
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -830,11 +821,14 @@ class CsvImportWriter: WriterBase {
         // Define ranges
         workbook_define_name(writer.workbook, "ImportDateArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, eventDateColumn, columnFixed: true)))")
         workbook_define_name(writer.workbook, "ImportTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, eventDateColumn, columnFixed: true)):\(cell(titleRow, rowFixed: true, nationalMPsColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportEventDescriptionCell", "=\(cell(writer: self, eventDescriptionRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
         
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
-        // Add macro button
+        // Add macro buttons
         writer.createMacroButton(worksheet: worksheet, title: "Copy Import", macro: "CopyImport", row: 1, column: 4)
+        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 4, column: 4)
         
         // Format rows/columns
         setRow(worksheet: worksheet, row: titleRow, height: 30)
@@ -858,6 +852,10 @@ class CsvImportWriter: WriterBase {
         // Parameters etc
         write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event:", format: formatBold)
         write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, string: writer.eventDescription)
+        
+        write(worksheet: worksheet, row: linesPerPageRow, column: titleColumn, string: "Lines/page:", format: formatBold)
+        write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32)
+        linesPerPageCell = cell(linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: eventCodeRow, column: titleColumn, string: "Event Code:", format: formatBold)
         write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, string: writer.eventCode)

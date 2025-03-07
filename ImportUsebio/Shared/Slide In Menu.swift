@@ -154,9 +154,9 @@ struct SlideInMenuView : View {
                 .if(offset != 0 && values.animation == .fade) { (view) in
                     view.hidden()
                 }
-                .onChange(of: values.shown, perform: { value in
+                .onChange(of: values.shown, initial: true) { (_, value) in
                     offset = (values.shown == id ? (values.left == nil ? 0 : min(0, (values.left! + values.width - geometry.size.width))) : values.width + 20)
-                })
+                }
                 .animation(values.animation == .none || values.shown != id ? .none : .easeInOut, value: offset)
                 .onAppear {
                     SlideInMenu.shared.width = 300

@@ -79,7 +79,7 @@ struct InputInt : View {
         .onAppear {
             text = "\(field.wrappedValue)"
         }
-        .onChange(of: field.wrappedValue) { (field) in
+        .onChange(of: field.wrappedValue, initial: false) { (_, field) in
             text = "\(field)"
         }
     }

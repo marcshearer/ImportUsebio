@@ -13,7 +13,7 @@ class MyColor : UIColor {
     static override var black: MyColor { return UIColor.black as! MyColor}
 }
 #else
-class MyColor: NSColor {
+class MyColor: NSColor, @unchecked Sendable {
     
     convenience init(dynamicProvider: (MyTraitCollection)->MyColor) {
         let color = dynamicProvider(MyTraitCollection())
