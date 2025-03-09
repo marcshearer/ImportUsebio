@@ -173,6 +173,7 @@ class Writer: WriterBase {
         consolidated.write()
         parameters.writeSortBy()
         parameters.writeRanks()
+        parameters.writeOrientation()
         csvImport.write()
         summary.write()
         missing.write()
@@ -211,6 +212,8 @@ class ParametersWriter : WriterBase {
     
     let ranksFromColumn = 4
     let ranksCategoryColumn = 5
+    
+    let pageOrientationColumn = 7
    
     let headerRow = 0
     let dataRow = 1
@@ -285,6 +288,14 @@ class ParametersWriter : WriterBase {
         
         workbook_define_name(writer.workbook, "RanksCategory", "=\(cell(writer: self, dataRow, rowFixed: true, ranksCategoryColumn, columnFixed: true)):\(cell(writer: self, dataRow + ranksData.count - 1, rowFixed: true, ranksCategoryColumn, columnFixed: true))")
 
+    }
+    
+    func writeOrientation() {
+        write(worksheet: worksheet, row: headerRow, column: pageOrientationColumn, string: "Orientation", format: formatBold)
+        write(worksheet: worksheet, row: dataRow, column: pageOrientationColumn, string: "Portrait")
+        write(worksheet: worksheet, row: dataRow + 1, column: pageOrientationColumn, string: "Landscape")
+        
+        workbook_define_name(writer.workbook, "PageOrientation", "=\(cell(writer: self, dataRow, rowFixed: true, pageOrientationColumn, columnFixed: true)):\(cell(writer: self, dataRow + 1, rowFixed: true, pageOrientationColumn, columnFixed: true))")
     }
 }
 
@@ -775,23 +786,25 @@ class CsvImportWriter: WriterBase {
     var localMpsCell: String?
     var nationalMpsCell: String?
     var linesPerPageCell: String?
+    var pageOrientationCell: String?
     var checksumCell: String?
     
     let eventDescriptionRow = 0
     let eventCodeRow = 1
     let linesPerPageRow = 2
-    let minRankRow = 3
-    let maxRankRow = 4
-    let eventDateRow = 5
-    let clubCodeRow = 6
-    let sortByRow = 8
-    let awardsRow = 9
-    let localMPsRow = 10
-    let nationalMPsRow = 11
-    let checksumRow = 12
+    let pageOrientationRow = 3
+    let minRankRow = 4
+    let maxRankRow = 5
+    let eventDateRow = 6
+    let clubCodeRow = 7
+    let sortByRow = 9
+    let awardsRow = 10
+    let localMPsRow = 11
+    let nationalMPsRow = 12
+    let checksumRow = 13
     
-    let titleRow = 14
-    let dataRow = 15
+    let titleRow = 15
+    let dataRow = 16
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -823,6 +836,7 @@ class CsvImportWriter: WriterBase {
         workbook_define_name(writer.workbook, "ImportTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, eventDateColumn, columnFixed: true)):\(cell(titleRow, rowFixed: true, nationalMPsColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportEventDescriptionCell", "=\(cell(writer: self, eventDescriptionRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportPageOrientationCell", "=\(cell(writer: self, pageOrientationRow, rowFixed: true, valuesColumn, columnFixed: true))")
         
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
@@ -850,12 +864,20 @@ class CsvImportWriter: WriterBase {
         setColumn(worksheet: worksheet, column: lookupPaymentStatusColumn, width: 25)
         
         // Parameters etc
-        write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event:", format: formatBold)
+        let parameters = writer.parameters!
+        
+        write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event name:", format: formatBold)
         write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, string: writer.eventDescription)
         
         write(worksheet: worksheet, row: linesPerPageRow, column: titleColumn, string: "Lines/page:", format: formatBold)
-        write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32)
+        write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32, format: formatString)
         linesPerPageCell = cell(linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: pageOrientationRow, column: titleColumn, string: "Orientation:", format: formatBold)
+        write(worksheet: worksheet, row: pageOrientationRow, column: valuesColumn, string: "Portrait")
+        pageOrientationCell = cell(linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
+        let orientationValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true)):\(cell(parameters.dataRow + 1, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true))"
+        setDataValidation(row: pageOrientationRow, column: valuesColumn, formula: orientationValidationRange)
         
         write(worksheet: worksheet, row: eventCodeRow, column: titleColumn, string: "Event Code:", format: formatBold)
         write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, string: writer.eventCode)
@@ -873,10 +895,9 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: "", format: formatString)
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
-        let parameters = writer.parameters!
         let sortData = parameters.sortData
-        let validationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.sortNameColumn, columnFixed: true)):\(cell(parameters.dataRow + sortData.count - 1, rowFixed: true, parameters.sortNameColumn, columnFixed: true))"
-        setDataValidation(row: sortByRow, column: valuesColumn, formula: validationRange)
+        let sortValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.sortNameColumn, columnFixed: true)):\(cell(parameters.dataRow + sortData.count - 1, rowFixed: true, parameters.sortNameColumn, columnFixed: true))"
+        setDataValidation(row: sortByRow, column: valuesColumn, formula: sortValidationRange)
         write(worksheet: worksheet, row: sortByRow, column: valuesColumn, string: sortData.first!.name, format: formatInt)
 
         write(worksheet: worksheet, row: awardsRow, column: titleColumn, string: "Award count:", format: formatBold)
