@@ -9,6 +9,7 @@ import Foundation
 
 fileprivate enum Phase : String {
     case starting = ""
+    case instructions = "INSTRUCTIONS"
     case parameters = "PARAMETERS"
     case parameterValues = "PARAMETERVALUES"
     case round = "ROUND"
@@ -19,6 +20,8 @@ fileprivate enum Phase : String {
     var nextPhases : [Phase] {
         switch self {
         case .starting:
+            return [.parameters, .instructions]
+        case .instructions:
             return [.parameters]
         case .parameters:
             return [.parameterValues]
@@ -131,6 +134,8 @@ public class ManualCsvParser {
             
             switch phase {
             case .starting:
+                break
+            case .instructions:
                 break
             case .parameters:
                 scoreData.events.append(Event())
