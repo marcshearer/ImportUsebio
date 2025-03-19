@@ -37,8 +37,9 @@ class Column {
     var format: UnsafeMutablePointer<lxw_format>?
     var width: Float?
     var roundNumber: Int?
+    var sortedDynamic: Bool = false
     
-    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil, aggregateAs: String? = nil, roundNumber: Int? = nil) {
+    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, playerNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil, aggregateAs: String? = nil, roundNumber: Int? = nil, sortedDynamic: Bool = false) {
         self.title = title
         self.content = content
         self.playerContent = playerContent
@@ -51,6 +52,7 @@ class Column {
         self.width = width
         self.aggregateAs = aggregateAs
         self.roundNumber = roundNumber
+        self.sortedDynamic = sortedDynamic
     }
 }
 
@@ -269,7 +271,7 @@ class ParametersWriter : WriterBase {
     
     func writeRanks() {
         ranksData = [ (  0, "Bronze"),
-                      (  1, ""      ),
+                      (  1, "Non-SBU"),
                       (  2, "Bronze"),
                       (165, "Silver"),
                       (190, "Gold"  )]
@@ -401,13 +403,12 @@ class FormattedWriter: WriterBase {
     override var name: String { "Formatted" }
     let titleRow = 0
     let dataRow = 1
-    let nameColumn = 0
-    let roundsColumn = 1
+    var nameColumn: Int?
     var columns: [Column] = []
     var leftRightColumns: [String] = []
     var directionColumn: Int?
     var hiddenColumns: [Int] = []
-    var rankColumn: [Int] = []
+    var categoryColumn: Int?
     
     var formatBannerString: UnsafeMutablePointer<lxw_format>?
     var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
@@ -444,7 +445,7 @@ class FormattedWriter: WriterBase {
         setupColumns()
         
         // Define ranges
-        workbook_define_name(writer.workbook, "FormattedNameArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, nameColumn, columnFixed: true)))")
+        workbook_define_name(writer.workbook, "FormattedNameArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, nameColumn!, columnFixed: true)))")
         workbook_define_name(writer.workbook, "FormattedTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, 0, columnFixed: true)):\(cell(titleRow, rowFixed: true, columns.count - 1, columnFixed: true))")
         workbook_define_name(writer.workbook, "Printing", "=false")
         
@@ -474,7 +475,7 @@ class FormattedWriter: WriterBase {
             }
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: column.title, format: bannerFormat)
             
-            if singleEvent {
+            if !column.sortedDynamic {
                 if let referenceDynamic = column.referenceDynamic {
                     writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: { referenceDynamic() }, format: column.format ?? bodyFormat)
                 }
@@ -487,20 +488,30 @@ class FormattedWriter: WriterBase {
             }
         }
         
-        var leftRightFormula = "AND($A2<>\"\",OR("
+        if let categoryColumn = categoryColumn {
+            let categoryDataAddress = cell(dataRow, rowFixed: false, categoryColumn, columnFixed: true)
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: categoryColumn, toRow: dataRow + writer.maxPlayers - 1, toColumn: categoryColumn, formula: "=(\(categoryDataAddress)=\"Non-SBU\")", stopIfTrue: false, format: formatFaint!)
+        }
+        
+        let titleAddress = cell(titleRow, rowFixed: true, 0, columnFixed: false)
+        let nameDataAddress = cell(dataRow, rowFixed: false, nameColumn!, columnFixed: true)
+        let nextNameDataAddress = cell(dataRow + 1, rowFixed: false, nameColumn!, columnFixed: true)
+        
+        var leftRightFormula = "AND(\(nameDataAddress)<>\"\",OR("
         for (columnNumber, column) in leftRightColumns.enumerated() {
             if columnNumber != 0 {
                 leftRightFormula += ","
             }
-            leftRightFormula += "A$1=\"\(column)\""
+            leftRightFormula += "\(titleAddress)=\"\(column)\""
         }
         leftRightFormula += "))"
         
         let csvImport = writer.csvImport!
-        var bottomFormula = "OR(AND($A3=\"\",$A2<>\"\"),AND(Printing,MOD(ROW($A2),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
-        if singleEvent && twoWinners{
-            let columnRef = columnRef(directionColumn!, fixed: true)
-            bottomFormula += ",AND($A2<>\"\",\(columnRef)2<>\(columnRef)3))"
+        var bottomFormula = "OR(AND(\(nextNameDataAddress)=\"\",\(nameDataAddress)<>\"\"),AND(Printing,MOD(ROW(\(nameDataAddress)),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
+        if singleEvent && twoWinners {
+            let directionAddress = cell(dataRow, rowFixed: false, nameColumn!, columnFixed: true)
+            let nextDirectionAddress = cell(dataRow + 1, rowFixed: false, nameColumn!, columnFixed: true)
+            bottomFormula += ",AND(\(nameDataAddress)<>\"\",\(directionAddress)<>\(nextDirectionAddress)))"
         } else {
             bottomFormula += ")"
         }
@@ -523,10 +534,11 @@ class FormattedWriter: WriterBase {
         var local = false
         var national = false
         var aggregateColumns: [String: [Column]] = [:]
-        var nationalIdColumn: [Int] = []
-            
+        
         if (singleEvent) {
-            let round = writer.rounds.first!
+            var nationalIdColumn: [Int] = []
+            var rankColumn: [Int] = []
+            
             let ranksPlusMPs = round.ranksPlusMps!
             
             for playerNumber in 0..<round.maxParticipantPlayers {
@@ -551,8 +563,10 @@ class FormattedWriter: WriterBase {
             leftRightColumns.append(columns.last!.title)
             
             columns.append(Column(title: (round.maxParticipantPlayers == event.type!.participantType!.players ? "Names" : "Names           *Awards for team members will vary by boards played"), referenceDynamic: { [self] in ranksNamesRef() }, cellType: .string, width: Float(round.maxParticipantPlayers) * (18.0 - Float(round.maxParticipantPlayers))))
+            nameColumn = columns.count - 1
             
-            columns.append(Column(title: "Category", referenceDynamic: { [self] in categoryNamesRef() }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
+            columns.append(Column(title: "Category", referenceDynamic: { [self] in categoryNamesRef(rankColumn: rankColumn) }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
+            categoryColumn = columns.count - 1
             
             columns.append(Column(title: "Score", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.scoreColumn!)))" }, cellType: .numericFormula))
             
@@ -564,12 +578,24 @@ class FormattedWriter: WriterBase {
             leftRightColumns.append(columns.last!.title)
             
         } else {
+            columns.append(Column(title: "National ID", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalIdColumn!))" }, cellType: .numericFormula, width: 9, sortedDynamic: true))
+            let nationalIdColumn = columns.count - 1
+            hiddenColumns.append(columns.count - 1)
             
-            columns.append(Column(title: "Name", referenceDynamic: { [self] in "CONCATENATE(\(consolidatedArrayRef(column: consolidated.firstNameColumn!)),\" \",\(consolidatedArrayRef(column: consolidated.otherNamesColumn!)))" }, cellType: .stringFormula, width: 30))
+            columns.append(Column(title: "Rank", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
+            let rankColumn = columns.count - 1
+            hiddenColumns.append(columns.count - 1)
+            
+            columns.append(Column(title: "Name", referenceDynamic: { [self] in "CONCATENATE(\(consolidatedArrayRef(column: consolidated.firstNameColumn!)),\" \",\(consolidatedArrayRef(column: consolidated.otherNamesColumn!)))" }, cellType: .stringFormula, width: 30, sortedDynamic: true))
+            nameColumn = columns.count - 1
             leftRightColumns.append(columns.last!.title)
             
+            columns.append(Column(title: "Category", referenceDynamic: { [self] in "=\(categoryNameRef(rankColumn: rankColumn)))" }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
+            leftRightColumns.append(columns.last!.title)
+            categoryColumn = columns.count - 1
+            
             for (roundNumber, round) in rounds.enumerated() {
-                let column = Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber)
+                let column = Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber, sortedDynamic: true)
                 columns.append(column)
                 if round.scoreData.national {
                     national = true
@@ -594,21 +620,21 @@ class FormattedWriter: WriterBase {
                         reference += "\(consolidatedArrayRef(column: consolidated.dataColumn! + column.roundNumber!))"
                     }
                     
-                    columns.insert(Column(title: title.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { reference }, cellType: .floatFormula, width: 10), at: position + 1)
+                    columns.insert(Column(title: title.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { reference }, cellType: .floatFormula, width: 10, sortedDynamic: true), at: position + 1)
                 }
             }
             
             if local {
-                columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))" }, cellType: .floatFormula, width: 10))
+                columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
             }
             if national {
-                columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10))
+                columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
                 
             }
             if local && national {
-                columns.append(Column(title: "Total MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))+\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10))
+                columns.append(Column(title: "Total MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))+\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
             }
         }
@@ -656,7 +682,7 @@ class FormattedWriter: WriterBase {
         return ranksArrayRef(arrayContent: arrayContent)
     }
     
-    private func categoryNamesRef() -> String {
+    private func categoryNamesRef(rankColumn: [Int]) -> String {
         let round = writer.rounds.first!
         
         var arrayContent = "CombinedCategory("
@@ -669,6 +695,10 @@ class FormattedWriter: WriterBase {
         arrayContent += ")"
         
         return arrayContent
+    }
+    
+    private func categoryNameRef(rankColumn: Int) -> String {
+       return "CombinedCategory(\(arrayRef)(\(cell(dataRow, rowFixed: true, rankColumn, columnFixed: true)))"
     }
     
     private func zeroFiltered(arrayContent: String) -> String {
@@ -1951,6 +1981,7 @@ class WriterBase {
     var formatRedHatched: UnsafeMutablePointer<lxw_format>?
     var formatYellow: UnsafeMutablePointer<lxw_format>?
     var formatGrey: UnsafeMutablePointer<lxw_format>?
+    var formatFaint: UnsafeMutablePointer<lxw_format>?
     
     var round: Round!
     var name: String { fatalError() }
@@ -1995,6 +2026,7 @@ class WriterBase {
             self.formatRedHatched = writer.formatRedHatched
             self.formatYellow = writer.formatYellow
             self.formatGrey = writer.formatGrey
+            self.formatFaint = writer.formatFaint
         }
     }
     
@@ -2143,8 +2175,9 @@ class WriterBase {
         formatYellow = workbook_add_format(workbook)
         format_set_bg_color(formatYellow, 0xFFFB00)
         formatGrey = workbook_add_format(workbook)
-        format_set_bg_color(formatGrey, 0xc0C0C0C0)
-
+        format_set_bg_color(formatGrey, 0xC0C0C0)
+        formatFaint = workbook_add_format(workbook)
+        format_set_font_color(formatFaint, 0xD9D9D9)
     }
     
     // MARK: - Helper routines
