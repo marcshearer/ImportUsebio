@@ -11,6 +11,8 @@ Go into Terminal and navigate to Downloads
 Run "unzip <filename>.xlsm"
 Look in xl directory and move .bin file to /Users/marcshearer/Library/Containers/MarcShearer.ImportUsebio/Data directory
 Remove old Award.bin and rename new .bin file to Award.bin
+Save version of Award.bas in this project
+Save version of Award.bin in this project
 
 Pods problem
 ------------
