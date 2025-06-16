@@ -95,22 +95,84 @@ Function FormatNames(ParamArray paramNames() As Variant) As String()
 error:
 1        Exit Function
 End Function
+
+Function CombinedCategory(ParamArray paramRanks() As Variant) As String()
+        Dim Result() As String
+        
+        rankList = paramRanks(LBound(paramRanks))
+        ReDim Result(LBound(rankList) To UBound(rankList), 0)
+        
+        For Row = LBound(rankList) To UBound(rankList)         ' 1 to rows
+            Result(Row, 0) = ""
+            HighestRank = -1
+            For i = LBound(paramRanks) To UBound(paramRanks)    '0 to 1 for pairs or 0 to 3 teams
+                Rank = paramRanks(i)(Row)
+                For lookupRow = 1 To Range("RanksFrom").Rows.Count   '1 to 5
+                    If Rank >= CInt(Range("RanksFrom").Cells(lookupRow, 1).Value) Then
+                        Value = Range("RanksCategory").Cells(lookupRow, 1).Value
+                    End If
+                Next
+                RankCategory = Value
+                
+                If RankCategory = "" Then
+                    ' Invalid rank - exclude
+                    Result(Row, 0) = ""
+                    HighestRank = 9999
+                Else
+                ' Use if higher than previous
+                    If Rank > HighestRank Then
+                        Result(Row, 0) = RankCategory
+                        HighestRank = Rank
+                    End If
+                End If
+            Next
+        Next
+        CombinedCategory = Result
+End Function
+
 Sub SelectFormatted()
     Dim ColumnArray As Range
     Dim TitleRow As Range
     Dim SaveArea As Range
-    Dim FileName As String
+    Dim Filename As String
     Dim MyWorksheet As Worksheet
     
     Set ColumnArray = Range("FormattedNameArray")
     Set TitleRow = Range("FormattedTitleRow")
-    FileName = ActiveWorkbook.FullName
-    FileName = Replace(FileName, ".xlsm", ".htm")
+    Filename = ActiveWorkbook.FullName
+    Filename = Replace(Filename, ".xlsm", ".htm")
     Height = ColumnArray.Rows.Count
     RowWidth = TitleRow.Columns.Count
-    Set SaveArea = Range(TitleRow(1, RowWidth), ColumnArray(Height + 1, 1))
+    Set SaveArea = Range(TitleRow(1, RowWidth), ColumnArray(Height, 1))
     ActiveWorkbook.Worksheets("Formatted").Select
     SaveArea.Select
+End Sub
+Sub PrintFormatted()
+    Dim Filename As String
+    
+    Filename = ActiveWorkbook.FullName
+    Filename = Replace(Filename, ".xlsm", ".pdf")
+    
+    Title = Range("ImportEventDescriptionCell").Value + " - Master Point Allocations"
+    RowsPerPage = Range("ImportLinesPerPageCell").Value
+
+    ActiveWorkbook.Names("Printing").Value = "=True"
+    
+    ActiveWorkbook.Worksheets("Formatted").Select
+    ActiveSheet.ResetAllPageBreaks
+    For Row = 1 To (Range("FormattedNameArray").Rows.Count / RowsPerPage)
+            ActiveSheet.Rows((Row * RowsPerPage) + 2).PageBreak = xlPageBreakManual
+    Next
+    ActiveSheet.PageSetup.CenterHeader = Title
+    If UCase(Range("ImportPageOrientationCell").Value) = "LANDSCAPE" Then
+        ActiveSheet.PageSetup.Orientation = xlLandscape
+    Else
+        ActiveSheet.PageSetup.Orientation = xlPortrait
+    End If
+    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=Filename, IncludeDocProperties:=True, OpenAfterPublish:=True
+    ActiveSheet.ResetAllPageBreaks
+    ActiveWorkbook.Worksheets("Import").Select
+    ActiveWorkbook.Names("Printing").Value = "=False"
 End Sub
 
 Function IntegerPart(ByVal Value As Variant) As Long
@@ -144,6 +206,13 @@ Function CheckSum(MPs() As Variant, NationalIds() As Variant) As Double
 label:
     CheckSum = CVErr(xlErrNA)
 End Function
+
+Sub Auto_Open()
+    ' Automatically run when Workbook opened to set 'Save External Link Values' to false to keep file size down
+    With ActiveWorkbook
+        .SaveLinkValues = False
+    End With
+End Sub
 
 
 
