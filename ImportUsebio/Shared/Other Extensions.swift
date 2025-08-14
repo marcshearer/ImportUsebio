@@ -385,7 +385,7 @@ extension Float {
 }
 
 extension Decimal {
-    func toString(places: Int) -> String{
+    func toString(places: Int) -> String {
         return "\(self)"
     }
 }
@@ -393,6 +393,10 @@ extension Decimal {
 extension Int {
     var sign: Int {
         return (self == 0 ? 0 : (self > 0 ? 1 : -1))
+    }
+    
+    func toString() -> String {
+        return "\(self)"
     }
 }
 

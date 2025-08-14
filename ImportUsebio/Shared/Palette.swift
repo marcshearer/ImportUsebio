@@ -32,9 +32,7 @@ class Palette {
     @BackgroundColor(.gridTable) static var gridTable
     @BackgroundColor(.gridTableDisabled) static var gridTableDisabled
     @BackgroundColor(.autoComplete) static var autoComplete
-    @BackgroundColor(.contractSelected) static var contractSelected
-    @BackgroundColor(.contractUnselected) static var contractUnselected
-    @BackgroundColor(.contractDisabled) static var contractDisabled
+    @BackgroundColor(.pickerButton) static var pickerButton
     @BackgroundColor(.divider) static var divider
     @BackgroundColor(.separator) static var separator
     @BackgroundColor(.listButton) static var listButton

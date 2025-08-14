@@ -22,6 +22,7 @@ fileprivate protocol EnumProtocol {
 fileprivate enum EventColumn: String, EnumProtocol {
     case description = "EVENT DESCRIPTION"
     case code = "EVENT CODE"
+    case clubCode = "CLUB CODE"
     case minRank = "MIN RANK"
     case maxRank = "MAX RANK"
     case localNational = "LOCAL / NATIONAL"
@@ -79,6 +80,7 @@ enum LocalNational: String {
 class ImportEvent {
     var description: String?
     var code: String?
+    var clubCode: String?
     var minRank: Int?
     var maxRank: Int?
     var localNational: LocalNational?
@@ -225,7 +227,7 @@ class ImportRounds {
             }
         }
         
-        error = checkExists(in: eventColumns, columns: .description, .code, .localNational)
+        error = checkExists(in: eventColumns, columns: .description, .code, .clubCode, .localNational)
         
         return error
     }
@@ -242,6 +244,8 @@ class ImportRounds {
                         event?.description = columnValue
                     case .code:
                         event?.code = columnValue
+                    case .clubCode:
+                        event?.clubCode = columnValue
                     case .localNational:
                         event?.localNational = LocalNational(rawValue: columnValue.uppercased())
                     case .minRank:

@@ -33,6 +33,8 @@ class MyApp {
         }
     }
     
+    static let objectModel = Model(eventEntity, clubEntity, rankEntity)
+    
     static let shared = MyApp()
     
     static let defaults = UserDefaults(suiteName: appGroup)!
@@ -52,6 +54,7 @@ class MyApp {
     public static var format: Format = .tablet
  
     public func start() {
+        MasterData.shared.load()
         Themes.selectTheme(.standard)
         self.registerDefaults()
         #if !widget

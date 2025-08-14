@@ -43,7 +43,7 @@ class MessageBox : ObservableObject {
 }
 
 struct MessageBoxView: View {
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     @State var suppressIcon: Bool = false
     @ObservedObject var values = MessageBox.shared
     @State var showIcon = true

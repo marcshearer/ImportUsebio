@@ -92,9 +92,7 @@ enum ThemeBackgroundColorName: CaseIterable {
     case gridTable
     case gridTableDisabled
     case autoComplete
-    case contractSelected
-    case contractUnselected
-    case contractDisabled
+    case pickerButton
     case divider
     case separator
     case listButton
@@ -366,7 +364,7 @@ class Themes {
                 .bannerShadow                : ThemeColor(#colorLiteral(red: 0, green: 0.5529411765, blue: 0.7647058824, alpha: 1), nil, .lightBackground),
                 .bannerButton                : ThemeColor(#colorLiteral(red: 0, green: 0.5158219337, blue: 0.7037338614, alpha: 1), nil, .lightBackground),
                 .alternateBanner             : ThemeColor(#colorLiteral(red: 0.8784313725, green: 0.8784313725, blue: 0.8784313725, alpha: 1), #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1), .midBackground, .darkBackground),
-                .alternateBannerButton       : ThemeColor(#colorLiteral(red: 0, green: 0.5152708056, blue: 0.7039544028, alpha: 1), #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1), .darkBackground, .darkBackground),
+                .alternateBannerButton       : ThemeColor(#colorLiteral(red: 0.6286649108, green: 0.6231410503, blue: 0.6192827821, alpha: 1), #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1), .lightBackground, .darkBackground),
                 .destructiveButton           : ThemeColor(#colorLiteral(red: 0.9981788993, green: 0.2295429707, blue: 0.1891850233, alpha: 1), nil, .darkBackground),
                 .background                  : ThemeColor(#colorLiteral(red: 0.9411764706, green: 0.9411764706, blue: 0.9411764706, alpha: 1), #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1), .lightBackground, .darkBackground),
                 .alternate                   : ThemeColor(#colorLiteral(red: 0.8784313725, green: 0.8784313725, blue: 0.8784313725, alpha: 1), #colorLiteral(red: 0.2, green: 0.2, blue: 0.2, alpha: 1), .midBackground, .darkBackground),
@@ -377,16 +375,14 @@ class Themes {
                 .header                      : ThemeColor(#colorLiteral(red: 0.3921568627, green: 0.5490196078, blue: 0.5490196078, alpha: 1), #colorLiteral(red: 0.6286649108, green: 0.6231410503, blue: 0.6192827821, alpha: 1), .darkBackground,  .lightBackground),
                 .subHeader                   : ThemeColor(#colorLiteral(red: 0.4705882353, green: 0.7058823529, blue: 0.7843137255, alpha: 1), #colorLiteral(red: 0.3921568627, green: 0.5490196078, blue: 0.5490196078, alpha: 1), .darkBackground,  .lightBackground),
                 .divider                     : ThemeColor(#colorLiteral(red: 0, green: 0, blue: 0, alpha: 1), #colorLiteral(red: 0.6286649108, green: 0.6231410503, blue: 0.6192827821, alpha: 1), .darkBackground,  .lightBackground),
-                .gridTitle                   : ThemeColor(#colorLiteral(red: 0.999904573, green: 1, blue: 0.9998808503, alpha: 1), #colorLiteral(red: 0.4756349325, green: 0.4756467342, blue: 0.4756404161, alpha: 1), .lightBackground, .darkBackground),
+                .gridTitle                   : ThemeColor(#colorLiteral(red: 0, green: 0.5690457821, blue: 0.5746168494, alpha: 1), #colorLiteral(red: 0.4756349325, green: 0.4756467342, blue: 0.4756404161, alpha: 1), .darkBackground, .darkBackground),
                 .gridBoard                   : ThemeColor(#colorLiteral(red: 0.999904573, green: 1, blue: 0.9998808503, alpha: 1), #colorLiteral(red: 0.4756349325, green: 0.4756467342, blue: 0.4756404161, alpha: 1), .lightBackground, .darkBackground),
                 .gridBoardSitout             : ThemeColor(#colorLiteral(red: 0.9254901961, green: 0.9254901961, blue: 0.9254901961, alpha: 1), #colorLiteral(red: 0.4509803922, green: 0.4509803922, blue: 0.4509803922, alpha: 1), .lightBackground, .darkBackground),
                 .gridBoardDisabled           : ThemeColor(#colorLiteral(red: 0.9607843137, green: 0.9607843137, blue: 0.9607843137, alpha: 1), #colorLiteral(red: 0.4756349325, green: 0.4756467342, blue: 0.4756404161, alpha: 1), .lightBackground, .darkBackground),
                 .gridTable                   : ThemeColor(#colorLiteral(red: 0.8616076436, green: 0.8620930367, blue: 0.8620918949, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
                 .gridTableDisabled           : ThemeColor(#colorLiteral(red: 0.8616076436, green: 0.8620930367, blue: 0.8620918949, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
                 .autoComplete                : ThemeColor(#colorLiteral(red: 0.9188528073, green: 0.9193390308, blue: 1, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
-                .contractSelected            : ThemeColor(#colorLiteral(red: 0.0166248735, green: 0.4766505957, blue: 0.9990670085, alpha: 1), nil, .darkBackground),
-                .contractUnselected          : ThemeColor(#colorLiteral(red: 0.4705882353, green: 0.7058823529, blue: 0.7843137255, alpha: 1), nil, .lightBackground),
-                .contractDisabled            : ThemeColor(#colorLiteral(red: 0.6096856772, green: 1, blue: 1, alpha: 1), nil, .lightBackground),
+                .pickerButton                : ThemeColor(#colorLiteral(red: 0.0166248735, green: 0.4766505957, blue: 0.9990670085, alpha: 1), nil, .darkBackground),
                 .separator                   : ThemeColor(#colorLiteral(red: 0.6666069031, green: 0.6667050123, blue: 0.6665856242, alpha: 1), nil, .midBackground),
                 .listButton                  : ThemeColor(#colorLiteral(red: 0, green: 0.3921568627, blue: 0.7058823529, alpha: 1), nil, .midBackground),
                 .menuEntry                   : ThemeColor(#colorLiteral(red: 0.9569241405, green: 0.9567349553, blue: 0.9526277184, alpha: 1), #colorLiteral(red: 0.999904573, green: 1, blue: 0.9998808503, alpha: 1), .darkBackground,  .lightBackground),

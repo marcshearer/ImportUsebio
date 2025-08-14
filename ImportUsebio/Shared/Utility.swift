@@ -234,6 +234,29 @@ class Utility {
         return result
     }
     
+    //MARK: Word search functions ========================================================================
+    
+    class func wordSearch(for searchWords: String, in target: String) -> Bool {
+        var result = true
+        let searchList = searchWords.uppercased().components(separatedBy: " ")
+        let targetList = target.uppercased().components(separatedBy: " ")
+        
+        for searchWord in searchList {
+            var found = false
+            for targetWord in targetList {
+                if targetWord.starts(with: searchWord) {
+                    found = true
+                }
+            }
+            if !found {
+                result = false
+            }
+        }
+        
+        return result
+        
+    }
+    
     //MARK: Cloud functions - get field from cloud for various types =====================================
     
     class func objectString(cloudObject: CKRecord, forKey: String) -> String! {

@@ -37,7 +37,7 @@ enum BannerOptionMode {
 }
 
 struct Banner: View {
-    @Environment(\.presentationMode) private var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
 
     @Binding var title: String
     var alternateStyle: Bool = true
@@ -149,7 +149,7 @@ struct Banner: View {
     func backPressed() {
         if backEnabled?() ?? true {
             if backAction?() ?? true {
-                self.presentationMode.wrappedValue.dismiss()
+                dismiss()
             }
         }
     }

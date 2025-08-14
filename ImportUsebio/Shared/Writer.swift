@@ -123,6 +123,7 @@ class Writer: WriterBase {
     var minRank = 0
     var maxRank = 9999
     var eventCode: String = ""
+    var clubCode: String = ""
     var eventDescription: String = ""
     var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
     
@@ -922,7 +923,7 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(writer.maxEventDate)", format: formatDate)
         
         write(worksheet: worksheet, row: clubCodeRow, column: titleColumn, string: "Club Code:", format: formatBold)
-        write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: "", format: formatString)
+        write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: writer.clubCode, format: formatString)
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
         let sortData = parameters.sortData

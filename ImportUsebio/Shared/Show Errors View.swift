@@ -14,7 +14,7 @@ struct RoundErrorList {
 }
 
 struct ShowErrorsView: View {
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    @Environment(\.dismiss) private var dismiss
     
     @State var roundErrors: [RoundErrorList]
 
@@ -77,7 +77,7 @@ struct ShowErrorsView: View {
                 HStack {
                     Spacer()
                     Button{
-                        presentationMode.wrappedValue.dismiss()
+                        dismiss()
                     } label: {
                         Text("Continue")
                             .foregroundColor(Palette.highlightButton.text)

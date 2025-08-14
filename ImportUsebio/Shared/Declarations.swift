@@ -17,7 +17,9 @@ public let widgetKind = "com.sheareronline.ImportUsebio"
 public var isLandscape: Bool { false }
 
 var inputTopHeight: CGFloat { 5.0 }
-let inputDefaultHeight: CGFloat = 30.0
+let inputDefaultHeight: CGFloat = 20.0
+let inputCornerRadius: CGFloat = 4.0
+let inputPickerCornerRadius: CGFloat = 3.0
 var inputToggleDefaultHeight: CGFloat { MyApp.format == .tablet ? 30.0 : 16.0 }
 var bannerHeight: CGFloat { (MyApp.format == .tablet ? 60.0 : 50.0) }
 var alternateBannerHeight: CGFloat { MyApp.format == .tablet ? 50.0 : 35.0 }
@@ -33,6 +35,7 @@ var toolbarFont: Font { Font.system(size: (MyApp.format == .tablet ? 16.0 : 14.0
 var captionFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 18.0)) }
 var inputTitleFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 18.0)) }
 var inputFont: Font { Font.system(size: 14.0) }
+var pickerFont: Font { Font.system(size: 10.0) }
 var messageFont: Font { Font.system(size: (MyApp.format == .tablet ? 16.0 : 14.0)) }
 var searchFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 16.0)) }
 

@@ -26,43 +26,54 @@ struct Input : View {
     var autoCorrect: Bool = true
     var isEnabled: Bool
     var isReadOnly: Bool = false
+    var limitText: Int? = nil
+    var pickerAction: (()->())?
     var onChange: ((String)->())?
 
     var body: some View {
+        let pickerWidth: CGFloat = (pickerAction == nil ? 0 : inputDefaultHeight * 0.95)
         VStack(spacing: 0) {
             if title != nil && !inlineTitle {
                 InputTitle(title: title, message: message, messageOffset: messageOffset, topSpace: topSpace, isEnabled: isEnabled)
                     .frame(width: width + (inlineTitle ? inlineTitleWidth : 0) + leadingSpace + 67)
                 Spacer().frame(height: 8)
+            } else {
+                Spacer().frame(height: topSpace)
             }
             HStack {
+                Spacer().frame(width: leadingSpace)
                 if title != nil && inlineTitle {
-                    Spacer().frame(width: leadingSpace)
                     HStack {
-                        
                         Text(title!)
                             .font(inputFont)
                         Spacer()
                     }
                     .frame(width: inlineTitleWidth)
-                } else {
-                    Spacer().frame(width: 32)
                 }
                 ZStack(alignment: .leading){
                     HStack {
                         Rectangle()
                             .foregroundColor(Palette.input.background)
-                            .cornerRadius(8)
+                            .cornerRadius(inputCornerRadius)
                     }
-                    if isEnabled && field.isEmpty {
-                        VStack {
-                            Spacer().frame(height: 10)
+                    if inlineTitle || title == nil {
+                        if let message = message?.wrappedValue {
                             HStack {
-                                Spacer().frame(width: 10)
-                                Text(placeHolder)
-                                    .foregroundColor(Palette.input.faintText)
+                                Spacer().frame(width: messageOffset)
+                                HStack {
+                                    Text(message).foregroundColor(Palette.input.themeText)
+                                        .truncationMode(.tail)
+                                    Spacer()
+                                }
+                                .frame(width: width - messageOffset - pickerWidth)
                             }
+                        }
+                    }
+                    if let pickerAction = pickerAction, isEnabled {
+                        HStack {
                             Spacer()
+                            pickerButton(width: pickerWidth, height: height, pickerAction: pickerAction)
+                                .frame(width: pickerWidth, height: height)
                         }
                     }
                     HStack {
@@ -71,12 +82,17 @@ struct Input : View {
                                 Spacer().frame(height: (MyApp.target == .macOS ? 2 :10))
                                 SecureField("", text: $field)
                                     .font(inputFont)
-                                    .onChange(of: field, initial: false) { (_, value) in onChange?(value)
+                                    .onChange(of: field, initial: false) { (_, value) in
+                                        if let limitText = limitText, value.count > limitText {
+                                            field = String(value.prefix(limitText))
+                                        }
+                                        onChange?(value)
                                     }
                                     .textFieldStyle(PlainTextFieldStyle())
                                     .disabled(!isEnabled || isReadOnly)
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
                                     .inputStyle(width: width, height: inputDefaultHeight)
+                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
                                 Spacer()
                             }
                         } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
@@ -85,18 +101,23 @@ struct Input : View {
                                     TextEditor(text: $field)
                                         .font(inputFont)
                                         .onChange(of: field, initial: false)
-                                        { (_, value) in
-                                            onChange?(value)
+                                    { (_, value) in
+                                        if let limitText = limitText, value.count > limitText {
+                                            field = String(value.prefix(limitText))
                                         }
-                                        .disabled(!isEnabled || isReadOnly)
-                                        .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
-                                        .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
-                                        .myKeyboardType(self.keyboardType)
-                                        .myAutocapitalization(autoCapitalize)
-                                        .disableAutocorrection(!autoCorrect)
-                                        .textCase(.uppercase)
+                                        onChange?(field)
+                                    }
+                                    .disabled(!isEnabled || isReadOnly)
+                                    .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
+                                    .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
+                                    .myKeyboardType(self.keyboardType)
+                                    .myAutocapitalization(autoCapitalize)
+                                    .disableAutocorrection(!autoCorrect)
+                                    .textCase(.uppercase)
+                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
                                 } else {
                                     VStack {
+                                        Spacer()
                                         HStack {
                                             Spacer().frame(width: 10)
                                             Text(field)
@@ -107,6 +128,7 @@ struct Input : View {
                                         }
                                         Spacer()
                                     }
+                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
                                 }
                             }
                             .font(inputFont)
@@ -115,6 +137,9 @@ struct Input : View {
                             TextField("", text: $field)
                                 .font(inputFont)
                                 .onChange(of: field, initial: false) { (_, value) in
+                                    if let limitText = limitText, value.count > limitText {
+                                        field = String(value.prefix(limitText))
+                                    }
                                     onChange?(value)
                                 }
                                 .textFieldStyle(PlainTextFieldStyle())
@@ -125,13 +150,51 @@ struct Input : View {
                                 .myAutocapitalization(autoCapitalize)
                                 .disableAutocorrection(!autoCorrect)
                                 .frame(height: height)
+                                .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                            Spacer()
+                        }
+                    }
+                    if field.isEmpty {
+                        VStack {
+                            HStack {
+                                Spacer().frame(width: 10)
+                                Text(placeHolder)
+                                    .font(inputFont)
+                                    .foregroundColor(Palette.input.faintText)
+                            }
                         }
                     }
                 }
                 .frame(width: width)
             }
         }
-        .frame(height: self.height + self.topSpace + (title == nil || inlineTitle ? 0 : 20))
+        .frame(height: height + topSpace + (title == nil || inlineTitle ? 0 : 20))
+    }
+    
+    func pickerButton(width: CGFloat, height: CGFloat, pickerAction: @escaping ()->()) -> some View {
+        VStack {
+            let spacing: CGFloat = 2.0
+            Spacer().frame(height: spacing * 2)
+            HStack {
+                Spacer().frame(width: spacing)
+                HStack {
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .frame(width: width - (2 * spacing), height: height - (2 * spacing))
+                        .background(Palette.pickerButton.background)
+                        .foregroundColor(Palette.pickerButton.text)
+                        .bold()
+                        .cornerRadius(inputPickerCornerRadius)
+                        .font(pickerFont)
+                    Spacer()
+                }
+                Spacer().frame(width: spacing)
+            }
+            Spacer().frame(height: spacing * 2)
+        }
+        .onTapGesture {
+            pickerAction()
+        }
     }
 }
 

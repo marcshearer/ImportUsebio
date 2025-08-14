@@ -9,7 +9,12 @@ import SwiftUI
 
 @main
 struct ImportUsebioApp: App {
+    
+    public let context = PersistenceController.shared.container.viewContext
+    
     init() {
+        CoreData.context = context
+        
         MyApp.shared.start()
     }
     
@@ -25,8 +30,7 @@ struct MyScene: Scene {
         WindowGroup {
                 SelectInputView()
                     .navigationTitle("Import XML Results Files")
-                    .frame(minWidth: 900, maxWidth: 900,
-                           minHeight: 710, maxHeight: 710)
+                    .fixedSize(horizontal: true, vertical: true)
         }
         .windowResizability(.contentSize)
         .onChange(of: scenePhase, initial: false) { (_, phase) in

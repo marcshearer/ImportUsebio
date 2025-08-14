@@ -32,11 +32,10 @@ struct SettingsView: View {
                                 InputTitle(title: "Maximum value warnings:", topSpace: 16)
                                 Spacer().frame(height: 8)
                                 HStack {
-                                    Spacer().frame(width: 30)
                                     
-                                    InputInt(title: "National Id number:", field:$settings.maxNationalIdNumber, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 140)
+                                    InputInt(title: "SBU Number:", field:$settings.maxNationalIdNumber, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
-                                    InputFloat(title: "Points award:", field: $settings.maxPoints, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 100)
+                                    InputFloat(title: "Points award:", field: $settings.maxPoints, topSpace: 0, leadingSpace: 30, width: 50, inlineTitle: true, inlineTitleWidth: 100)
                                     
                                     Spacer()
                                 }
@@ -46,12 +45,10 @@ struct SettingsView: View {
                                 InputTitle(title: "Good Status Values:", topSpace: 16)
                                 Spacer().frame(height: 8)
                                 HStack {
-                                     
-                                    Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 42, width: 120, inlineTitle: true, inlineTitleWidth: 70, isEnabled: true)
                                     
-                                    Spacer().frame(width: 30)
+                                   Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     
-                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, width: 250, inlineTitle: true, inlineTitleWidth: 80, isEnabled: true)
+                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, leadingSpace: 30, width: 250, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     
                                     Spacer()
                                 }
@@ -62,11 +59,9 @@ struct SettingsView: View {
                                 Spacer().frame(height: 8)
                                 HStack {
                                     
-                                    Spacer().frame(width: 30)
-                                   
-                                    InputInt(title: "Field entry:", field: $settings.largestFieldSize, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
+                                    InputInt(title: "Field entry:", field: $settings.largestFieldSize, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
-                                    InputInt(title: "Players:", field: $settings.largestPlayerCount, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
+                                    InputInt(title: "Players:", field: $settings.largestPlayerCount, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
                                     Spacer()
                                 }
@@ -76,11 +71,10 @@ struct SettingsView: View {
                                 InputTitle(title: "Presentation:", topSpace: 16)
                                 Spacer().frame(height: 8)
                                 HStack {
-                                    Spacer().frame(width: 30)
                                     
-                                    InputFloat(title: "Default zoom:", field: $settings.defaultWorksheetZoom, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 100)
+                                    InputFloat(title: "Default zoom:", field: $settings.defaultWorksheetZoom, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
-                                    InputInt(title: "Lines per formatted page:", field: $settings.linesPerFormattedPage, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 180)
+                                    InputInt(title: "Lines/page:", field: $settings.linesPerFormattedPage, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100)
                                     
                                     Spacer()
                                 }
@@ -90,11 +84,11 @@ struct SettingsView: View {
                                 InputTitle(title: "User Download Details:", topSpace: 16)
                                 
                                 HStack {
-                                    Input(title: "Filename:", field: $settings.userDownloadData, leadingSpace: 42, width: 180, inlineTitle: true, inlineTitleWidth: 80, isEnabled: true)
+                                    Input(title: "Filename:", field: $settings.userDownloadData, leadingSpace: 30, width: 150, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     
-                                    InputInt(title: "First Row:", field: $settings.userDownloadMinRow, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 80)
+                                    InputInt(title: "First Row:", field: $settings.userDownloadMinRow, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 80)
                                     
-                                    InputInt(title: "Last Row:", field: $settings.userDownloadMaxRow, topSpace: 0, width: 80, inlineTitle: true, inlineTitleWidth: 80)
+                                    InputInt(title: "Last Row:", field: $settings.userDownloadMaxRow, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 80)
                                     
                                     Spacer()
                                 }
@@ -108,7 +102,7 @@ struct SettingsView: View {
                                     
                                     HStack {
                                         
-                                        Input(title: "National ID:", field: $settings.userDownloadNationalIdColumn, topSpace: 0, leadingSpace: 42, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        Input(title: "National ID:", field: $settings.userDownloadNationalIdColumn, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
                                         Input(title: "First Name:", field: $settings.userDownloadFirstNameColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
@@ -121,7 +115,7 @@ struct SettingsView: View {
                                     
                                     HStack {
                                         
-                                        Input(title: "Email:", field: $settings.userDownloadEmailColumn, topSpace: 0, leadingSpace: 42, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        Input(title: "Email:", field: $settings.userDownloadEmailColumn, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
                                         Input(title: "Home Club:", field: $settings.userDownloadHomeClubColumn, topSpace: 0, leadingSpace: 12, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
@@ -135,7 +129,7 @@ struct SettingsView: View {
                                     
                                     HStack {
                                         
-                                        Input(title: "Other Union:", field: $settings.userDownloadOtherUnionColumn, topSpace: 0, leadingSpace: 42, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                        Input(title: "Other Union:", field: $settings.userDownloadOtherUnionColumn, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                         
                                         Spacer()
                                     }
@@ -149,7 +143,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .frame(width: 800, height: 580)
+        .frame(width: 800, height: 500)
     }
     
     private var versionOption: BannerOption {

@@ -13,6 +13,7 @@ struct InputTitle : View {
     var message: Binding<String>? = nil
     var messageOffset: CGFloat = 0.0
     var topSpace: CGFloat = inputTopHeight
+    var fillTrailing: Bool = true
     var buttonImage: AnyView?
     var buttonText: String?
     var buttonAction: (()->())?
@@ -46,7 +47,9 @@ struct InputTitle : View {
                         }
                         .menuStyle(DefaultMenuStyle())
                     }
-                    Spacer()
+                    if fillTrailing {
+                        Spacer()
+                    }
                     if let message = message?.wrappedValue {
                         VStack(spacing: 0) {
                             //Spacer().layoutPriority(.leastNonzeroMagnitude)
@@ -57,5 +60,6 @@ struct InputTitle : View {
                 }
             }
         }
+        .frame(height: 12 + topSpace)
     }
 }

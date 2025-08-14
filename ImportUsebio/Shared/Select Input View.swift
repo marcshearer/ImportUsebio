@@ -18,10 +18,29 @@ enum Basis: Int {
     case headToHead = 2
 }
 
+enum FocusField {
+    case eventDescription
+    case eventCode
+    case clubCode
+    case minRankCode
+    case maxRankCode
+}
+
 struct SelectInputView: View {
     @State private var inputFilename: String = ""
     @State private var roundName: String = ""
+    @State private var event: EventViewModel? = nil
     @State private var eventCode: String = ""
+    @State private var eventMessage: String = ""
+    @State private var club: ClubViewModel? = nil
+    @State private var clubCode: String = ""
+    @State private var clubMessage: String = ""
+    @State private var minRank: RankViewModel? = nil
+    @State private var minRankCode: Int = 0
+    @State private var minRankMessage: String = "No minimum rank"
+    @State private var maxRank: RankViewModel? = nil
+    @State private var maxRankCode: Int = 999
+    @State private var maxRankMessage: String = "No maximum rank"
     @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
     @State private var filterSessionId: String = ""
@@ -32,8 +51,6 @@ struct SelectInputView: View {
     @State private var winDrawLevel: WinDrawLevel = .board
     @State private var mergeMatches = false
     @State private var vpType: VpType = .discrete
-    @State private var minRank: Int = 0
-    @State private var maxRank: Int = 999
     @State private var maxAward: Float = 10.0
     @State private var ewMaxAward: Float = 0.0
     @State private var minEntry: Int = 0
@@ -47,9 +64,21 @@ struct SelectInputView: View {
     @State private var roundErrors: [RoundErrorList] = []
     @State private var showErrors = false
     @State private var showSettings = false
+    @State private var showSettingsMenu = false
+    @State private var showImportEvents = false
+    @State private var showImportClubs = false
+    @State private var showImportRanks = false
+    @State private var showEventCodesSearch = false
+    @State private var showClubCodesSearch = false
+    @State private var showMinRankCodesSearch = false
+    @State private var showMaxRankCodesSearch = false
     @State private var missingNationalIds = false
+    @State private var showAdvancedParameters = false
     @State private var editSettings = Settings.current.copy()
-
+    @State private var windowHeight: CGFloat = 580
+    @State private var expandedWindowHeight: CGFloat = 680
+    @FocusState private var focusedField: FocusField?
+    
     var body: some View {
         
         // Just to trigger view refresh
@@ -57,239 +86,87 @@ struct SelectInputView: View {
         
         StandardView("Select Input") {
             VStack {
-                Spacer().frame(height: 10)
-                
                 HStack {
                     Spacer().frame(width: 30)
-                    
-                    VStack {
-                        VStack {
+                    VStack(spacing: 0) {
+                        
+                        filenameView
+                        
+                        separatorView
+                        
+                        eventDescriptionView
+                        
+                        InputTitle(title: "Coding", topSpace: 16)
+                        
+                        Spacer().frame(height: 8)
+                        
+                        HStack {
+                            
+                            eventCodeView
+                        
+                            clubCodeView
+                            
+                            Spacer()
+                        }
+                        
+                        InputTitle(title: "Ranking restrictions", topSpace: 16)
+                        Spacer().frame(height: 8)
+                        
+                        HStack {
+                            
+                            rankingsView
+                            
+                        }
+                        
+                        VStack(spacing: 0) {
+                            separatorView
+                            InputTitle(title: "Other details")
+                            Spacer().frame(height: 8)
+                            
+                            roundNameView
                             
                             HStack {
-                                Input(title: "Event Description:", field: $eventDescription, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                                Spacer()
                                 VStack {
-                                    settingsButton()
-                                    Spacer().frame(height:30)
-                                }
-                                    
-                                Spacer().frame(width: 8)
-                            }
-                            
-                            InputTitle(title: "Coding", topSpace: 16)
-                            Spacer().frame(height: 8)
-                            HStack {
-                                Spacer().frame(width: 42)
-                                Input(title: "Event code:", field: $eventCode, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 90, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                                Spacer().frame(width: 40)
-                                HStack {
-                                    Picker("Calculation basis:", selection: $basis) {
-                                        Text("Standard").tag(Basis.standard)
-                                        Text("Manual").tag(Basis.manual)
-                                        Text("Head-to-head").tag(Basis.headToHead)
-                                    }
-                                    .help(Text("The method to be used for calculations\nIf this is Head-to-head this means that it is a round were only win/draw awards are applied. There is no place award.\nIf this is Manual then the MPs are not calculated. They are specified in the raw data."))
-                                    .onChange(of: basis, initial: false) {
-                                        if basis != .standard {
-                                            maxAward = 0
-                                            ewMaxAward = 0
-                                            minEntry = 0
-                                            if basis == .headToHead {
-                                                awardTo = 100
-                                            } else if basis == .manual {
-                                                awardTo = 0
-                                                perWin = 0
-                                            }
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                    .focusable(false)
-                                    .frame(width: 250)
-                                    .font(inputFont)
+                                    InputTitle(title: "Points Award Details", topSpace: 10)
+                                    pointsAwardView
                                 }
                                 Spacer()
                             }
-                            
-                            InputTitle(title: "Ranking restrictions:", topSpace: 16)
-                            Spacer().frame(height: 8)
-                            HStack {
-                                Spacer().frame(width: 30)
-                                
-                                InputInt(title: "Minimum:", field: $minRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
-                                
-                                InputInt(title: "Maximum:", field: $maxRank, topSpace: 0, width: 50, inlineTitle: true, inlineTitleWidth: 90)
-                                
-                                Spacer()
-                            }
-                            
+                        }
+                        VStack {
                             Spacer().frame(height: 16)
                             Separator(thickness: 1)
                             Spacer().frame(height: 16)
-                        }
-                        VStack {
-                            InputTitle(title: "Import Parameters:")
-                            HStack {
-                                Spacer().frame(width: 42)
-                                HStack {
-                                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 100, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
-                                        .help(Text("Used to restrict the import of a Usebio raw data file to a specific Session Id"))
-                                }
-                                Spacer().frame(width: 10)
-                                HStack {
-                                    Picker("Win/Draws from:   ", selection: $winDrawLevel) {
-                                        Text("Pairs/Teams").tag(WinDrawLevel.participant)
-                                        Text("Matches").tag(WinDrawLevel.match)
-                                        Text("Boards").tag(WinDrawLevel.board)
-                                    }
-                                    .onChange(of: winDrawLevel, initial: false) {
-                                        if winDrawLevel == .participant {
-                                            mergeMatches = false
-                                        }
-                                        if winDrawLevel != .board {
-                                            vpType = .discrete
-                                        }
-                                    }
-                                    .help(Text("Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested"))
-                                    .pickerStyle(.menu)
-                                    .focusable(false)
-                                    .frame(width: 250)
-                                    .font(inputFont)
-                                }
-                                .frame(height: inputDefaultHeight)
-                                Spacer().frame(width: 20)
-                                HStack {
-                                    Picker("Merge matches:  ", selection: $mergeMatches) {
-                                        Text("Merge").tag(true)
-                                        Text("Don't Merge").tag(false)
-                                    }
-                                    .help(Text("Combine matches between the same teams/pairs before calculating wins/draws"))
-                                    .pickerStyle(.menu)
-                                    .focusable(false)
-                                    .frame(width: 230)
-                                    .font(inputFont)
-                                    .disabled(winDrawLevel == .participant)
-                                }
-                                .frame(height: inputDefaultHeight)
-                                Spacer()
-                            }
-                            Spacer().frame(height: 10)
-                            HStack {
-                                Spacer().frame(width: 30)
-                                HStack {
-                                    InputInt(title: "Max players:", field: $maxTeamMembers, width: 100, inlineTitle: true, inlineTitleWidth: 120)
-                                        .help(Text("Used to limit the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material"))
-                                }
-                                Spacer().frame(width: 52)
-                                HStack {
-                                    Picker("VP type:   ", selection: $vpType) {
-                                        Text("Discrete").tag(VpType.discrete)
-                                        Text("Continuous").tag(VpType.continuous)
-                                    }
-                                    .help(Text("When re-calculating from boards what sort of VPs are required?"))
-                                    .pickerStyle(.menu)
-                                    .focusable(false)
-                                    .frame(width: 180)
-                                    .font(inputFont)
-                                    .disabled(winDrawLevel == .participant)
-                                }
-                                .frame(height: inputDefaultHeight)
-                                Spacer().frame(width: 73)
-                                HStack {
-                                    Picker("VP Draws:  ", selection: $drawsRounded) {
-                                        Text("Exact").tag(false)
-                                        Text("Rounded").tag(true)
-                                    }
-                                    .help(Text("Round Continuous VPs when calculating draws"))
-                                    .pickerStyle(.menu)
-                                    .focusable(false)
-                                    .frame(width: 200)
-                                    .font(inputFont)
-                                    .disabled(winDrawLevel == .participant || vpType == .discrete)
-                                    Spacer()
-                                }
-                                .frame(height: inputDefaultHeight)
-                                Spacer()
-                            }
-                            HStack {
-                                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", height: 30, width: 684, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true).frame(width: 750)
-                                
-                                VStack() {
-                                    Spacer()
-                                    self.finderButton()
-                                }.frame(height: 62)
-                                
-                                Spacer()
-                            }
-                            
-                            InputTitle(title: "Other details:", topSpace: 16)
-                            Spacer().frame(height: 8)
-                            HStack {
-                                Spacer().frame(width: 42)
-                                HStack {
-                                    Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
-                                    Spacer()
-                                }
-                                .frame(width: 270)
-                                Spacer()
-                            }
-                            
                             HStack {
                                 VStack {
-                                    InputTitle(title: "Points Award Details:", topSpace: 16)
-                                    VStack {
-                                        HStack {
-                                            Spacer().frame(width: 42)
-                                            Picker("Level:             ", selection: $localNational) {
-                                                Text("Local").tag(Level.local)
-                                                Text("National").tag(Level.national)
-                                            }
-                                            .pickerStyle(.segmented)
-                                            .focusable(false)
-                                            .frame(width: 300)
-                                            .font(inputFont)
-                                            Spacer()
+                                    Spacer()
+                                    InputTitle(title: "Advanced Parameters ", fillTrailing: false)
+                                    Spacer()
+                                }
+                                VStack {
+                                    Spacer()
+                                    Spacer().frame(height: 4)
+                                    Text(showAdvancedParameters ? "􀄥" : "􀄧")
+                                        .foregroundColor(Palette.background.themeText)
+                                        .font(inputFont)
+                                        .onTapGesture {
+                                            showAdvancedParameters.toggle()
+                                            windowHeight = showAdvancedParameters ? expandedWindowHeight : windowHeight
                                         }
-                                        
-                                        Spacer().frame(height: 10)
-                                        
-                                        HStack(spacing: 0) {
-                                            Spacer().frame(width: 30)
-                                            
-                                            InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
-                                                .disabled(basis != .standard)
-                                            
-                                            InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
-                                                .disabled(basis != .standard)
-                                            
-                                            Spacer()
-                                        }
-                                        
-                                        Spacer().frame(height: 10)
-                                        
-                                        HStack(spacing: 0) {
-                                            Spacer().frame(width: 30)
-                                            
-                                            InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 90)
-                                                .disabled(basis != .standard)
-                                            
-                                            InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 120)
-                                                .disabled(basis != .standard)
-                                            
-                                            InputFloat(title: "Per win:", field: $perWin, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 70)
-                                                .disabled(basis == Basis.manual)
-                                            
-                                            Spacer()
-                                        }
-                                    }
+                                    Spacer()
                                 }
                                 Spacer()
+                            }.frame(height: 20)
+                            if showAdvancedParameters {
+                                advancedParametersView
                             }
-                            
+                        }
+                        VStack(spacing: 0) {
                             Spacer().frame(height: 24)
                             Separator(thickness: 1)
                             Spacer().frame(height: 12)
                             HStack {
-                                Spacer()
+                                Spacer().frame(width: 40)
                                 addSheetButton()
                                 Spacer().frame(width: 50)
                                 finishButton()
@@ -298,6 +175,11 @@ struct SelectInputView: View {
                                 Spacer().frame(width: 50)
                                 pasteButton()
                                 Spacer()
+                                settingsButton()
+                                    .popover(isPresented: $showSettingsMenu) {
+                                        settingsMenuView
+                                    }
+                                Spacer().frame(width: 50)
                             }
                             Spacer().frame(height: 20)
                         }
@@ -306,17 +188,365 @@ struct SelectInputView: View {
             }
             Spacer()
         }
+        .frame(width: 900, height: windowHeight)
         .sheet(isPresented: $showErrors) {
             ShowErrorsView(roundErrors: roundErrors)
+        }
+        .sheet(isPresented: $showEventCodesSearch) {
+            EventCodesSearchView() { event in
+                set(eventCode: event.eventCode)
+                focusedField = .eventCode
+            }
+        }
+        .sheet(isPresented: $showClubCodesSearch) {
+            ClubCodesSearchView() { club in
+                set(clubCode: club.clubCode)
+                focusedField = .clubCode
+            }
+        }
+        .sheet(isPresented: $showMinRankCodesSearch) {
+            RankCodesSearchView(showNoMinimum: true) { rank in
+                set(minRankCode: rank.rankCode)
+                focusedField = .minRankCode
+            }
+        }
+        .sheet(isPresented: $showMaxRankCodesSearch) {
+            RankCodesSearchView(showNoMaximum: true) { rank in
+                set(maxRankCode: rank.rankCode)
+                focusedField = .maxRankCode
+            }
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(settings: editSettings)
         }
+        .sheet(isPresented: $showImportEvents) {
+            EventImportView()
+        }
+        .sheet(isPresented: $showImportClubs) {
+            ClubImportView()
+        }
+        .sheet(isPresented: $showImportRanks) {
+            RankImportView()
+        }
+    }
+    
+    private func set(eventCode newValue: String) {
+        event = EventViewModel.event(eventCode: newValue)
+        eventCode = newValue
+        eventMessage = event?.eventName ?? "Invalid event code"
+        if let event = event {
+            if event.localAllowed && !event.nationalAllowed {
+                localNational = .local
+            } else if !event.localAllowed && event.nationalAllowed {
+                localNational = .national
+            }
+            if event.validMinRank > 0 {
+                set(minRankCode: event.validMinRank)
+            }
+            if event.validMaxRank < 999 {
+                set(maxRankCode: event.validMaxRank)
+            }
+            if event.originatingClubCode != "" {
+                set(clubCode: event.originatingClubCode)
+            }
+        }
+    }
+    
+    private func set(clubCode newValue: String) {
+        club = ClubViewModel.club(clubCode: newValue)
+        clubCode = newValue
+        clubMessage = club?.clubName ?? (clubCode == "" ? "No club code specified" : "Invalid club code")
+    }
+    
+    private func set(minRankCode newValue: Int) {
+        minRank = RankViewModel.rank(rankCode: newValue)
+        minRankCode = newValue
+        minRankMessage = minRank?.rankName ?? (minRankCode == 0 ? "No minimum rank" : "Invalid rank code")
+        if minRank != nil && maxRankCode < minRankCode {
+            set(maxRankCode: minRankCode)
+        }
+    }
+    
+    private func set(maxRankCode newValue: Int) {
+        maxRank = RankViewModel.rank(rankCode: newValue)
+        maxRankCode = newValue
+        if maxRankCode < minRankCode {
+            maxRankMessage = "Below minimum rank"
+        } else {
+            maxRankMessage = maxRank?.rankName ?? (maxRankCode == 999 ? "No maximum rank" : "Invalid rank code")
+        }
+    }
+    
+    private var separatorView: some View {
+        VStack {
+            Spacer().frame(height: 16)
+            Separator(thickness: 1)
+            Spacer().frame(height: 16)
+        }
+    }
+    
+    private var filenameView: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", topSpace: 20, leadingSpace: 30, width: 707, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile)
+                Spacer()
+            }
+        }
+    }
+    
+    private var eventDescriptionView: some View {
+        HStack {
+            Input(title: "Event Description", field: $eventDescription, leadingSpace: 30, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                .focused($focusedField, equals: .eventDescription)
+            Spacer()
+        }
+    }
+    
+    private var eventCodeView: some View {
+        HStack {
+            Spacer().frame(width: 42)
+            
+            Input(title: "Event code:", field: $eventCode, message: $eventMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, pickerAction: { showEventCodesSearch = true }) { (newValue) in
+                set(eventCode: newValue)
+            }
+            .focused($focusedField, equals: .eventCode)
+        }
+    }
+    
+    private var clubCodeView: some View {
+        HStack {
+            
+            Spacer().frame(width: 30)
+            
+            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }) { (newValue) in
+                set(clubCode: newValue)
+            }
+            .focused($focusedField, equals: .clubCode)
+        }
+    }
+    
+    private var rankingsView: some View {
+        HStack {
+
+            Spacer().frame(width: 42)
+            
+            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }) { (newValue) in
+                set(minRankCode: newValue)
+            }
+            .focused($focusedField, equals: .minRankCode)
+            
+            Spacer().frame(width: 30)
+            
+            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }) { (newValue) in
+                set(maxRankCode: newValue)
+            }
+            .focused($focusedField, equals: .maxRankCode)
+            
+            Spacer()
+        }
+    }
+    
+    private var roundNameView: some View {
+        HStack {
+            Spacer().frame(width: 42)
+            
+            Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 117, isEnabled: true)
+            
+            Spacer()
+        }
+    }
+    
+    private var pointsAwardView: some View {
+        VStack {
+            HStack {
+                
+                Spacer().frame(width: 42)
+                
+                Picker("Level:                    ", selection: $localNational) {
+                    Text("Local").tag(Level.local)
+                    Text("National").tag(Level.national)
+                }
+                .disabled(event == nil || !event!.nationalAllowed || !event!.localAllowed)
+                .pickerStyle(.segmented)
+                .focusable(false)
+                .frame(width: 300)
+                .font(inputFont)
+                Spacer()
+            }
+            
+            Spacer().frame(height: 10)
+            
+            HStack(spacing: 0) {
+                
+                Spacer().frame(width: 42)
+                
+                InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 117)
+                    .disabled(basis != .standard)
+                
+                InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                    .disabled(basis != .standard)
+                
+                Spacer()
+            }
+            
+            Spacer().frame(height: 10)
+            
+            HStack(spacing: 0) {
+                Spacer().frame(width: 42)
+                
+                InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 117)
+                    .disabled(basis != .standard)
+                
+                InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                    .disabled(basis != .standard)
+                
+                InputFloat(title: "Per win:", field: $perWin, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 70)
+                    .disabled(basis == Basis.manual)
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private var advancedParametersView: some View {
+        VStack {
+            HStack{
+                Spacer().frame(width: 42)
+                Picker("Calculation basis:", selection: $basis) {
+                    Text("Standard").tag(Basis.standard)
+                    Text("Manual").tag(Basis.manual)
+                    Text("Head-to-head").tag(Basis.headToHead)
+                }
+                .help(Text("The method to be used for calculations\nIf this is Head-to-head this means that it is a round were only win/draw awards are applied. There is no place award.\nIf this is Manual then the MPs are not calculated. They are specified in the raw data."))
+                .onChange(of: basis, initial: false) {
+                    if basis != .standard {
+                        maxAward = 0
+                        ewMaxAward = 0
+                        minEntry = 0
+                        if basis == .headToHead {
+                            awardTo = 100
+                        } else if basis == .manual {
+                            awardTo = 0
+                            perWin = 0
+                        }
+                    }
+                }
+                .pickerStyle(.menu)
+                .focusable(false)
+                .frame(width: 250)
+                .font(inputFont)
+                Spacer()
+            }
+            Spacer().frame(height: 15)
+            HStack {
+                Spacer().frame(width: 42)
+                HStack {
+                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 120, inlineTitle: true, inlineTitleWidth: 117, isEnabled: true)
+                        .help(Text("Used to restrict the import of a Usebio raw data file to a specific Session Id"))
+                }
+                Spacer().frame(width: 20)
+                HStack {
+                    Picker("Win/Draws from:   ", selection: $winDrawLevel) {
+                        Text("Pairs/Teams").tag(WinDrawLevel.participant)
+                        Text("Matches").tag(WinDrawLevel.match)
+                        Text("Boards").tag(WinDrawLevel.board)
+                    }
+                    .onChange(of: winDrawLevel, initial: false) {
+                        if winDrawLevel == .participant {
+                            mergeMatches = false
+                        }
+                        if winDrawLevel != .board {
+                            vpType = .discrete
+                        }
+                    }
+                    .help(Text("Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested"))
+                    .pickerStyle(.menu)
+                    .focusable(false)
+                    .frame(width: 250)
+                    .font(inputFont)
+                }
+                .frame(height: inputDefaultHeight)
+                Spacer().frame(width: 20)
+                HStack {
+                    Picker("Merge matches:  ", selection: $mergeMatches) {
+                        Text("Merge").tag(true)
+                        Text("Don't Merge").tag(false)
+                    }
+                    .help(Text("Combine matches between the same teams/pairs before calculating wins/draws"))
+                    .pickerStyle(.menu)
+                    .focusable(false)
+                    .frame(width: 230)
+                    .font(inputFont)
+                    .disabled(winDrawLevel == .participant)
+                }
+                .frame(height: inputDefaultHeight)
+                Spacer()
+            }
+            Spacer().frame(height: 10)
+            HStack {
+                Spacer().frame(width: 42)
+                HStack {
+                    InputInt(title: "Max players:", field: $maxTeamMembers, width: 127, inlineTitle: true, inlineTitleWidth: 111)
+                        .help(Text("Used to limit the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material"))
+                }
+                Spacer().frame(width: 72)
+                HStack {
+                    Picker("VP type:   ", selection: $vpType) {
+                        Text("Discrete").tag(VpType.discrete)
+                        Text("Continuous").tag(VpType.continuous)
+                    }
+                    .help(Text("When re-calculating from boards what sort of VPs are required?"))
+                    .pickerStyle(.menu)
+                    .focusable(false)
+                    .frame(width: 196)
+                    .font(inputFont)
+                    .disabled(winDrawLevel == .participant)
+                }
+                .frame(height: inputDefaultHeight)
+                Spacer().frame(width: 58)
+                HStack {
+                    Picker("VP Draws:  ", selection: $drawsRounded) {
+                        Text("Exact").tag(false)
+                        Text("Rounded").tag(true)
+                    }
+                    .help(Text("Round Continuous VPs when calculating draws"))
+                    .pickerStyle(.menu)
+                    .focusable(false)
+                    .frame(width: 192)
+                    .font(inputFont)
+                    .disabled(winDrawLevel == .participant || vpType == .discrete)
+                    Spacer()
+                }
+                .frame(height: inputDefaultHeight)
+                Spacer()
+            }
+        }
+    }
+    
+    private var settingsMenuView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button("Settings") { showSettings = true }
+                .padding([.top], 10)
+                .padding([.leading, .trailing], 8)
+                .padding([.bottom], 6)
+            Button("Import Ranks") { showImportRanks = true }
+                .padding([.bottom], 10)
+                .padding([.leading, .trailing], 8)
+                .padding([.top], 6)
+            Button("Import Clubs") { showImportClubs = true}
+                .padding([.leading, .trailing], 8)
+                .padding([.top, .bottom], 6)
+            Button("Import Events") { showImportEvents = true}
+                .padding([.leading, .trailing], 8)
+                .padding([.top, .bottom], 6)
+        }.background(Color.clear)
+            .buttonStyle(.borderless)
+            .focusable(false)
     }
     
     private func settingsButton() -> some View {
         return Button {
-            showSettings = true
+            showSettingsMenu = true
         } label: {
             Image(systemName: "gearshape.fill").font(.largeTitle).foregroundColor(Palette.banner.background)
         }
@@ -324,39 +554,27 @@ struct SelectInputView: View {
         .focusable(false)
     }
     
-    private func finderButton() -> some View {
-        
-        return Button {
-            FileSystem.findFile(title: "Select Source File", prompt: "Select", types: ["xml", "csv"]) { (url, bookmarkData) in
-                Utility.mainThread {
-                    refresh.toggle()
-                    securityBookmark = bookmarkData
-                    if let data = try? Data(contentsOf: url) {
-                        let type = url.pathExtension.lowercased()
-                        if type == "xml" {
-                            _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, overrideEventType: (basis == .headToHead ? .head_to_head: nil), roundContinuousVPDraw: drawsRounded, winDrawLevel: winDrawLevel, mergeMatches: mergeMatches, vpType: vpType, completion: parserComplete)
-                        } else if type == "csv" {
-                            if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
-                                MessageBox.shared.show("Invalid data")
-                            }
-                        } else {
-                            MessageBox.shared.show("File type \(type) not supported")
+    private func chooseFile() {
+        FileSystem.findFile(title: "Select Source File", prompt: "Select", types: ["xml", "csv"]) { (url, bookmarkData) in
+            Utility.mainThread {
+                refresh.toggle()
+                securityBookmark = bookmarkData
+                if let data = try? Data(contentsOf: url) {
+                    let type = url.pathExtension.lowercased()
+                    if type == "xml" {
+                        _ = UsebioParser(fileUrl: url, data: data, filterSessionId: filterSessionId == "" ? nil : filterSessionId, overrideEventType: (basis == .headToHead ? .head_to_head: nil), roundContinuousVPDraw: drawsRounded, winDrawLevel: winDrawLevel, mergeMatches: mergeMatches, vpType: vpType, completion: parserComplete)
+                    } else if type == "csv" {
+                        if  GenericCsvParser(fileUrl: url, data: data, completion: parserComplete) == nil {
+                            MessageBox.shared.show("Invalid data")
                         }
                     } else {
-                        MessageBox.shared.show("Unable to read data")
+                        MessageBox.shared.show("File type \(type) not supported")
                     }
+                } else {
+                    MessageBox.shared.show("Unable to read data")
                 }
             }
-        } label: {
-            Text("Choose file")
-                .foregroundColor(Palette.enabledButton.text)
-                .frame(width: 100, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.enabledButton.background)
-                .cornerRadius(15)
         }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
     }
     
     private func addSheetButton() -> some View {
@@ -366,8 +584,9 @@ struct SelectInputView: View {
                     writer = Writer()
                     writer?.eventDescription = eventDescription
                     writer?.eventCode = eventCode
-                    writer?.minRank = minRank
-                    writer?.maxRank = maxRank
+                    writer?.clubCode = clubCode
+                    writer?.minRank = minRankCode
+                    writer?.maxRank = maxRankCode
                 }
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
@@ -406,7 +625,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || (club == nil && event!.clubMandatory) || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
    
@@ -567,14 +786,16 @@ struct SelectInputView: View {
         } else {
             eventDescription = importInProgress!.event!.description!
             eventCode = importInProgress!.event!.code!
-            minRank = importInProgress!.event!.minRank ?? 0
-            maxRank = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
+            clubCode = importInProgress!.event!.clubCode ?? ""
+            minRankCode = importInProgress!.event!.minRank ?? 0
+            maxRankCode = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
             
             writer = Writer()
             writer!.eventDescription = eventDescription
             writer!.eventCode = eventCode
-            writer!.minRank = minRank
-            writer!.maxRank = maxRank
+            writer!.clubCode = clubCode
+            writer!.minRank = minRankCode
+            writer!.maxRank = maxRankCode
             
             for round in importInProgress!.rounds {
                 if let scoreData = round.scoreData {
