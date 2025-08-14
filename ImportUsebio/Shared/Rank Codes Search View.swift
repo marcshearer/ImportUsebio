@@ -23,9 +23,8 @@ struct RankCodesSearchView: View {
                     HStack {
                         Spacer()
                         Image(systemName: "chevron.left").font(toolbarFont)
-                        Spacer()
                     }
-                    .frame(width: 12)
+                    .frame(width: 32)
                     .onTapGesture {
                         dismiss()
                     }
