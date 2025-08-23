@@ -28,6 +28,8 @@ struct Input : View {
     var isReadOnly: Bool = false
     var limitText: Int? = nil
     var pickerAction: (()->())?
+    var onKeyPress: ((KeyPress)->(KeyPress.Result))?
+    var detectKeys: Set<KeyEquivalent>?
     var onChange: ((String)->())?
 
     var body: some View {
@@ -93,6 +95,11 @@ struct Input : View {
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
                                     .inputStyle(width: width, height: inputDefaultHeight)
                                     .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                    .if(detectKeys != nil) { (view) in
+                                        view.onKeyPress(keys: detectKeys!) { press in
+                                            return (onKeyPress?(press) ?? .ignored)
+                                        }
+                                    }
                                 Spacer()
                             }
                         } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
@@ -115,6 +122,11 @@ struct Input : View {
                                     .disableAutocorrection(!autoCorrect)
                                     .textCase(.uppercase)
                                     .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                    .if(detectKeys != nil) { (view) in
+                                        view.onKeyPress(keys: detectKeys!) { press in
+                                            return (onKeyPress?(press) ?? .ignored)
+                                        }
+                                    }
                                 } else {
                                     VStack {
                                         Spacer()
@@ -151,6 +163,11 @@ struct Input : View {
                                 .disableAutocorrection(!autoCorrect)
                                 .frame(height: height)
                                 .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                .if(detectKeys != nil) { (view) in
+                                    view.onKeyPress(keys: detectKeys!) { press in
+                                        return (onKeyPress?(press) ?? .ignored)
+                                    }
+                                }
                             Spacer()
                         }
                     }

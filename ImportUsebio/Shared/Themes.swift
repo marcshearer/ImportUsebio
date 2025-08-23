@@ -92,6 +92,7 @@ enum ThemeBackgroundColorName: CaseIterable {
     case gridTable
     case gridTableDisabled
     case autoComplete
+    case autoCompleteSelected
     case pickerButton
     case divider
     case separator
@@ -381,7 +382,8 @@ class Themes {
                 .gridBoardDisabled           : ThemeColor(#colorLiteral(red: 0.9607843137, green: 0.9607843137, blue: 0.9607843137, alpha: 1), #colorLiteral(red: 0.4756349325, green: 0.4756467342, blue: 0.4756404161, alpha: 1), .lightBackground, .darkBackground),
                 .gridTable                   : ThemeColor(#colorLiteral(red: 0.8616076436, green: 0.8620930367, blue: 0.8620918949, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
                 .gridTableDisabled           : ThemeColor(#colorLiteral(red: 0.8616076436, green: 0.8620930367, blue: 0.8620918949, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
-                .autoComplete                : ThemeColor(#colorLiteral(red: 0.9188528073, green: 0.9193390308, blue: 1, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
+                .autoComplete                : ThemeColor(#colorLiteral(red: 0.7843137255, green: 0.7843137255, blue: 1, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .midBackground, .lightBackground),
+                .autoCompleteSelected        : ThemeColor(#colorLiteral(red: 0.5882352941, green: 0.5882352941, blue: 1, alpha: 1), #colorLiteral(red: 0.5741485357, green: 0.5741624236, blue: 0.574154973, alpha: 1), .lightBackground, .lightBackground),
                 .pickerButton                : ThemeColor(#colorLiteral(red: 0.0166248735, green: 0.4766505957, blue: 0.9990670085, alpha: 1), nil, .darkBackground),
                 .separator                   : ThemeColor(#colorLiteral(red: 0.6666069031, green: 0.6667050123, blue: 0.6665856242, alpha: 1), nil, .midBackground),
                 .listButton                  : ThemeColor(#colorLiteral(red: 0, green: 0.3921568627, blue: 0.7058823529, alpha: 1), nil, .midBackground),

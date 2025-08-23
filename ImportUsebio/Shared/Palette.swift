@@ -32,6 +32,7 @@ class Palette {
     @BackgroundColor(.gridTable) static var gridTable
     @BackgroundColor(.gridTableDisabled) static var gridTableDisabled
     @BackgroundColor(.autoComplete) static var autoComplete
+    @BackgroundColor(.autoCompleteSelected) static var autoCompleteSelected
     @BackgroundColor(.pickerButton) static var pickerButton
     @BackgroundColor(.divider) static var divider
     @BackgroundColor(.separator) static var separator

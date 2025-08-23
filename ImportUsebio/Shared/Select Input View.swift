@@ -18,12 +18,18 @@ enum Basis: Int {
     case headToHead = 2
 }
 
-enum FocusField {
+enum ViewField {
     case eventDescription
     case eventCode
     case clubCode
     case minRankCode
     case maxRankCode
+}
+
+struct AutoCompleteData : Hashable {
+    var index: Int
+    var code: String
+    var desc: String
 }
 
 struct SelectInputView: View {
@@ -77,112 +83,145 @@ struct SelectInputView: View {
     @State private var editSettings = Settings.current.copy()
     @State private var windowHeight: CGFloat = 580
     @State private var expandedWindowHeight: CGFloat = 680
-    @FocusState private var focusedField: FocusField?
+    @FocusState private var focusedField: ViewField?
+    @State private var autoCompleteField: ViewField?
+    @State private var eventCodeData: [AutoCompleteData] = []
+    @State private var clubCodeData: [AutoCompleteData] = []
+    @State private var minRankCodeData: [AutoCompleteData] = []
+    @State private var maxRankCodeData: [AutoCompleteData] = []
+    @State private var selected: Int? = nil
+    let detectKeys: Set<KeyEquivalent> = [.upArrow, .downArrow, .return]
+
+    @Namespace private var autoComplete
     
     var body: some View {
         
-        // Just to trigger view refresh
+            // Just to trigger view refresh
         if refresh { EmptyView() }
         
         StandardView("Select Input") {
-            VStack {
-                HStack {
-                    Spacer().frame(width: 30)
-                    VStack(spacing: 0) {
-                        
-                        filenameView
-                        
-                        separatorView
-                        
-                        eventDescriptionView
-                        
-                        InputTitle(title: "Coding", topSpace: 16)
-                        
-                        Spacer().frame(height: 8)
-                        
-                        HStack {
-                            
-                            eventCodeView
-                        
-                            clubCodeView
-                            
-                            Spacer()
-                        }
-                        
-                        InputTitle(title: "Ranking restrictions", topSpace: 16)
-                        Spacer().frame(height: 8)
-                        
-                        HStack {
-                            
-                            rankingsView
-                            
-                        }
-                        
+            ZStack {
+                VStack {
+                    HStack {
+                        Spacer().frame(width: 30)
                         VStack(spacing: 0) {
+                            
+                            filenameView
+                            
                             separatorView
-                            InputTitle(title: "Other details")
+                            
+                            eventDescriptionView
+                            
+                            InputTitle(title: "Coding", topSpace: 16)
+                            
                             Spacer().frame(height: 8)
                             
-                            roundNameView
+                            HStack {
+                                
+                                eventCodeView
+                                
+                                clubCodeView
+                                
+                                Spacer()
+                            }
+                            
+                            InputTitle(title: "Ranking restrictions", topSpace: 16)
+                            Spacer().frame(height: 8)
                             
                             HStack {
-                                VStack {
-                                    InputTitle(title: "Points Award Details", topSpace: 10)
-                                    pointsAwardView
-                                }
-                                Spacer()
+                                
+                                rankingsView
+                                
                             }
-                        }
-                        VStack {
-                            Spacer().frame(height: 16)
-                            Separator(thickness: 1)
-                            Spacer().frame(height: 16)
-                            HStack {
-                                VStack {
-                                    Spacer()
-                                    InputTitle(title: "Advanced Parameters ", fillTrailing: false)
-                                    Spacer()
-                                }
-                                VStack {
-                                    Spacer()
-                                    Spacer().frame(height: 4)
-                                    Text(showAdvancedParameters ? "􀄥" : "􀄧")
-                                        .foregroundColor(Palette.background.themeText)
-                                        .font(inputFont)
-                                        .onTapGesture {
-                                            showAdvancedParameters.toggle()
-                                            windowHeight = showAdvancedParameters ? expandedWindowHeight : windowHeight
-                                        }
-                                    Spacer()
-                                }
-                                Spacer()
-                            }.frame(height: 20)
-                            if showAdvancedParameters {
-                                advancedParametersView
-                            }
-                        }
-                        VStack(spacing: 0) {
-                            Spacer().frame(height: 24)
-                            Separator(thickness: 1)
-                            Spacer().frame(height: 12)
-                            HStack {
-                                Spacer().frame(width: 40)
-                                addSheetButton()
-                                Spacer().frame(width: 50)
-                                finishButton()
-                                Spacer().frame(width: 50)
-                                clearButton()
-                                Spacer().frame(width: 50)
-                                pasteButton()
-                                Spacer()
-                                settingsButton()
-                                    .popover(isPresented: $showSettingsMenu) {
-                                        settingsMenuView
+                            
+                            VStack(spacing: 0) {
+                                separatorView
+                                InputTitle(title: "Other details")
+                                Spacer().frame(height: 8)
+                                
+                                roundNameView
+                                
+                                HStack {
+                                    VStack {
+                                        InputTitle(title: "Points Award Details", topSpace: 10)
+                                        pointsAwardView
                                     }
-                                Spacer().frame(width: 50)
+                                    Spacer()
+                                }
                             }
-                            Spacer().frame(height: 20)
+                            VStack {
+                                Spacer().frame(height: 16)
+                                Separator(thickness: 1)
+                                Spacer().frame(height: 16)
+                                HStack {
+                                    VStack {
+                                        Spacer()
+                                        InputTitle(title: "Advanced Parameters ", fillTrailing: false)
+                                        Spacer()
+                                    }
+                                    VStack {
+                                        Spacer()
+                                        Spacer().frame(height: 4)
+                                        Text(showAdvancedParameters ? "􀄥" : "􀄧")
+                                            .foregroundColor(Palette.background.themeText)
+                                            .font(inputFont)
+                                            .onTapGesture {
+                                                showAdvancedParameters.toggle()
+                                                windowHeight = showAdvancedParameters ? expandedWindowHeight : windowHeight
+                                            }
+                                        Spacer()
+                                    }
+                                    Spacer()
+                                }.frame(height: 20)
+                                if showAdvancedParameters {
+                                    advancedParametersView
+                                }
+                            }
+                            VStack(spacing: 0) {
+                                Spacer().frame(height: 24)
+                                Separator(thickness: 1)
+                                Spacer().frame(height: 12)
+                                HStack {
+                                    Spacer().frame(width: 40)
+                                    addSheetButton()
+                                    Spacer().frame(width: 50)
+                                    finishButton()
+                                    Spacer().frame(width: 50)
+                                    clearButton()
+                                    Spacer().frame(width: 50)
+                                    pasteButton()
+                                    Spacer()
+                                    settingsButton()
+                                        .popover(isPresented: $showSettingsMenu) {
+                                            settingsMenuView
+                                        }
+                                    Spacer().frame(width: 50)
+                                }
+                                Spacer().frame(height: 20)
+                            }
                         }
+                    }
+                }
+                VStack {
+                    switch focusedField {
+                    case .eventCode:
+                        autoCompleteView(field: .eventCode, codeWidth: 70, rightAlign: false, data: $eventCodeData, valid: event != nil) { (newValue) in
+                            eventCode = newValue
+                        }
+                    case .clubCode:
+                        autoCompleteView(field: .clubCode, codeWidth: 70, rightAlign: false, data: $clubCodeData, valid: club != nil) { (newValue) in
+                            clubCode = newValue
+                        }
+                    case .minRankCode:
+                        autoCompleteView(field: .minRankCode, codeWidth: 50, rightAlign: true, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
+                            minRankCode = Int(newValue)!
+                        }
+                    case .maxRankCode:
+                        autoCompleteView(field: .maxRankCode, codeWidth: 50, rightAlign: true, data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
+                            maxRankCode = Int(newValue)!
+                        }
+                    default:
+                        EmptyView()
                     }
                 }
             }
@@ -229,6 +268,79 @@ struct SelectInputView: View {
             RankImportView()
         }
     }
+    
+    private func autoCompleteView(field: ViewField, codeWidth: CGFloat, rightAlign: Bool, data: Binding<[AutoCompleteData]>, valid: Bool, selectAction: @escaping (String)->()) -> some View {
+        VStack(spacing: 0) {
+            if data.wrappedValue.count > (valid ? 1 : 0) {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(data.wrappedValue, id: \.index) { (element) in
+                            VStack(spacing: 0) {
+                                HStack {
+                                    Spacer().frame(width: 12)
+                                    HStack {
+                                        if rightAlign {
+                                            Spacer()
+                                        }
+                                        Text(element.code)
+                                            .font(inputFont)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                        if !rightAlign {
+                                            Spacer()
+                                        }
+                                    }.frame(width: codeWidth - 6)
+                                    Spacer().frame(width: 4)
+                                    Text(element.desc)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectAction(element.code)
+                                }
+                            }
+                            .frame(height: 20)
+                            .background(element.index != selected ? Palette.autoComplete.background : Palette.autoCompleteSelected.background)
+                            .foregroundColor(element.index != selected ? Palette.autoComplete.text : Palette.autoCompleteSelected.text)
+                        }
+                    }
+                    .scrollTargetLayout()
+                    .listStyle(DefaultListStyle())
+                }
+                .scrollPosition(id: $selected)
+            }
+        }
+        .zIndex(1)
+        .matchedGeometryEffect(
+            id: field,
+            in: autoComplete,
+            properties: .position,
+            anchor: .topTrailing,
+            isSource: false)
+        .frame(width: 270, height: CGFloat(min(6, data.wrappedValue.count) * 20))
+    }
+    
+    private func onKeyPress(_ keyPress: KeyPress, maxSelected: Int, onSelect: ()->()) -> KeyPress.Result {
+        switch keyPress.key {
+        case .downArrow:
+            selected = min(maxSelected - 1, (selected ?? -1) + 1)
+            return .handled
+        case .upArrow:
+            selected = ((selected ?? 0) == 0 ? nil : selected! - 1)
+            return .handled
+        case .return:
+            if selected != nil {
+                onSelect()
+            }
+            return .handled
+        default:
+            return .ignored
+        }
+    }
+    
+    
     
     private func set(eventCode newValue: String) {
         event = EventViewModel.event(eventCode: newValue)
@@ -306,10 +418,18 @@ struct SelectInputView: View {
         HStack {
             Spacer().frame(width: 42)
             
-            Input(title: "Event code:", field: $eventCode, message: $eventMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, pickerAction: { showEventCodesSearch = true }) { (newValue) in
+            Input(title: "Event code:", field: $eventCode, message: $eventMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, pickerAction: { showEventCodesSearch = true }, onKeyPress: eventKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(eventCode: newValue)
+                eventCodeData = getEventList()
             }
             .focused($focusedField, equals: .eventCode)
+            .matchedGeometryEffect(id: ViewField.eventCode, in: autoComplete, anchor: .bottomTrailing)
+        }
+    }
+    
+    private func eventKeyPress(_ press: KeyPress) -> KeyPress.Result{
+        onKeyPress(press, maxSelected: eventCodeData.count) {
+            set(eventCode: eventCodeData[selected!].code)
         }
     }
     
@@ -318,31 +438,55 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }) { (newValue) in
+            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }, onKeyPress: clubKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(clubCode: newValue)
+                clubCodeData = getClubList()
             }
             .focused($focusedField, equals: .clubCode)
+            .matchedGeometryEffect(id: ViewField.clubCode, in: autoComplete, anchor: .bottomTrailing)
+        }
+    }
+    
+    private func clubKeyPress(_ press: KeyPress) -> KeyPress.Result{
+        onKeyPress(press, maxSelected: clubCodeData.count) {
+            set(clubCode: clubCodeData[selected!].code)
         }
     }
     
     private var rankingsView: some View {
         HStack {
-
+            
             Spacer().frame(width: 42)
             
-            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }) { (newValue) in
+            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }, onKeyPress: minRankKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(minRankCode: newValue)
+                minRankCodeData = getMinRankList()
             }
             .focused($focusedField, equals: .minRankCode)
+            .matchedGeometryEffect(id: ViewField.minRankCode, in: autoComplete, anchor: .bottomTrailing)
             
             Spacer().frame(width: 30)
             
-            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }) { (newValue) in
+            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }, onKeyPress: maxRankKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(maxRankCode: newValue)
+                maxRankCodeData = getMaxRankList()
             }
             .focused($focusedField, equals: .maxRankCode)
+            .matchedGeometryEffect(id: ViewField.maxRankCode, in: autoComplete, anchor: .bottomTrailing)
             
             Spacer()
+        }
+    }
+    
+    private func minRankKeyPress(_ press: KeyPress) -> KeyPress.Result{
+        onKeyPress(press, maxSelected: minRankCodeData.count) {
+            set(minRankCode: Int(minRankCodeData[selected!].code)!)
+        }
+    }
+    
+    private func maxRankKeyPress(_ press: KeyPress) -> KeyPress.Result{
+        onKeyPress(press, maxSelected: maxRankCodeData.count) {
+            set(maxRankCode: Int(maxRankCodeData[selected!].code)!)
         }
     }
     
@@ -625,10 +769,10 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || (club == nil && event!.clubMandatory) || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
-   
+    
     private func finishButton() -> some View {
         return Button{
             FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url) in
@@ -827,7 +971,7 @@ struct SelectInputView: View {
                     }
                 }
             }
-                    
+            
             importInProgress = nil
             addMissingNationalIdWarning()
             if !roundErrors.isEmpty {
@@ -871,6 +1015,54 @@ struct SelectInputView: View {
     private func addMissingNationalIdWarning() {
         if missingNationalIds {
             roundErrors.append(RoundErrorList(name: "General", errors: [], warnings: ["Some players have missing National Ids"]))
+        }
+    }
+    
+    private func getEventList() -> [AutoCompleteData] {
+        selected = nil
+        if eventCode != "" {
+            return (MasterData.shared.events.array as! [EventViewModel])
+                .filter({$0.eventCode.hasPrefix(eventCode.uppercased()) && $0.active && ($0.startDate ?? Date()) <= Date() && ($0.endDate ?? Date()) >= Date()})
+                .sorted(by: {$0.eventCode < $1.eventCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: element.eventCode, desc: element.eventName)})
+        } else {
+            return []
+        }
+    }
+    
+    private func getClubList() -> [AutoCompleteData] {
+        selected = nil
+        if clubCode != "" {
+            return (MasterData.shared.clubs.array as! [ClubViewModel])
+                .filter({$0.clubCode.hasPrefix(clubCode.uppercased()) && !$0.clubName.uppercased().contains("CLOSED")})
+                .sorted(by: {$0.clubCode < $1.clubCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: element.clubCode, desc: element.clubName)})
+        } else {
+            return []
+        }
+    }
+    
+    private func getMinRankList() -> [AutoCompleteData] {
+        getRankList(rankCode: minRankCode, rank: minRank, nullRank: 0)
+    }
+    
+    private func getMaxRankList() -> [AutoCompleteData] {
+        getRankList(rankCode: maxRankCode, rank: maxRank, nullRank: 999)
+    }
+    
+    private func getRankList(rankCode: Int, rank: RankViewModel?, nullRank: Int) -> [AutoCompleteData] {
+        selected = nil
+        if rankCode != nullRank {
+            var list = MasterData.shared.ranks.array as! [RankViewModel]
+            list.append(RankViewModel(rankCode: nullRank, rankName: "No \(nullRank == 0 ? "minimum" : "maximum") rank"))
+            return list.filter({"\($0.rankCode)".hasPrefix("\(rankCode)")})
+                .sorted(by: {$0.rankCode < $1.rankCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: "\(element.rankCode)", desc: element.rankName)})
+        } else {
+            return []
         }
     }
     

@@ -872,7 +872,7 @@ class CsvImportWriter: WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
-        writer.createMacroButton(worksheet: worksheet, title: "Copy Import", macro: "CopyImport", row: 1, column: 4)
+        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 1, column: 4)
         writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 4, column: 4)
         
         // Format rows/columns

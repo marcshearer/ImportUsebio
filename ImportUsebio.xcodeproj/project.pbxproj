@@ -25,7 +25,7 @@
 		B2A784EA29AE293F000425C4 /* Import Rounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784E929AE293F000425C4 /* Import Rounds.swift */; };
 		B2A784EC29B09C87000425C4 /* Show Errors View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784EB29B09C87000425C4 /* Show Errors View.swift */; };
 		B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */; };
-		B2BA8A9A2E49F86000B415F5 /* Event Codes View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8A992E49F84F00B415F5 /* Event Codes View.swift */; };
+		B2BA8A9A2E49F86000B415F5 /* Event Import View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8A992E49F84F00B415F5 /* Event Import View.swift */; };
 		B2BA8A9E2E49FAC200B415F5 /* Drop Delegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8A9D2E49FAC200B415F5 /* Drop Delegate.swift */; };
 		B2BA8AA22E4A27E900B415F5 /* Event Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8AA12E4A27D400B415F5 /* Event Managed Object.swift */; };
 		B2BA8AA42E4A290000B415F5 /* Object Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8AA32E4A290000B415F5 /* Object Model.swift */; };
@@ -102,7 +102,7 @@
 		B2A784E929AE293F000425C4 /* Import Rounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Import Rounds.swift"; sourceTree = "<group>"; };
 		B2A784EB29B09C87000425C4 /* Show Errors View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Show Errors View.swift"; sourceTree = "<group>"; };
 		B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BridgeWebs Csv Parser.swift"; sourceTree = "<group>"; };
-		B2BA8A992E49F84F00B415F5 /* Event Codes View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Codes View.swift"; sourceTree = "<group>"; };
+		B2BA8A992E49F84F00B415F5 /* Event Import View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Import View.swift"; sourceTree = "<group>"; };
 		B2BA8A9D2E49FAC200B415F5 /* Drop Delegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Drop Delegate.swift"; sourceTree = "<group>"; };
 		B2BA8AA12E4A27D400B415F5 /* Event Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Managed Object.swift"; sourceTree = "<group>"; };
 		B2BA8AA32E4A290000B415F5 /* Object Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Object Model.swift"; sourceTree = "<group>"; };
@@ -373,7 +373,7 @@
 				B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */,
 				B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */,
 				B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */,
-				B2BA8A992E49F84F00B415F5 /* Event Codes View.swift */,
+				B2BA8A992E49F84F00B415F5 /* Event Import View.swift */,
 				B20873872E4B880E00E509C5 /* Club Import View.swift */,
 				B20873892E4B8A3900E509C5 /* Rank Import View.swift */,
 			);
@@ -523,7 +523,7 @@
 			files = (
 				B2E103A82992815B00A35645 /* Core Data.swift in Sources */,
 				B2E103C52994120700A35645 /* Writer.swift in Sources */,
-				B2BA8A9A2E49F86000B415F5 /* Event Codes View.swift in Sources */,
+				B2BA8A9A2E49F86000B415F5 /* Event Import View.swift in Sources */,
 				B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */,
 				B2E1036B29927EB100A35645 /* String Extensions.swift in Sources */,
 				B2E103A62992806F00A35645 /* Standard View.swift in Sources */,
@@ -715,7 +715,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 60;
+				CURRENT_PROJECT_VERSION = 62;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -745,7 +745,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 60;
+				CURRENT_PROJECT_VERSION = 62;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_HARDENED_RUNTIME = YES;

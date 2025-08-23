@@ -23,6 +23,8 @@ struct InputInt : View {
     var isEnabled: Bool = true
     var isReadOnly: Bool = false
     var pickerAction: (()->())?
+    var onKeyPress: ((KeyPress)->(KeyPress.Result))?
+    var detectKeys: Set<KeyEquivalent>?
     var onChange: ((Int)->())?
     
     @State private var wrappedText = ""
@@ -107,6 +109,11 @@ struct InputInt : View {
                             .padding(.all, 1)
                             .disableAutocorrection(false)
                             .textFieldStyle(.plain)
+                            .if(detectKeys != nil) { (view) in
+                                view.onKeyPress(keys: detectKeys!) { press in
+                                    return (onKeyPress?(press) ?? .ignored)
+                                }
+                            }
                         }
                     }
                     .frame(width: (messageOffset != 0 ? messageOffset : width - pickerWidth), height: height)
@@ -141,10 +148,8 @@ struct InputInt : View {
             if newText != "" {
                 text.wrappedValue = newValue.toString()
             }
-            if newValue != oldValue {
-                field = newValue
-                onChange?(newValue)
-            }
+            field = newValue
+            onChange?(newValue)
         }
     }
     
