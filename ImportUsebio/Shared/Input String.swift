@@ -63,7 +63,9 @@ struct Input : View {
                             HStack {
                                 Spacer().frame(width: messageOffset)
                                 HStack {
-                                    Text(message).foregroundColor(Palette.input.themeText)
+                                    Text(message)
+                                        .font(lookupFont)
+                                        .foregroundColor(Palette.input.themeText)
                                         .truncationMode(.tail)
                                     Spacer()
                                 }
@@ -162,12 +164,12 @@ struct Input : View {
                                 .myAutocapitalization(autoCapitalize)
                                 .disableAutocorrection(!autoCorrect)
                                 .frame(height: height)
-                                .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
                                 .if(detectKeys != nil) { (view) in
                                     view.onKeyPress(keys: detectKeys!) { press in
                                         return (onKeyPress?(press) ?? .ignored)
                                     }
                                 }
+                                .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
                             Spacer()
                         }
                     }

@@ -205,19 +205,19 @@ struct SelectInputView: View {
                 VStack {
                     switch focusedField {
                     case .eventCode:
-                        autoCompleteView(field: .eventCode, codeWidth: 70, rightAlign: false, data: $eventCodeData, valid: event != nil) { (newValue) in
+                        autoCompleteView(field: .eventCode, codeWidth: 80, data: $eventCodeData, valid: event != nil) { (newValue) in
                             eventCode = newValue
                         }
                     case .clubCode:
-                        autoCompleteView(field: .clubCode, codeWidth: 70, rightAlign: false, data: $clubCodeData, valid: club != nil) { (newValue) in
+                        autoCompleteView(field: .clubCode, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
                             clubCode = newValue
                         }
                     case .minRankCode:
-                        autoCompleteView(field: .minRankCode, codeWidth: 50, rightAlign: true, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
+                        autoCompleteView(field: .minRankCode, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
                             minRankCode = Int(newValue)!
                         }
                     case .maxRankCode:
-                        autoCompleteView(field: .maxRankCode, codeWidth: 50, rightAlign: true, data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
+                        autoCompleteView(field: .maxRankCode, codeWidth: 80 , data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
                             maxRankCode = Int(newValue)!
                         }
                     default:
@@ -269,31 +269,29 @@ struct SelectInputView: View {
         }
     }
     
-    private func autoCompleteView(field: ViewField, codeWidth: CGFloat, rightAlign: Bool, data: Binding<[AutoCompleteData]>, valid: Bool, selectAction: @escaping (String)->()) -> some View {
+    private func autoCompleteView(field: ViewField, codeWidth: CGFloat, data: Binding<[AutoCompleteData]>, valid: Bool, selectAction: @escaping (String)->()) -> some View {
         VStack(spacing: 0) {
             if data.wrappedValue.count > (valid ? 1 : 0) {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(data.wrappedValue, id: \.index) { (element) in
                             VStack(spacing: 0) {
-                                HStack {
+                                HStack(spacing: 0) {
                                     Spacer().frame(width: 12)
-                                    HStack {
-                                        if rightAlign {
-                                            Spacer()
-                                        }
+                                    HStack(spacing: 0) {
                                         Text(element.code)
                                             .font(inputFont)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
-                                        if !rightAlign {
-                                            Spacer()
-                                        }
-                                    }.frame(width: codeWidth - 6)
-                                    Spacer().frame(width: 4)
+                                            .padding(0)
+                                        Spacer()
+                                    }
+                                    .frame(width: codeWidth - 12)
                                     Text(element.desc)
+                                        .font(lookupFont)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
+                                        .padding(0)
                                     Spacer()
                                 }
                                 .contentShape(Rectangle())
@@ -313,6 +311,14 @@ struct SelectInputView: View {
             }
         }
         .zIndex(1)
+        .clipShape(
+            .rect(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: 8,
+                bottomTrailingRadius: 8,
+                topTrailingRadius: 0
+            )
+        )
         .matchedGeometryEffect(
             id: field,
             in: autoComplete,
@@ -438,7 +444,7 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }, onKeyPress: clubKeyPress, detectKeys: detectKeys) { (newValue) in
+            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }, onKeyPress: clubKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(clubCode: newValue)
                 clubCodeData = getClubList()
             }
@@ -458,7 +464,7 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 42)
             
-            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }, onKeyPress: minRankKeyPress, detectKeys: detectKeys) { (newValue) in
+            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }, onKeyPress: minRankKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(minRankCode: newValue)
                 minRankCodeData = getMinRankList()
             }
@@ -467,7 +473,7 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 70, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }, onKeyPress: maxRankKeyPress, detectKeys: detectKeys) { (newValue) in
+            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }, onKeyPress: maxRankKeyPress, detectKeys: detectKeys) { (newValue) in
                 set(maxRankCode: newValue)
                 maxRankCodeData = getMaxRankList()
             }
@@ -1066,4 +1072,26 @@ struct SelectInputView: View {
         }
     }
     
+}
+
+struct EdgeBorder: Shape {
+    var width: CGFloat
+    var edges: [Edge]
+
+    func path(in rect: CGRect) -> Path {
+        edges.map { edge -> Path in
+            switch edge {
+            case .top: return Path(.init(x: rect.minX, y: rect.minY, width: rect.width, height: width))
+            case .bottom: return Path(.init(x: rect.minX, y: rect.maxY - width, width: rect.width, height: width))
+            case .leading: return Path(.init(x: rect.minX, y: rect.minY, width: width, height: rect.height))
+            case .trailing: return Path(.init(x: rect.maxX - width, y: rect.minY, width: width, height: rect.height))
+            }
+        }.reduce(into: Path()) { $0.addPath($1) }
+    }
+}
+
+extension View {
+    func border(width: CGFloat, edges: [Edge], color: Color) -> some View {
+        overlay(EdgeBorder(width: width, edges: edges).foregroundColor(color))
+    }
 }

@@ -79,7 +79,7 @@ struct InputFloat : View {
                                 }
                             }
                             .lineLimit(1)
-                            .padding(.all, 1)
+                            .padding(.all, 10)
                             .disableAutocorrection(false)
                             .textFieldStyle(.plain)
                     }

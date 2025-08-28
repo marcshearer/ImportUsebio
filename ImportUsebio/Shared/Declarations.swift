@@ -35,6 +35,7 @@ var toolbarFont: Font { Font.system(size: (MyApp.format == .tablet ? 16.0 : 14.0
 var captionFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 18.0)) }
 var inputTitleFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 18.0)) }
 var inputFont: Font { Font.system(size: 14.0) }
+var lookupFont: Font { Font.system(size: 12.0) }
 var pickerFont: Font { Font.system(size: 10.0) }
 var messageFont: Font { Font.system(size: (MyApp.format == .tablet ? 16.0 : 14.0)) }
 var searchFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 16.0)) }

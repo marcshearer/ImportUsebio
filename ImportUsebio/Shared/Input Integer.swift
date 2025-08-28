@@ -75,8 +75,10 @@ struct InputInt : View {
                             HStack {
                                 Spacer().frame(width: messageOffset)
                                 HStack {
-                                    Text(message).foregroundColor(Palette.input.themeText)
+                                    Text(message)
+                                        .foregroundColor(Palette.input.themeText)
                                         .truncationMode(.tail)
+                                        .font(lookupFont)
                                     Spacer()
                                 }
                                 .frame(width: width - messageOffset - pickerWidth)
@@ -106,7 +108,7 @@ struct InputInt : View {
                             .disabled(!isEnabled || isReadOnly)
                             .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
                             .lineLimit(1)
-                            .padding(.all, 1)
+                            .padding(.all, 10)
                             .disableAutocorrection(false)
                             .textFieldStyle(.plain)
                             .if(detectKeys != nil) { (view) in
