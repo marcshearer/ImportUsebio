@@ -675,22 +675,32 @@ struct SelectInputView: View {
     
     private var settingsMenuView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button("Settings") { showSettings = true }
-                .padding([.top], 10)
-                .padding([.leading, .trailing], 8)
-                .padding([.bottom], 6)
-            Button("Import Ranks") { showImportRanks = true }
-                .padding([.bottom], 10)
-                .padding([.leading, .trailing], 8)
+            Text("Settings").bold()
                 .padding([.top], 6)
-            Button("Import Clubs") { showImportClubs = true}
                 .padding([.leading, .trailing], 8)
+                .padding([.bottom], 0)
+            Button("Edit Settings") { showSettings = true }
+                .padding([.leading, .trailing], 28)
+                .padding([.top], 6)
+                .padding([.bottom], 10)
+            Separator()
+            Text("Imports").bold()
+                .padding([.top], 6)
+                .padding([.leading, .trailing], 8)
+                .padding([.bottom], 0)
+            Button("Import Ranks") { showImportRanks = true }
+                .padding([.leading, .trailing], 28)
+                .padding([.top, .bottom], 6)
+            Button("Import Clubs") { showImportClubs = true}
+                .padding([.leading, .trailing], 28)
                 .padding([.top, .bottom], 6)
             Button("Import Events") { showImportEvents = true}
-                .padding([.leading, .trailing], 8)
-                .padding([.top, .bottom], 6)
+                .padding([.leading, .trailing], 28)
+                .padding([.top], 6)
+                .padding([.bottom], 20)
         }.background(Color.clear)
             .buttonStyle(.borderless)
+            .font(inputFont)
             .focusable(false)
     }
     
