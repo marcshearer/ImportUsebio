@@ -26,12 +26,24 @@ Private Function SingleAward(MaxAward As Double, Rank As Variant, totalAwards As
         End If
 End Function
 
-Sub CopyImport()
+Sub CreateCSV()
     Dim DateArray As Range
     Dim TitleRow As Range
     Dim CopyArea As Range
     Dim Height As Integer
     Dim Width As Integer
+    Dim CurrentSheet As Worksheet
+    Dim CurrentWorkBook As Workbook
+    Dim NewWorkbook As Workbook
+    Dim NewSheet As Worksheet
+    Dim MovedSheet As Worksheet
+    Dim Filename As String
+    
+    Application.DisplayAlerts = False
+    
+    Filename = ActiveWorkbook.FullName
+    Filename = Replace(Filename, ".xlsm", ".csv")
+    
     Set DateArray = Range("ImportDateArray")
     Set TitleRow = Range("ImportTitleRow")
     Height = DateArray.Rows.Count
@@ -39,6 +51,20 @@ Sub CopyImport()
     Set CopyArea = Range(TitleRow(1, Width), DateArray(Height, 1))
     CopyArea.Copy
     
+    Set CurrentWorkBook = ActiveWorkbook
+    Set CurrentSheet = ActiveSheet
+    Set NewSheet = Sheets.Add(After:=CurrentSheet)
+    NewSheet.Name = "CSV Export"
+    NewSheet.Cells(1, 1).PasteSpecial xlPasteValuesAndNumberFormats
+    NewSheet.Move
+    
+    Set NewWorkbook = ActiveWorkbook
+    NewWorkbook.SaveAs Filename:=Filename, FileFormat:=xlCSV, Local:=True
+    NewWorkbook.Close
+    
+    CurrentWorkBook.Activate
+    CurrentSheet.Activate
+    Application.DisplayAlerts = True
 End Sub
 
 Function FormatNames(ParamArray paramNames() As Variant) As String()
@@ -120,9 +146,11 @@ Function CombinedCategory(ParamArray paramRanks() As Variant) As String()
                     HighestRank = 9999
                 Else
                 ' Use if higher than previous
-                    If Rank > HighestRank Then
-                        Result(Row, 0) = RankCategory
-                        HighestRank = Rank
+                    If HighestRank <> 1 Then
+                        If Rank = 1 Or Rank > HighestRank Then
+                            Result(Row, 0) = RankCategory
+                            HighestRank = Rank
+                        End If
                     End If
                 End If
             Next
@@ -213,6 +241,5 @@ Sub Auto_Open()
         .SaveLinkValues = False
     End With
 End Sub
-
 
 
