@@ -868,7 +868,8 @@ class CsvImportWriter: WriterBase {
         workbook_define_name(writer.workbook, "ImportEventDescriptionCell", "=\(cell(writer: self, eventDescriptionRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportPageOrientationCell", "=\(cell(writer: self, pageOrientationRow, rowFixed: true, valuesColumn, columnFixed: true))")
-        
+        workbook_define_name(writer.workbook, "EventDateCell", "=\(cell(writer: self, eventDateRow, rowFixed: true, valuesColumn, columnFixed: true))")
+
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
