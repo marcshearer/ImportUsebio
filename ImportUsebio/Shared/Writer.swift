@@ -1071,7 +1071,7 @@ class CsvImportWriter: WriterBase {
     private func highlightBadDate(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let dateCell = cell(dataRow, column, columnFixed: true)
         let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
-        let formula = "=AND(\(firstNameCell)<>\"\", OR(\(dateCell)>DATEVALUE(\"\(Date().toString(format: "dd/MM/yyyy"))\")+1, \(dateCell)<DATEVALUE(\"\(Date().toString(format: "dd/MM/yyyy"))\")-30))"
+        let formula = "=AND(\(firstNameCell)<>\"\", OR(INT(\(dateCell))>TODAY(), INT(\(dateCell))<(TODAY()-8)))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
