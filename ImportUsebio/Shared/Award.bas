@@ -40,6 +40,7 @@ Sub CreateCSV()
     Dim Filename As String
     Dim EventDateRange As Range
     Dim EventDate As Date
+    Dim CurrentDate As Date
     Dim Message As String
     
     Application.DisplayAlerts = False
@@ -48,13 +49,14 @@ Sub CreateCSV()
     Filename = Replace(Filename, ".xlsm", ".csv")
     
     Set EventDateCell = Range("EventDateCell")
-    EventDate = CDate(EventDateCell)
+    EventDate = CDate(Int(EventDateCell))
+    CurrentDate = CDate(Int(Date))
           
-    If EventDate > Date Then
+    If EventDate > CurrentDate Then
         Message = "Event Date is in the future." & vbNewLine & "File not created!"
         MsgBox Message
     Else
-        If EventDate < Date - 8 Then
+        If EventDate < CurrentDate - 8 Then
             Message = "Event Date is more than 1 week in the past." & vbNewLine & "Are you sure you want to continue?"
             Confirmed = MsgBox(Message, vbYesNo)
             If Confirmed <> vbYes Then
