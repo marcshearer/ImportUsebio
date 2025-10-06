@@ -19,6 +19,7 @@
         @Published var defaultWorksheetZoom: Float!
         @Published var linesPerFormattedPage: Int!
         @Published var userDownloadData: String!
+        @Published var userDownloadFrozenData: String!
         @Published var userDownloadMinRow: Int!
         @Published var userDownloadMaxRow: Int!
         @Published var userDownloadNationalIdColumn: String!
@@ -55,6 +56,7 @@
             self.defaultWorksheetZoom = from.defaultWorksheetZoom
             self.linesPerFormattedPage = from.linesPerFormattedPage
             self.userDownloadData = from.userDownloadData
+            self.userDownloadFrozenData = from.userDownloadFrozenData
             self.userDownloadMinRow = from.userDownloadMinRow
             self.userDownloadMaxRow = from.userDownloadMaxRow
             self.userDownloadNationalIdColumn = from.userDownloadNationalIdColumn
@@ -78,6 +80,7 @@
             self.defaultWorksheetZoom = UserDefault.settingDefaultWorksheetZoom.float
             self.linesPerFormattedPage = UserDefault.settingLinesPerFormattedPage.int
             self.userDownloadData = UserDefault.settingUserDownloadData.string
+            self.userDownloadFrozenData = UserDefault.settingUserDownloadFrozenData.string
             self.userDownloadMinRow = UserDefault.settingUserDownloadMinRow.int
             self.userDownloadMaxRow = UserDefault.settingUserDownloadMaxRow.int
             self.userDownloadNationalIdColumn = UserDefault.settingUserDownloadNationalIdColumn.string
@@ -100,7 +103,7 @@
             UserDefault.settingLargestPlayerCount.set(self.largestPlayerCount)
             UserDefault.settingDefaultWorksheetZoom.set(self.defaultWorksheetZoom)
             UserDefault.settingLinesPerFormattedPage.set(self.linesPerFormattedPage)
-            UserDefault.settingUserDownloadData.set(self.userDownloadData)
+            UserDefault.settingUserDownloadFrozenData.set(self.userDownloadFrozenData)
             UserDefault.settingUserDownloadMinRow.set(self.userDownloadMinRow)
             UserDefault.settingUserDownloadMaxRow.set(self.userDownloadMaxRow)
             UserDefault.settingUserDownloadNationalIdColumn.set(self.userDownloadNationalIdColumn)

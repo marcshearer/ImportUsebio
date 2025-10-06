@@ -84,12 +84,16 @@ struct SettingsView: View {
                                 InputTitle(title: "User Download Details:", topSpace: 16)
                                 
                                 HStack {
-                                    Input(title: "Filename:", field: $settings.userDownloadData, leadingSpace: 30, width: 150, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                    Input(title: "Filename:", field: $settings.userDownloadData, leadingSpace: 30, width: 160, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     
                                     InputInt(title: "First Row:", field: $settings.userDownloadMinRow, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 80)
                                     
                                     InputInt(title: "Last Row:", field: $settings.userDownloadMaxRow, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 80)
                                     
+                                    Spacer()
+                                }
+                                HStack {
+                                    Input(title: "Frozen file:", field: $settings.userDownloadFrozenData, leadingSpace: 30, width: 160, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     Spacer()
                                 }
                             }
@@ -143,7 +147,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .frame(width: 800, height: 500)
+        .frame(width: 800, height: 530)
     }
     
     private var versionOption: BannerOption {

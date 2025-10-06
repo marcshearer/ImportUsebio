@@ -24,6 +24,36 @@ enum CellType {
     }
 }
 
+enum RankCategory: CaseIterable {
+    case gold
+    case silver
+    case bronze
+    
+    var string: String {
+        "\(self)".capitalized
+    }
+    
+    var backgroundColor: UInt32 {
+        switch self {
+        case .gold:
+            0xD4AF37
+        case .silver:
+            0xBCC6CC
+        case .bronze:
+            0xA97142
+        }
+    }
+    
+    var textColor: UInt32 {
+        switch self {
+        case .bronze:
+            LXW_COLOR_WHITE.rawValue
+        default:
+            LXW_COLOR_BLACK.rawValue
+        }
+    }
+}
+
 class Column {
     var title: String
     var content: ((Participant, Int)->String)?
@@ -119,6 +149,9 @@ class Writer: WriterBase {
     var consolidated: ConsolidatedWriter!
     var missing: MissingNumbersWriter!
     var formatted: FormattedWriter!
+    var raceExport: RaceExportWriter!
+    var raceDetail: RaceDetailWriter!
+    var raceFormatted: RaceFormattedWriter!
     var rounds: [Round] = []
     var minRank = 0
     var maxRank = 9999
@@ -126,6 +159,7 @@ class Writer: WriterBase {
     var clubCode: String = ""
     var eventDescription: String = ""
     var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
+    var includeInRace = true
     
     var maxPlayers: Int { min(1000, rounds.map{ $0.maxPlayers }.reduce(0, +)) }
     
@@ -137,6 +171,9 @@ class Writer: WriterBase {
         consolidated = ConsolidatedWriter(writer: self)
         missing = MissingNumbersWriter(writer: self)
         formatted = FormattedWriter(writer: self)
+        raceExport = RaceExportWriter(writer: self)
+        raceDetail = RaceDetailWriter(writer: self)
+        raceFormatted = RaceFormattedWriter(writer: self)
     }
         
     @discardableResult func add(name: String, shortName: String? = nil, scoreData: ScoreData) -> Round {
@@ -157,6 +194,11 @@ class Writer: WriterBase {
         summary.prepare(workbook: workbook)
         csvImport.prepare(workbook: workbook)
         formatted.prepare(workbook: workbook)
+        if includeInRace {
+            raceFormatted.prepare(workbook: workbook)
+            raceExport.prepare(workbook: workbook)
+            raceDetail.prepare(workbook: workbook)
+        }
         consolidated.prepare(workbook: workbook)
         missing.prepare(workbook: workbook)
         for round in rounds {
@@ -184,6 +226,13 @@ class Writer: WriterBase {
             worksheet_hide(missing.worksheet)
         }
         formatted.write()
+        if includeInRace {
+            raceDetail.write()
+            raceFormatted.write()
+            raceExport.write()
+            worksheet_hide(raceDetail.worksheet)
+            worksheet_hide(raceExport.worksheet)
+        }
         parameters.write()
         worksheet_hide(parameters.worksheet)
         
@@ -271,11 +320,11 @@ class ParametersWriter : WriterBase {
     }
     
     func writeRanks() {
-        ranksData = [ (  0, "Bronze"),
+        ranksData = [ (  0, RankCategory.bronze.string),
                       (  1, "Non-SBU"),
-                      (  2, "Bronze"),
-                      (165, "Silver"),
-                      (190, "Gold"  )]
+                      (  2, RankCategory.bronze.string),
+                      (165, RankCategory.silver.string),
+                      (190, RankCategory.gold.string  )]
         
         for (column, header) in ["From", "Category"].enumerated() {
             write(worksheet: worksheet, row: headerRow, column: ranksFromColumn + column, string: header, format: formatBold)
@@ -411,14 +460,6 @@ class FormattedWriter: WriterBase {
     var hiddenColumns: [Int] = []
     var categoryColumn: Int?
     
-    var formatBannerString: UnsafeMutablePointer<lxw_format>?
-    var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
-    var formatBannerFloat: UnsafeMutablePointer<lxw_format>?
-    var formatBannerNumeric: UnsafeMutablePointer<lxw_format>?
-    var formatBodyString: UnsafeMutablePointer<lxw_format>?
-    var formatBodyCenteredString: UnsafeMutablePointer<lxw_format>?
-    var formatBodyFloat: UnsafeMutablePointer<lxw_format>?
-    var formatBodyNumeric: UnsafeMutablePointer<lxw_format>?
     var formatBottom: UnsafeMutablePointer<lxw_format>?
     var formatLeftRight: UnsafeMutablePointer<lxw_format>?
     var formatLeftRightBottom: UnsafeMutablePointer<lxw_format>?
@@ -641,10 +682,6 @@ class FormattedWriter: WriterBase {
         }
     }
     
-    private func lookupRange(_ column: String) -> String {
-        return "'\(Settings.current.userDownloadData!)'!\(column)\(Settings.current.userDownloadMinRow!):\(column)\(Settings.current.userDownloadMaxRow!)"
-    }
-    
     private func consolidatedArrayRef(column: Int) -> String {
         return "\(arrayRef)(\(cell(writer: writer.consolidated, writer.consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))"
     }
@@ -686,7 +723,7 @@ class FormattedWriter: WriterBase {
     private func categoryNamesRef(rankColumn: [Int]) -> String {
         let round = writer.rounds.first!
         
-        var arrayContent = "CombinedCategory("
+        var arrayContent = "CombinedCategory(FALSE,"
         for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
                 arrayContent += ","
@@ -699,7 +736,7 @@ class FormattedWriter: WriterBase {
     }
     
     private func categoryNameRef(rankColumn: Int) -> String {
-       return "CombinedCategory(\(arrayRef)(\(cell(dataRow, rowFixed: true, rankColumn, columnFixed: true)))"
+       return "CombinedCategory(FALSE,\(arrayRef)(\(cell(dataRow, rowFixed: true, rankColumn, columnFixed: true)))"
     }
     
     private func zeroFiltered(arrayContent: String) -> String {
@@ -743,54 +780,7 @@ class FormattedWriter: WriterBase {
     }
     
     func setupFormattedFormats() {
-        formatBannerString = workbook_add_format(workbook)
-        format_set_align(formatBannerString, UInt8(LXW_ALIGN_LEFT.rawValue))
-        format_set_align(formatBannerString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerString)
-        format_set_pattern (formatBannerString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerString, UInt32(0x1F036C))
-        format_set_font_color(formatBannerString, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerString)
-        format_set_indent(formatBannerString, 2)
-
-        formatBannerCenteredString = workbook_add_format(workbook)
-        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerCenteredString)
-        format_set_pattern (formatBannerCenteredString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerCenteredString, UInt32(0x1F036C))
-        format_set_font_color(formatBannerCenteredString, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerCenteredString)
         
-        formatBannerFloat = workbook_add_format(workbook)
-        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerFloat)
-        format_set_pattern (formatBannerFloat, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerFloat, UInt32(0x1F036C))
-        format_set_font_color(formatBannerFloat, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerFloat)
-        
-        formatBannerNumeric = formatBannerFloat
-        
-        formatBodyString = workbook_add_format(workbook)
-        format_set_align(formatBodyString, UInt8(LXW_ALIGN_LEFT.rawValue))
-        format_set_align(formatBodyString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_indent(formatBodyString, 2)
-        
-        formatBodyCenteredString = workbook_add_format(workbook)
-        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        
-        formatBodyFloat = workbook_add_format(workbook)
-        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_num_format(formatBodyFloat, "0.00;-0.00;")
-        
-        formatBodyNumeric = workbook_add_format(workbook)
-        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-
         formatLeftRight = workbook_add_format(workbook)
         format_set_left(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
         format_set_right(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
@@ -875,6 +865,10 @@ class CsvImportWriter: WriterBase {
         // Add macro buttons
         writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 1, column: 4)
         writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 4, column: 4)
+        if self.writer.includeInRace {
+            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 1, column: 7)
+            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 4, column: 7)
+        }
         
         // Format rows/columns
         setRow(worksheet: worksheet, row: titleRow, height: 30)
@@ -1011,10 +1005,6 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=\(numeric ? "\(fnPrefix)NUMBERVALUE(" : "")\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(lookupColumn))),,0)\(numeric ? ")" : "")")
     }
     
-    private func lookupRange(_ column: String) -> String {
-        return "'\(Settings.current.userDownloadData!)'!\(column)\(Settings.current.userDownloadMinRow!):\(column)\(Settings.current.userDownloadMaxRow!)"
-    }
-    
     private func highlightLookupDifferent(columns: [Int], lookupColumns: [Int], keyIndex: Int = 0, format: UnsafeMutablePointer<lxw_format>? = nil) {
         var field = "CONCATENATE("
         var lookupField = "CONCATENATE("
@@ -1082,6 +1072,299 @@ class CsvImportWriter: WriterBase {
     }
 }
     
+// MARK: - RaceExportWriter
+
+class RaceDetailWriter: WriterBase {
+    override var name: String { "Race Detail" }
+    
+    let sectionRow = 0
+    let titleRow = 1
+    let dataRow = 2
+    
+    let sectionCategoryColumnOffset = 0
+    
+    let eventNameColumnOffset = 0
+    let categoryColumnOffset = 1
+    let nationalIdColumnOffset = 2
+    let positionColumnOffset = 3
+    let racePositionColumnOffset = 4
+    let playerNameColumnOffset = 5
+    let playerRankColumnOffset = 6
+    let racePointsColumnOffset = 7
+    let sectionColumns = 8
+    
+    var sectionCategoryColumn: [RankCategory:Int] = [:]
+    var eventNameColumn: [RankCategory:Int] = [:]
+    var categoryColumn: [RankCategory:Int] = [:]
+    var nationalIdColumn: [RankCategory:Int] = [:]
+    var positionColumn: [RankCategory:Int] = [:]
+    var racePositionColumn: [RankCategory:Int] = [:]
+    var playerNameColumn: [RankCategory:Int] = [:]
+    var playerRankColumn: [RankCategory:Int] = [:]
+    var racePointsColumn: [RankCategory:Int] = [:]
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+    }
+    
+    func write() {
+        let rounds = writer.rounds
+        let round = rounds.first!
+        let event = round.scoreData.events.first!
+        
+        freezePanes(worksheet: worksheet, row: dataRow, column: 0)
+        
+        let individual = writer.rounds.first!.individualMPs!
+        let indivNationalIdArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.nationalIdColumn!, columnFixed: true)))"
+        let indivPlayerCategoryArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.playerCategoryColumn!, columnFixed: true)))"
+        let indivPlayerRaceCategoryArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.playerRaceCategoryColumn!, columnFixed: true)))"
+        let indivPositionArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.positionColumn!, columnFixed: true)))"
+        let indivFirstNameArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.firstNameColumn!, columnFixed: true)))"
+        let indivOtherNamesArray = "\(arrayRef)(\(cell(writer: individual, individual.dataRow, rowFixed: true, individual.otherNamesColumn!, columnFixed: true)))"
+        
+        for (index, category) in RankCategory.allCases.enumerated() {
+            let startColumn = index * (sectionColumns + 1)
+            // Format rows/columns
+            setColumn(worksheet: worksheet, column: startColumn + eventNameColumnOffset, width: 30)
+            setColumn(worksheet: worksheet, column: startColumn + playerNameColumnOffset, width: 16)
+            
+            let sectionCell = cell(sectionRow, rowFixed: true, startColumn + sectionCategoryColumnOffset, columnFixed: true)
+            let filterLogic = "\(indivPlayerRaceCategoryArray)=\(sectionCell)"
+            let sortLogic = "\(filter)(\(indivPositionArray),\(filterLogic)"
+            
+            // Section cell
+            write(worksheet: worksheet, row: sectionRow, column: startColumn + sectionCategoryColumnOffset, string: category.string, format: formatBold)
+            sectionCategoryColumn[category] = startColumn + sectionCategoryColumnOffset
+            
+            // Data
+            let nationalIdArray = "\(arrayRef)(\(cell(dataRow, rowFixed: true, startColumn + nationalIdColumnOffset, columnFixed: true)))"
+            
+            // Event name
+            write(worksheet: worksheet, row: titleRow, column: startColumn + eventNameColumnOffset, string: "Event", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + eventNameColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,ImportEventDescriptionCell))")
+            eventNameColumn[category] = startColumn + eventNameColumnOffset
+            
+            // Category
+            write(worksheet: worksheet, row: titleRow, column: startColumn + categoryColumnOffset, string: "\(event.type?.participantType?.string ?? "Team") Category", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + categoryColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,\(sectionCell)))")
+            categoryColumn[category] = startColumn + categoryColumnOffset
+            
+            // National Id
+            write(worksheet: worksheet, row: titleRow, column: startColumn + nationalIdColumnOffset, string: "SBU", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + nationalIdColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivNationalIdArray),\(filterLogic)), \(sortLogic)), 1)")
+            nationalIdColumn[category] = startColumn + nationalIdColumnOffset
+            
+            // Overall Position
+            write(worksheet: worksheet, row: titleRow, column: startColumn + positionColumnOffset, string: "Overall position", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + positionColumnOffset, dynamicFormula: "=\(sortBy)(\(sortLogic)), \(sortLogic)), 1)")
+            positionColumn[category] = startColumn + positionColumnOffset
+            
+            // Race Position
+            write(worksheet: worksheet, row: titleRow, column: startColumn + racePositionColumnOffset, string: "Race Position", format: formatBoldUnderline)
+            let positionArray = "\(arrayRef)(\(cell(dataRow, rowFixed: true, positionColumn[category]!, columnFixed: true)))"
+            write(worksheet: worksheet, row: dataRow, column: startColumn + racePositionColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,\(fnPrefix)RANK.EQ(RelativeTo(\(positionArray),\(lambdaParam)row,\(lambdaParam)column),\(positionArray),1)))")
+            racePositionColumn[category] = startColumn + racePositionColumnOffset
+            
+            // Overall Position
+            write(worksheet: worksheet, row: titleRow, column: startColumn + positionColumnOffset, string: "Overall position", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + positionColumnOffset, dynamicFormula: "=\(sortBy)(\(sortLogic)), \(sortLogic)), 1)")
+            positionColumn[category] = startColumn + positionColumnOffset
+            
+            // Player Name
+            write(worksheet: worksheet, row: titleRow, column: startColumn + playerNameColumnOffset, string: "Name", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + playerNameColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(CONCATENATE(\(indivFirstNameArray),\" \",\(indivOtherNamesArray)),\(filterLogic)), \(sortLogic)), 1)")
+            playerNameColumn[category] = startColumn + playerNameColumnOffset
+            
+            // Actual Rank
+            write(worksheet: worksheet, row: titleRow, column: startColumn + playerRankColumnOffset, string: "Actual Category", format: formatBoldUnderline)
+            write(worksheet: worksheet, row: dataRow, column: startColumn + playerRankColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivPlayerCategoryArray),\(filterLogic)), \(sortLogic)), 1)")
+            playerRankColumn[category] = startColumn + playerRankColumnOffset
+            
+            // Race Points
+            write(worksheet: worksheet, row: titleRow, column: startColumn + racePointsColumnOffset, string: "Race Points", format: formatBoldUnderline)
+            let racePositionArray = "\(arrayRef)(\(cell(dataRow, rowFixed: true, racePositionColumn[category]!, columnFixed: true)))"
+            write(worksheet: worksheet, row: dataRow, column: startColumn + racePointsColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,MAX(0,11-RelativeTo(\(racePositionArray),\(lambdaParam)row,\(lambdaParam)column))))")
+            racePointsColumn[category] = startColumn + racePointsColumnOffset
+        }
+    }
+}
+
+
+// MARK: - RaceExportWriter
+
+class RaceExportWriter: WriterBase {
+    override var name: String { "Race Export" }
+    
+    let titleRow = 0
+    let dataRow = 1
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+    }
+    
+    func write() {
+        let raceDetail = writer.raceDetail!
+        
+        workbook_define_name(writer.workbook, "RaceExportFirstArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, 0, columnFixed: true)))")
+        workbook_define_name(writer.workbook, "RaceExportDataRow", "=\(cell(writer: self, dataRow, rowFixed: true, 0, columnFixed: true)):\(cell(dataRow, rowFixed: true, raceDetail.sectionColumns - 1, columnFixed: true))")
+        
+        freezePanes(worksheet: worksheet, row: dataRow, column: 0)
+        
+        setRow(worksheet: worksheet, row: titleRow, height: 30)
+        setColumn(worksheet: worksheet, column: raceDetail.eventNameColumnOffset, width: 30)
+        setColumn(worksheet: worksheet, column: raceDetail.playerNameColumnOffset, width: 16)
+        
+        for column in 0..<raceDetail.sectionColumns {
+            let titleCell = cell(writer: raceDetail, raceDetail.titleRow, rowFixed: true, column, columnFixed: true)
+            write(worksheet: worksheet, row: titleRow, column: column, dynamicFormula: "=\(titleCell)", format: formatBoldUnderline)
+            
+            var logic = "\(vstack)("
+            for (index, category) in RankCategory.allCases.enumerated() {
+                if index != 0 {
+                    logic += ","
+                }
+                let filterLogic = "\(arrayRef)(\(cell(writer: raceDetail, raceDetail.dataRow, rowFixed: true, raceDetail.racePointsColumn[category]!, columnFixed: true)))<>0"
+                let detailCell = cell(writer: raceDetail, raceDetail.dataRow, rowFixed: true, (index * (raceDetail.sectionColumns + 1)) + column, columnFixed: true)
+                let dataCell = "\(filter)(\(arrayRef)(\(detailCell)),\(filterLogic))"
+                logic += "\(dataCell)"
+            }
+            logic += ")"
+            write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: logic)
+        }
+    }
+}
+
+// MARK: - Race Formatted
+
+enum FormatType: CaseIterable {
+    case largeCenter
+    case center
+    case left
+    
+    var fontSize: Double {
+        switch self {
+        case .largeCenter: 18
+        default: 11
+        }
+    }
+    
+    var alignment: UInt8 {
+        switch self {
+        case .left: UInt8(LXW_ALIGN_LEFT.rawValue)
+        default: UInt8(LXW_ALIGN_CENTER.rawValue)
+        }
+    }
+}
+
+class RaceFormattedWriter: WriterBase {
+    override var name: String { "Race Formatted" }
+    var raceDetail: RaceDetailWriter!
+    let categoryRow = 0
+    let titleRow = 1
+    let blankRow = 2
+    let dataRow = 3
+    let categoryRows = 18
+    let blankLeadingColumn = 0
+    let racePositionColumn = 1
+    let positionColumn = 2
+    let playerNameColumn = 3
+    let playerRankColumn = 4
+    let pointsColumn = 5
+    let blankTrailingColumn = 6
+    
+    var format: [RankCategory:[FormatType:UnsafeMutablePointer<lxw_format>?]] = [:]
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+        raceDetail = writer.raceDetail
+    }
+    
+    func write() {
+        
+        setupFormattedFormats()
+        let rounds = writer.rounds
+        let round = rounds.first!
+        let event = round.scoreData.events.first!
+        let raceDetail = writer.raceDetail!
+        
+        // Format sheet
+        worksheet_fit_to_pages(worksheet, 1, 0)
+        worksheet_center_horizontally(worksheet)
+        worksheet_set_header(worksheet, "&C&20Race to Aviemore - \(writer.eventDescription)")
+        
+        // Setup Columns
+        for column in (blankLeadingColumn...blankTrailingColumn) {
+            if column == playerNameColumn {
+                setColumn(worksheet: worksheet, column: column, width: 20, format: formatBodyString!)
+            } else if column == blankLeadingColumn || column == blankTrailingColumn {
+                setColumn(worksheet: worksheet, column: column, width: 2, format: formatBodyString!)
+            } else {
+                setColumn(worksheet: worksheet, column: column, format: formatBodyCenteredString!)
+            }
+        }
+        
+        for (index, category) in RankCategory.allCases.enumerated() {
+            
+            let startColumn = index * (raceDetail.sectionColumns + 1)
+            
+                      
+            let baseRow = (index * categoryRows)
+            
+            // Setup Rows
+            setRow(worksheet: worksheet, row: baseRow + categoryRow, height: 24)
+            setRow(worksheet: worksheet, row: baseRow + titleRow, height: 32)
+            setRow(worksheet: worksheet, row: baseRow + blankRow, height: 8)
+            
+            for column in (blankLeadingColumn...blankTrailingColumn) {
+            
+                write(worksheet: worksheet, row: baseRow + categoryRow, column: column, string: (column == playerNameColumn ? "\(category.string) \(event.type!.participantType!.string)s" : ""), format: format[category]![.largeCenter]!)
+                
+                write(worksheet: worksheet, row: baseRow + titleRow, column: column, string: "" , format: format[category]![.center]!)
+                
+                write(worksheet: worksheet, row: baseRow + blankRow, column: column, string: "" , format: format[category]![.center]!)
+            }
+            
+            
+            writeElement(title: "\(category.string) Position", category: category, sourceColumnOffset: startColumn + raceDetail.racePositionColumnOffset, sourcePointsColumnOffset: startColumn + raceDetail.racePointsColumnOffset, titleRow: baseRow + titleRow, dataRow: baseRow + dataRow, column: racePositionColumn, bodyFormat: formatBodyCenteredString)
+            
+            writeElement(title: "Overall Position", category: category, sourceColumnOffset: startColumn + raceDetail.positionColumnOffset, sourcePointsColumnOffset: startColumn + raceDetail.racePointsColumnOffset, titleRow: baseRow + titleRow, dataRow: baseRow + dataRow, column: positionColumn, bodyFormat: formatBodyCenteredString)
+            
+            writeElement(title: "Name", category: category, sourceColumnOffset: startColumn + raceDetail.playerNameColumnOffset, sourcePointsColumnOffset: startColumn + raceDetail.racePointsColumnOffset, titleRow: baseRow + titleRow, dataRow: baseRow + dataRow, column: playerNameColumn, bodyFormat: formatBodyString)
+            
+            writeElement(title: "Actual Rank", category: category, sourceColumnOffset: startColumn + raceDetail.playerRankColumnOffset, sourcePointsColumnOffset: startColumn + raceDetail.racePointsColumnOffset, titleRow: baseRow + titleRow, dataRow: baseRow + dataRow, column: playerRankColumn, bodyFormat: formatBodyCenteredString)
+            
+            writeElement(title: "Race Points", category: category, sourceColumnOffset: startColumn + raceDetail.racePointsColumnOffset, sourcePointsColumnOffset: startColumn + raceDetail.racePointsColumnOffset, titleRow: baseRow + titleRow, dataRow: baseRow + dataRow, column: pointsColumn, bodyFormat: formatBodyCenteredString)
+        }
+    }
+    
+    func writeElement(title: String, category: RankCategory, sourceColumnOffset: Int, sourcePointsColumnOffset: Int, titleRow: Int, dataRow: Int, column: Int, bodyFormat: UnsafeMutablePointer<lxw_format>?) {
+        write(worksheet: worksheet, row: titleRow, column: column, string: title, format: format[category]![.center]!)
+        let sourceArray = "\(arrayRef)(\(cell(writer: raceDetail, raceDetail.dataRow, rowFixed: true, sourceColumnOffset, columnFixed: true)))"
+        let filterLogic = "\(arrayRef)(\(cell(writer: raceDetail, raceDetail.dataRow, rowFixed: true, sourcePointsColumnOffset, columnFixed: true)))>0"
+        write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "\(filter)(\(sourceArray),\(filterLogic))", format: bodyFormat!)
+    }
+    
+    func setupFormattedFormats() {
+        for category in RankCategory.allCases {
+            format[category] = [:]
+            for formatType in FormatType.allCases {
+                format[category]![formatType] = workbook_add_format(workbook)
+                format_set_align(format[category]![formatType]!, formatType.alignment)
+                format_set_align(format[category]![formatType]!, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+                format_set_bold(format[category]![formatType]!)
+                format_set_pattern (format[category]![formatType]!, UInt8(LXW_PATTERN_SOLID.rawValue))
+                format_set_bg_color(format[category]![formatType]!, UInt32(category.backgroundColor))
+                format_set_font_color(format[category]![formatType]!, UInt32(category.textColor))
+                format_set_font_size(format[category]![formatType]!, formatType.fontSize)
+                format_set_text_wrap(format[category]![formatType]!)
+            }
+        }
+    }
+}
+
 // MARK: - Consolidated
  
 class ConsolidatedWriter: WriterBase {
@@ -1105,6 +1388,7 @@ class ConsolidatedWriter: WriterBase {
         nationalIdColumn = 3
         localMPsColumn = 4
         nationalMPsColumn = 5
+        
         dataColumn = 6
         
         let titleRow = 3
@@ -1182,9 +1466,11 @@ class ConsolidatedWriter: WriterBase {
             if roundNumber != 0 {
                 formula += ","
             }
+            formula += "\(filter)("
             formula += "\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)))"
+            formula += ",\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true)))<>0"
         }
-        formula += "))"
+        formula += ")))"
         write(worksheet: worksheet, row: dataRow!, column: uniqueColumn, dynamicFormula: formula)
         
         // Name columns
@@ -1229,12 +1515,14 @@ class RanksPlusMPsWriter: WriterBase {
     var firstNameColumn: [Int] = []
     var otherNamesColumn: [Int] = []
     var nationalIdColumn: [Int] = []
+    var rankColumn: [Int] = []
     var boardsPlayedColumn: [Int] = []
     var winDrawColumn: [Int] = []
     var bonusMPColumn: [Int] = []
     var winDrawMPColumn: [Int] = []
     var scoreColumn: Int?
     var totalMPColumn: [Int] = []
+    var rankCategoryColumn: Int?
     
     var eventDescriptionCell: String?
     var entryCell: String?
@@ -1266,11 +1554,12 @@ class RanksPlusMPsWriter: WriterBase {
         writeheader()
         
         freezePanes(worksheet: worksheet, row: dataRow, column: firstNameColumn[0])
+        setRow(worksheet: worksheet, row: dataTitleRow, height: 30)
                 
         for (columnNumber, column) in columns.enumerated() {
-            var format = formatBold
+            var format = formatBoldUnderline
             if column.cellType == .integer || column.cellType == .float || column.cellType == .numeric || column.cellType == .integerFormula || column.cellType == .floatFormula || column.cellType == .numericFormula {
-                format = formatRightBold
+                format = formatRightBoldUnderline
             }
             if let width = column.width {
                 setColumn(worksheet: worksheet, column: columnNumber, width: width)
@@ -1386,6 +1675,11 @@ class RanksPlusMPsWriter: WriterBase {
             columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
             nationalIdColumn.append(columns.count - 1)
             
+            if self.writer.includeInRace {
+                columns.append(Column(title: "Rank (\(playerNumber+1))", calculatedContent: playerRank, playerNumber: playerNumber, cellType: .integerFormula))
+                rankColumn.append(columns.count - 1)
+            }
+            
             if !scoreData.manualMPs {
                 
                 if playerCount > event.type?.participantType?.players ?? playerCount {
@@ -1413,6 +1707,11 @@ class RanksPlusMPsWriter: WriterBase {
                     }
                 }
             }
+        }
+        
+        if self.writer.includeInRace {
+            columns.append(Column(title: "\(event.type?.participantType?.string ?? "Team") Category", calculatedContent: rankCategory, cellType: .stringFormula))
+            rankCategoryColumn = columns.count - 1
         }
         
         if scoreData.manualMPs {
@@ -1533,13 +1832,33 @@ class RanksPlusMPsWriter: WriterBase {
         let winDraw = event.type?.requiresWinDraw ?? false
         var result = ""
         
-        
         let bonusMPCell = cell(rowNumber, bonusMPColumn[playerNumber ?? 0], columnFixed: true)
         result = bonusMPCell
         if winDraw {
             let winDrawMPCell = cell(rowNumber, winDrawMPColumn[playerNumber ?? 0], columnFixed: true)
             result += "+\(winDrawMPCell)"
         }
+        return result
+    }
+    
+    private func playerRank(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = ""
+        
+        let lookupCell = cell(rowNumber, nationalIdColumn[playerNumber ?? 0], columnFixed: true)
+        result = "\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(lookupCell),\(vstack)(\(lookupFrozenRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupFrozenRange(Settings.current.userDownloadRankColumn))),1,0))"
+        return result
+    }
+    
+    private func rankCategory(_: Int? = nil, rowNumber: Int) -> String {
+        let round = writer.rounds.first!
+        var result = "\(fnPrefix)IF(\(cell(rowNumber, rankColumn[0], columnFixed: true))=0,\"\",CombinedCategory(TRUE,"
+        for playerNumber in 0..<round.maxParticipantPlayers {
+            if playerNumber != 0 {
+                result += ","
+            }
+            result += "\(vstack)(\(cell(rowNumber, rankColumn[playerNumber], columnFixed: true)))"
+        }
+        result += "))"
         return result
     }
     
@@ -1730,6 +2049,11 @@ class IndividualMPsWriter: WriterBase {
     var nationalTotalColumn: Int?
     var checksumColumn: Int?
     var firstNameColumn: Int?
+    var otherNamesColumn: Int?
+    var participantCategoryColumn: Int?
+    var playerRankColumn: Int?
+    var playerCategoryColumn: Int?
+    var playerRaceCategoryColumn: Int?
     
     let titleRow = 0
     let dataRow = 1
@@ -1744,11 +2068,12 @@ class IndividualMPsWriter: WriterBase {
         setupColumns()
         
         freezePanes(worksheet: worksheet, row: dataRow, column: nationalIdColumn!)
+        setRow(worksheet: worksheet, row: titleRow, height: 30)
         
         for (columnNumber, column) in columns.enumerated() {
-            var format = formatBold
+            var format = formatBoldUnderline
             if column.cellType == .integer || column.cellType == .float || column.cellType == .numeric || column.cellType == .integerFormula || column.cellType == .floatFormula || column.cellType == .numericFormula {
-                format = formatRightBold
+                format = formatRightBoldUnderline
             }
             setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: round.replace(column.title), format: format)
@@ -1797,11 +2122,25 @@ class IndividualMPsWriter: WriterBase {
         
         columns.append(Column(title: "Names", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.firstNameColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; firstNameColumn = columns.count - 1
         
-        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.otherNamesColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; let otherNamesColumn = columns.count - 1
+        columns.append(Column(title: "", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.otherNamesColumn[playerNumber] }, cellType: .stringFormula, width: 16)) ; otherNamesColumn = columns.count - 1
         
         columns.append(Column(title: "SBU No", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.nationalIdColumn[playerNumber] }, cellType: .integerFormula)) ; nationalIdColumn = columns.count - 1
         
-        unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(dataRow, nationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, firstNameColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, otherNamesColumn, columnFixed: true))))" }
+        unique.referenceDynamic = { [self] in "CONCATENATE(\(arrayRef)(\(cell(dataRow, nationalIdColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, firstNameColumn!, columnFixed: true))), \"+\", \(arrayRef)(\(cell(dataRow, otherNamesColumn!, columnFixed: true))))" }
+        
+        if self.writer.includeInRace {
+            
+            columns.append(Column(title: "\(event.type?.participantType?.string ?? "Team") Category", referenceContent: { [self] (_) in
+                round.ranksPlusMps.rankCategoryColumn! }, cellType: .integerFormula)) ; participantCategoryColumn = columns.count - 1
+
+            columns.append(Column(title: "Player Rank", referenceContent: { [self] (playerNumber) in
+                round.ranksPlusMps.rankColumn[playerNumber] }, cellType: .integerFormula)) ; playerRankColumn = columns.count - 1
+        
+            columns.append(Column(title: "Player Category", referenceDynamic: { [self] in "=Category(\(arrayRef)(\(cell(dataRow, playerRankColumn!, columnFixed: true))))" }, cellType: .stringFormula)) ; playerCategoryColumn = columns.count - 1
+            
+            let logic = "=\(fnPrefix)MAKEARRAY(ROWS(\(arrayRef)(\(cell(dataRow, positionColumn!, columnFixed: true)))),1,\(lambda)(\(lambdaParam)Row,\(lambdaParam)Column,IF(RelativeTo(\(arrayRef)(\(cell(dataRow, playerRankColumn!, columnFixed: true))),\(lambdaParam)Row,1) = 1, \"Non-SBU\",RelativeTo(\(arrayRef)(\(cell(dataRow, participantCategoryColumn!, columnFixed: true))),\(lambdaParam)Row,1))))"
+            columns.append(Column(title: "Race Category", referenceDynamic: { logic }, cellType: .stringFormula)) ; playerRaceCategoryColumn = columns.count - 1
+        }
         
         columns.append(Column(title: "Total MPs", referenceContent: { [self] (playerNumber) in round.ranksPlusMps.totalMPColumn[playerNumber] }, cellType: .floatFormula, width: 12)) ; decimalColumn = columns.count - 1
         
@@ -1856,9 +2195,9 @@ class IndividualMPsWriter: WriterBase {
             if playerNumber != 0 {
                 result += ","
             }
-            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, round.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(writer: round.ranksPlusMps, round.ranksPlusMps.dataRow, rowFixed: true, round.ranksPlusMps.positionColumn!)
             result += ":"
-            result += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, round.ranksPlusMps.totalMPColumn[playerNumber])
+            result += cell(round.ranksPlusMps.dataRow + round.fieldSize - 1, rowFixed: true, round.ranksPlusMps.positionColumn!)
         }
         result += ")<>0)"
         
@@ -1984,6 +2323,14 @@ class WriterBase {
     var formatYellow: UnsafeMutablePointer<lxw_format>?
     var formatGrey: UnsafeMutablePointer<lxw_format>?
     var formatFaint: UnsafeMutablePointer<lxw_format>?
+    var formatBannerString: UnsafeMutablePointer<lxw_format>?
+    var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
+    var formatBannerFloat: UnsafeMutablePointer<lxw_format>?
+    var formatBannerNumeric: UnsafeMutablePointer<lxw_format>?
+    var formatBodyString: UnsafeMutablePointer<lxw_format>?
+    var formatBodyCenteredString: UnsafeMutablePointer<lxw_format>?
+    var formatBodyFloat: UnsafeMutablePointer<lxw_format>?
+    var formatBodyNumeric: UnsafeMutablePointer<lxw_format>?
     
     var round: Round!
     var name: String { fatalError() }
@@ -2029,6 +2376,14 @@ class WriterBase {
             self.formatYellow = writer.formatYellow
             self.formatGrey = writer.formatGrey
             self.formatFaint = writer.formatFaint
+            self.formatBannerString = writer.formatBannerString
+            self.formatBannerCenteredString = writer.formatBannerCenteredString
+            self.formatBannerFloat = writer.formatBannerFloat
+            self.formatBannerNumeric = writer.formatBannerNumeric
+            self.formatBodyString = writer.formatBodyString
+            self.formatBodyCenteredString = writer.formatBodyCenteredString
+            self.formatBodyFloat = writer.formatBodyFloat
+            self.formatBodyNumeric = writer.formatBodyNumeric
         }
     }
     
@@ -2119,6 +2474,14 @@ class WriterBase {
         return result
     }
     
+    internal func lookupRange(_ column: String) -> String {
+        return "'\(Settings.current.userDownloadData!)'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)"
+    }
+    
+    internal func lookupFrozenRange(_ column: String) -> String {
+        return "'\(Settings.current.userDownloadFrozenData!)'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)"
+    }
+    
     func setupFormats() {
         formatString = workbook_add_format(workbook)
         format_set_align(formatString, UInt8(LXW_ALIGN_LEFT.rawValue))
@@ -2132,7 +2495,7 @@ class WriterBase {
         format_set_num_format(formatFloat, "0.00;-0.00;")
         format_set_align(formatFloat, UInt8(LXW_ALIGN_RIGHT.rawValue))
         formatZeroInt = workbook_add_format(workbook)
-        format_set_num_format(formatInt, "0")
+        format_set_num_format(formatZeroInt, "0")
         format_set_align(formatZeroInt, UInt8(LXW_ALIGN_RIGHT.rawValue))
         formatZeroFloat = workbook_add_format(workbook)
         format_set_num_format(formatZeroFloat, "0.00")
@@ -2165,6 +2528,7 @@ class WriterBase {
         format_set_bold(formatFloatBoldUnderline)
         format_set_align(formatFloatBoldUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
         format_set_bottom(formatFloatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_text_wrap(formatFloatBoldUnderline)
         format_set_num_format(formatFloatBoldUnderline, "0.00;-0.00;")
         
         formatRed = workbook_add_format(workbook)
@@ -2180,6 +2544,54 @@ class WriterBase {
         format_set_bg_color(formatGrey, 0xC0C0C0)
         formatFaint = workbook_add_format(workbook)
         format_set_font_color(formatFaint, 0xD9D9D9)
+        
+        formatBannerString = workbook_add_format(workbook)
+        format_set_align(formatBannerString, UInt8(LXW_ALIGN_LEFT.rawValue))
+        format_set_align(formatBannerString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_bold(formatBannerString)
+        format_set_pattern (formatBannerString, UInt8(LXW_PATTERN_SOLID.rawValue))
+        format_set_bg_color(formatBannerString, UInt32(0x1F036C))
+        format_set_font_color(formatBannerString, LXW_COLOR_WHITE.rawValue)
+        format_set_text_wrap(formatBannerString)
+        format_set_indent(formatBannerString, 2)
+
+        formatBannerCenteredString = workbook_add_format(workbook)
+        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_bold(formatBannerCenteredString)
+        format_set_pattern (formatBannerCenteredString, UInt8(LXW_PATTERN_SOLID.rawValue))
+        format_set_bg_color(formatBannerCenteredString, UInt32(0x1F036C))
+        format_set_font_color(formatBannerCenteredString, LXW_COLOR_WHITE.rawValue)
+        format_set_text_wrap(formatBannerCenteredString)
+        
+        formatBannerFloat = workbook_add_format(workbook)
+        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_bold(formatBannerFloat)
+        format_set_pattern (formatBannerFloat, UInt8(LXW_PATTERN_SOLID.rawValue))
+        format_set_bg_color(formatBannerFloat, UInt32(0x1F036C))
+        format_set_font_color(formatBannerFloat, LXW_COLOR_WHITE.rawValue)
+        format_set_text_wrap(formatBannerFloat)
+        
+        formatBannerNumeric = formatBannerFloat
+        
+        formatBodyString = workbook_add_format(workbook)
+        format_set_align(formatBodyString, UInt8(LXW_ALIGN_LEFT.rawValue))
+        format_set_align(formatBodyString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_indent(formatBodyString, 2)
+        
+        formatBodyCenteredString = workbook_add_format(workbook)
+        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        
+        formatBodyFloat = workbook_add_format(workbook)
+        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_num_format(formatBodyFloat, "0.00;-0.00;")
+        
+        formatBodyNumeric = workbook_add_format(workbook)
+        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
     }
     
     // MARK: - Helper routines

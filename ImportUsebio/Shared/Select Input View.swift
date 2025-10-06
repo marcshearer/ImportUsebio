@@ -49,6 +49,7 @@ struct SelectInputView: View {
     @State private var maxRankMessage: String = "No maximum rank"
     @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
+    @State private var includeInRace: Bool = true
     @State private var filterSessionId: String = ""
     @State private var maxTeamMembers: Int = 0
     @State private var manualPointsColumn: String?
@@ -413,10 +414,21 @@ struct SelectInputView: View {
     }
     
     private var eventDescriptionView: some View {
-        HStack {
-            Input(title: "Event Description", field: $eventDescription, leadingSpace: 30, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
-                .focused($focusedField, equals: .eventDescription)
-            Spacer()
+        VStack {
+            InputTitle(title: "Event Description")
+            HStack {
+                Input(field: $eventDescription, leadingSpace: 30, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                    .focused($focusedField, equals: .eventDescription)
+                Spacer().frame(width: 139)
+                Picker("Include in race:     ", selection: $includeInRace) {
+                    Text("Include").tag(true)
+                    Text("Exclude").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 250)
+                .disabled((writer?.rounds.count ?? 0) >= 1)
+                Spacer()
+            }
         }
     }
     
@@ -748,6 +760,7 @@ struct SelectInputView: View {
                     writer?.minRank = minRankCode
                     writer?.maxRank = maxRankCode
                 }
+                writer!.includeInRace = (writer!.rounds.count <= 0 && self.includeInRace)
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
                 scoreData.maxTeamMembers = (maxTeamMembers == 0 ? nil : maxTeamMembers)
@@ -772,6 +785,7 @@ struct SelectInputView: View {
                     self.scoreData = nil
                     self.inputFilename = ""
                     self.roundName = ""
+                    self.includeInRace = false
                     MessageBox.shared.hide()
                 }
             }
@@ -956,6 +970,7 @@ struct SelectInputView: View {
             writer!.clubCode = clubCode
             writer!.minRank = minRankCode
             writer!.maxRank = maxRankCode
+            writer!.includeInRace = false
             
             for round in importInProgress!.rounds {
                 if let scoreData = round.scoreData {
