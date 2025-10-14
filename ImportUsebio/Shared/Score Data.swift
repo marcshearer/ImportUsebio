@@ -404,7 +404,7 @@ public class ScoreData {
     public var filterSessionId: String = ""
     public var otherSessionData: ScoreData? = nil
     public var aggreateAs: String?
-    public var maxTeamMembers: Int?
+    public var overrideTeamMembers: Int?
     public var manualPointsColumn: String?
     public var version: String?
     public var clubs: [Club] = []

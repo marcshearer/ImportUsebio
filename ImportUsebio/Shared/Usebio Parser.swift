@@ -583,7 +583,11 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                             }
                             // Add to participant
                             if participant.winDraw != winDraw {
-                                messages.append("Win/draws \(participant.winDraw == nil ? "set" : "updated from \(participant.winDraw!)") to \(winDraw) - \(participant.type.string) \(participant.member.name ?? participant.names)")
+                                var name = participant.member.name
+                                if name == nil || name == "" {
+                                    name = participant.names
+                                }
+                                messages.append("Win/draws \(participant.winDraw == nil ? "set" : "updated from \(participant.winDraw!)") to \(winDraw) - \(participant.type.string) \(name!)")
                                 participant.winDraw = winDraw
                             }
                         }

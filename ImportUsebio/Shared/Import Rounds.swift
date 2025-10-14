@@ -57,8 +57,9 @@ fileprivate enum RoundColumn: String, EnumProtocol {
                     // rather than the default MANUAL MPS
     case filename = "FILENAME"
                     // Source file name
-    case maxTeamMembers = "MAX TEAM MEMBERS"
+    case overrideTeamMembers = "OVERRIDE TEAM MEMBERS"
                     // Will ignore data from team members beyond this number - useful to get rid of subs where scores not materially affected
+                    // Alternatively will always allow for this number - useful if want to manually enter subs
     case winDrawLevel = "WIN/DRAW LEVEL"
                     // Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested
     case mergeMatches = "MERGE MATCHES"
@@ -110,7 +111,7 @@ class ImportRound {
     var filterParticipantNumberMin: String?
     var filterParticipantNumberMax: String?
     var manualPointsColumn: String?
-    var maxTeamMembers: Int?
+    var overrideTeamMembers: Int?
     var scoreData: ScoreData?
 }
 
@@ -350,8 +351,8 @@ class ImportRounds {
                         round.filterParticipantNumberMax = columnValue
                     case .manualPointsColumn:
                         round.manualPointsColumn = columnValue
-                    case .maxTeamMembers:
-                        round.maxTeamMembers = Int(columnValue)
+                    case .overrideTeamMembers:
+                        round.overrideTeamMembers = Int(columnValue)
                     case .filename:
                         round.filename = columnValue
                     }

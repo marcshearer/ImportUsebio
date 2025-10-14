@@ -115,15 +115,13 @@ class Round {
         var result = 0
         
         let event = scoreData.events.first!
-        if event.type?.participantType == .team {
-            result = event.participants.map{$0.member.playerList.count}.max() ?? 0
+        if let overrideTeamMembers = scoreData.overrideTeamMembers {
+            result = max(event.type?.participantType?.players ?? 0, overrideTeamMembers)
+        } else if event.type?.participantType == .team {
+            result = max(event.type?.participantType?.players ?? 0, event.participants.map{$0.member.playerList.count}.max() ?? 0)
         } else {
             result = event.type?.participantType?.players ?? 2
         }
-        if let maxTeamMembers = scoreData.maxTeamMembers {
-            result = min(result, maxTeamMembers)
-        }
-        
         return result
     }
     
@@ -584,13 +582,13 @@ class FormattedWriter: WriterBase {
             let ranksPlusMPs = round.ranksPlusMps!
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(Column(title: "National ID (\(playerNumber)", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
+                columns.append(Column(title: "National ID (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
                 nationalIdColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(Column(title: "Rank", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
+                columns.append(Column(title: "Rank (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
                 rankColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
@@ -1468,9 +1466,9 @@ class ConsolidatedWriter: WriterBase {
             }
             formula += "\(filter)("
             formula += "\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.uniqueColumn!, columnFixed: true)))"
-            formula += ",\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true)))<>0"
+            formula += ",\(arrayRef)(\(cell(writer: round.individualMPs, 1,rowFixed: true, round.individualMPs.decimalColumn!, columnFixed: true)))<>0)"
         }
-        formula += ")))"
+        formula += "))"
         write(worksheet: worksheet, row: dataRow!, column: uniqueColumn, dynamicFormula: formula)
         
         // Name columns
@@ -1683,26 +1681,34 @@ class RanksPlusMPsWriter: WriterBase {
             if !scoreData.manualMPs {
                 
                 if playerCount > event.type?.participantType?.players ?? playerCount {
-                    
-                    columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
-                        "\(player.boardsPlayed ?? event.boards ?? 1)"
-                    }, playerNumber: playerNumber, cellType: .integer))
-                    boardsPlayedColumn.append(columns.count - 1)
+                    if event.type != .head_to_head {
+                        columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
+                            "\(player.boardsPlayed ?? event.boards ?? 1)"
+                        }, playerNumber: playerNumber, cellType: .integer))
+                        boardsPlayedColumn.append(columns.count - 1)
+                    }
                     
                     if winDraw {
                         columns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
                         winDrawColumn.append(columns.count - 1)
                     }
                     
-                    columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
+                    if event.type != .head_to_head {
+                        columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
+                    }
+                    
                     if !winDraw {
                         totalMPColumn.append(columns.count - 1)
                     } else {
-                        bonusMPColumn.append(columns.count - 1)
+                        if event.type != .head_to_head {
+                            bonusMPColumn.append(columns.count - 1)
+                        }
                         columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
                         winDrawMPColumn.append(columns.count - 1)
                         
-                        columns.append(Column(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        if event.type != .head_to_head {
+                            columns.append(Column(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        }
                         totalMPColumn.append(columns.count - 1)
                     }
                 }

@@ -49,9 +49,9 @@ struct SelectInputView: View {
     @State private var maxRankMessage: String = "No maximum rank"
     @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
-    @State private var includeInRace: Bool = true
+    @State private var includeInRace: Bool = false
     @State private var filterSessionId: String = ""
-    @State private var maxTeamMembers: Int = 0
+    @State private var overrideTeamMembers: Int = 0
     @State private var manualPointsColumn: String?
     @State private var localNational = Level.local
     @State private var drawsRounded = true
@@ -574,7 +574,7 @@ struct SelectInputView: View {
         VStack {
             HStack{
                 Spacer().frame(width: 42)
-                Picker("Calculation basis:", selection: $basis) {
+                Picker("Calculation basis:   ", selection: $basis) {
                     Text("Standard").tag(Basis.standard)
                     Text("Manual").tag(Basis.manual)
                     Text("Head-to-head").tag(Basis.headToHead)
@@ -603,7 +603,7 @@ struct SelectInputView: View {
             HStack {
                 Spacer().frame(width: 42)
                 HStack {
-                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 120, inlineTitle: true, inlineTitleWidth: 117, isEnabled: true)
+                    Input(title: "Session ID filter:", field: $filterSessionId, topSpace: 0, width: 120, inlineTitle: true, inlineTitleWidth: 126, isEnabled: true)
                         .help(Text("Used to restrict the import of a Usebio raw data file to a specific Session Id"))
                 }
                 Spacer().frame(width: 20)
@@ -648,8 +648,8 @@ struct SelectInputView: View {
             HStack {
                 Spacer().frame(width: 42)
                 HStack {
-                    InputInt(title: "Max players:", field: $maxTeamMembers, width: 127, inlineTitle: true, inlineTitleWidth: 111)
-                        .help(Text("Used to limit the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material"))
+                    InputInt(title: "Override players:", field: $overrideTeamMembers, width: 127, inlineTitle: true, inlineTitleWidth: 120)
+                        .help(Text("Used to override the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material, or to increase the number of players to allow manual entry in the spreadsheet"))
                 }
                 Spacer().frame(width: 72)
                 HStack {
@@ -763,7 +763,7 @@ struct SelectInputView: View {
                 writer!.includeInRace = (writer!.rounds.count <= 0 && self.includeInRace)
                 scoreData.roundName = roundName
                 scoreData.national = (localNational == .national)
-                scoreData.maxTeamMembers = (maxTeamMembers == 0 ? nil : maxTeamMembers)
+                scoreData.overrideTeamMembers = (overrideTeamMembers == 0 ? nil : overrideTeamMembers)
                 scoreData.roundContinuousVPDraw = drawsRounded
                 scoreData.winDrawLevel = winDrawLevel
                 scoreData.mergeMatches = mergeMatches
@@ -982,7 +982,7 @@ struct SelectInputView: View {
                     awardTo = round.awardTo ?? 0
                     perWin = round.perWin ?? 0
                     filterSessionId = round.filterSessionId ?? ""
-                    maxTeamMembers = round.maxTeamMembers ?? 0
+                    overrideTeamMembers = round.overrideTeamMembers ?? 0
                     manualPointsColumn = round.manualPointsColumn
                     
                     scoreData.roundName = roundName
@@ -995,7 +995,7 @@ struct SelectInputView: View {
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
                     scoreData.aggreateAs = round.aggregateAs
-                    scoreData.maxTeamMembers = (maxTeamMembers == 0 ? nil : maxTeamMembers)
+                    scoreData.overrideTeamMembers = (overrideTeamMembers == 0 ? nil : overrideTeamMembers)
                     scoreData.manualPointsColumn = manualPointsColumn
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe

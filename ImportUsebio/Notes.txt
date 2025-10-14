@@ -1,7 +1,7 @@
 TODO
 ----
 Formatted version not sorted correctly if National Points - should use Local + National
-
+Formatted should calculate rank correctly if there are more than 4 members in a team
 
 TO UPDATE Award.bin (Macros)
 ----------------------------

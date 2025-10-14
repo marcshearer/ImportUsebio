@@ -47,6 +47,9 @@ struct ShowErrorsView: View {
                                                 }
                                                 .frame(width: 70)
                                                 Text(error)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
+
                                                 Spacer()
                                             }
                                             .foregroundColor(Palette.background.strongText)
@@ -60,6 +63,8 @@ struct ShowErrorsView: View {
                                                 }
                                                 .frame(width: 70)
                                                 Text(warning)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
                                                 Spacer()
                                             }
                                             .foregroundColor(Palette.background.faintText)
