@@ -1137,7 +1137,8 @@ class CsvImportWriter: WriterBase {
     }
     
     private func highlightNoHomeClub(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        let statusCell = "\(cell(dataRow, column, columnFixed: true))"
+        let nationalIdCell = cell(dataRow, nationalIdColumn, columnFixed: true)
+        let statusCell = "AND(\(nationalIdCell)<>\"\", \(cell(dataRow, column, columnFixed: true)))"
         let formula = "=(\(statusCell)=0)"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotActive!)
     }
