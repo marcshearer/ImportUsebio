@@ -23,6 +23,7 @@ fileprivate enum EventColumn: String, EnumProtocol {
     case description = "EVENT DESCRIPTION"
     case code = "EVENT CODE"
     case clubCode = "CLUB CODE"
+    case chooseBest = "CHOOSE BEST"
     case minRank = "MIN RANK"
     case maxRank = "MAX RANK"
     case localNational = "LOCAL / NATIONAL"
@@ -85,6 +86,7 @@ class ImportEvent {
     var minRank: Int?
     var maxRank: Int?
     var localNational: LocalNational?
+    var chooseBest: Int?
 }
 
 class ImportRound {
@@ -247,6 +249,8 @@ class ImportRounds {
                         event?.code = columnValue
                     case .clubCode:
                         event?.clubCode = columnValue
+                    case .chooseBest:
+                        event?.chooseBest = Int(columnValue)
                     case .localNational:
                         event?.localNational = LocalNational(rawValue: columnValue.uppercased())
                     case .minRank:

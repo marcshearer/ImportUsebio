@@ -447,3 +447,15 @@ extension NSObject {
         return result
     }
 }
+
+extension Color {
+    
+    var rgbValue: Int {
+        return (((Int(NSColor(self).redComponent) * 256) + Int(NSColor(self).greenComponent)) * 256) + Int(NSColor(self).blueComponent)
+    }
+    
+    var excelValue: Int {
+        return (((Int(NSColor(self).blueComponent) * 256) + Int(NSColor(self).greenComponent)) * 256) + Int(NSColor(self).redComponent)
+    }
+    
+}

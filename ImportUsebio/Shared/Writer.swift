@@ -33,18 +33,18 @@ enum RankCategory: CaseIterable {
         "\(self)".capitalized
     }
     
-    var backgroundColor: UInt32 {
+    var backgroundColor: lxw_color_t {
         switch self {
         case .gold:
-            0xD4AF37
+            lxw_color_t(excelGold.rgbValue)
         case .silver:
-            0xBCC6CC
+            lxw_color_t(excelSilver.rgbValue)
         case .bronze:
-            0xA97142
+            lxw_color_t(excelBronze.rgbValue)
         }
     }
     
-    var textColor: UInt32 {
+    var textColor: lxw_color_t {
         switch self {
         case .bronze:
             LXW_COLOR_WHITE.rawValue
@@ -84,6 +84,10 @@ class Column {
         self.roundNumber = roundNumber
         self.sortedDynamic = sortedDynamic
     }
+}
+
+class FormattedColumn : Column {
+    var referenceColumn: Int = 0
 }
 
 class Round {
@@ -155,6 +159,7 @@ class Writer: WriterBase {
     var maxRank = 9999
     var eventCode: String = ""
     var clubCode: String = ""
+    var chooseBest: Int = 0
     var eventDescription: String = ""
     var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
     var includeInRace = true
@@ -217,6 +222,7 @@ class Writer: WriterBase {
         parameters.writeSortBy()
         parameters.writeRanks()
         parameters.writeOrientation()
+        parameters.writeErrorTypes()
         csvImport.write()
         summary.write()
         missing.write()
@@ -264,6 +270,9 @@ class ParametersWriter : WriterBase {
     let ranksCategoryColumn = 5
     
     let pageOrientationColumn = 7
+    
+    let errorTypeColumn = 10
+    let errorColorColumn = 11
    
     let headerRow = 0
     let dataRow = 1
@@ -277,6 +286,7 @@ class ParametersWriter : WriterBase {
     
     var sortData: [(name: String, column: Int, direction: Int)] = []
     var ranksData: [(from: Int, category: String)] = []
+    var errorData: [(type: String, color: Color)] = []
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -329,7 +339,7 @@ class ParametersWriter : WriterBase {
         }
         
         for (row,element) in ranksData.enumerated() {
-            write(worksheet: worksheet, row: dataRow + row, column: ranksFromColumn, integer: element.from)
+            write(worksheet: worksheet, row: dataRow + row, column: ranksFromColumn, integer: element.from, format: formatString)
             write(worksheet: worksheet, row: dataRow + row, column: ranksCategoryColumn, string: element.category)
         }
         
@@ -345,7 +355,31 @@ class ParametersWriter : WriterBase {
         write(worksheet: worksheet, row: dataRow, column: pageOrientationColumn, string: "Portrait")
         write(worksheet: worksheet, row: dataRow + 1, column: pageOrientationColumn, string: "Landscape")
         
+        setColumn(worksheet: worksheet, column: pageOrientationColumn, width: 17)
+        
         workbook_define_name(writer.workbook, "PageOrientation", "=\(cell(writer: self, dataRow, rowFixed: true, pageOrientationColumn, columnFixed: true)):\(cell(writer: self, dataRow + 1, rowFixed: true, pageOrientationColumn, columnFixed: true))")
+    }
+    
+    func writeErrorTypes() {
+        errorData = [ ("Error",           excelRed),
+                      ("Warning",         excelYellow),
+                      ("Bad ID",          excelGrey),
+                      ("Inactive member", excelNotActive),
+                      ("Not Paid Member", excelNotPaid)]
+        
+        for (column, header) in ["Error Type", "Colour"].enumerated() {
+            write(worksheet: worksheet, row: headerRow, column: errorTypeColumn + column, string: header, format: formatBold)
+        }
+        
+        for (row, element) in errorData.enumerated() {
+            write(worksheet: worksheet, row: dataRow + row, column: errorTypeColumn, string: element.type)
+            write(worksheet: worksheet, row: dataRow + row, column: errorColorColumn, integer: element.color.excelValue)
+        }
+        
+        setColumn(worksheet: worksheet, column: errorTypeColumn, width: 17)
+        
+        workbook_define_name(writer.workbook, "ErrorTypes", "=\(cell(writer: self, dataRow, rowFixed: true, errorTypeColumn, columnFixed: true)):\(cell(writer: self, dataRow + errorData.count - 1, rowFixed: true, errorColorColumn, columnFixed: true))")
+        
     }
 }
 
@@ -365,6 +399,8 @@ class SummaryWriter : WriterBase {
     var headerRow: Int?
     var detailRow: Int?
     var totalRow: Int?
+    var chooseBestRow: Int?
+    var varianceRow: Int?
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -383,7 +419,10 @@ class SummaryWriter : WriterBase {
         detailRow = 1
         totalRow = detailRow! + writer.rounds.count + 1
         exportedRow = totalRow! + 1
-               
+        chooseBestRow = totalRow! + 2
+        varianceRow = chooseBestRow! + 1
+        
+        // Setup sheet
         freezePanes(worksheet: worksheet, row: detailRow!, column: 0)
         
         setColumn(worksheet: worksheet, column: descriptionColumn!, width: 30)
@@ -391,6 +430,7 @@ class SummaryWriter : WriterBase {
         setColumn(worksheet: worksheet, column: nationalMPsColumn!, width: 12)
         setColumn(worksheet: worksheet, column: checksumColumn!, width: 16)
         
+        // Write title row
         write(worksheet: worksheet, row: headerRow!, column: descriptionColumn!, string: "Round", format: formatBold)
         write(worksheet: worksheet, row: headerRow!, column: entryColumn!, string: "Entry", format: formatRightBold)
         write(worksheet: worksheet, row: headerRow!, column: tablesColumn!, string: "Tables", format: formatRightBold)
@@ -399,6 +439,7 @@ class SummaryWriter : WriterBase {
         write(worksheet: worksheet, row: headerRow!, column: nationalMPsColumn!, string: "National MPs", format: formatRightBold)
         write(worksheet: worksheet, row: headerRow!, column: checksumColumn!, string: "Checksum", format: formatRightBold)
         
+        // Write round totals
         for (roundNumber, round) in writer.rounds.enumerated() {
             let source = round.ranksPlusMps!
             let row = detailRow! + roundNumber
@@ -411,10 +452,12 @@ class SummaryWriter : WriterBase {
             write(worksheet: worksheet, row: row, column: checksumColumn!, floatFormula: "=\(cell(writer: source, source.checksumCell!))", format: formatZeroFloat)
         }
         
+        // Write underlined row
         for column in [entryColumn, tablesColumn, localNationalColumn, localMPsColumn, nationalMPsColumn, checksumColumn] {
             write(worksheet: worksheet, row: detailRow! + writer.rounds.count, column: column!, string: "", format: formatBoldUnderline)
         }
         
+        // Write totals of rounds
         write(worksheet: worksheet, row: totalRow!, column: descriptionColumn!, string: "Round totals", format: formatBold)
         
         writeTotal(column: tablesColumn, format: formatInt)
@@ -422,14 +465,54 @@ class SummaryWriter : WriterBase {
         writeTotal(column: nationalMPsColumn)
         writeTotal(column: checksumColumn)
         
+        // Write exported totals
         let csvImport = writer.csvImport!
         write(worksheet: worksheet, row: exportedRow!, column: descriptionColumn!, string: "Exported totals", format: formatBold)
         write(worksheet: worksheet, row: exportedRow!, column: localMPsColumn!, formula: "=\(cell(writer: csvImport, csvImport.localMpsCell!))", format: formatZeroFloat)
         write(worksheet: worksheet, row: exportedRow!, column: nationalMPsColumn!, formula: "=\(cell(writer: csvImport, csvImport.nationalMpsCell!))", format: formatZeroFloat)
         write(worksheet: worksheet, row: exportedRow!, column: checksumColumn!, formula: "=\(cell(writer: csvImport, csvImport.checksumCell!))", format: formatZeroFloat)
         
+        // Write discarded results discrepancy (choose best)
+        let consolidated = writer.consolidated!
+        let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
+        write(worksheet: worksheet, row : chooseBestRow!, column: descriptionColumn!, dynamicFormula: "=IF(\(chooseBestCell)<>0,\"Discarded results\",\"\")", format: formatBold)
+        for (column, label) in [(localMPsColumn!,    "Local"),
+                                (nationalMPsColumn!, "National")] {
+            var formula = "=ROUND("
+            for index in 0..<writer.rounds.count {
+                if index > 0 { formula += "+" }
+                formula += "IF(\(cell(writer: consolidated, consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn! + index, columnFixed: true))=\"\(label)\", SUM(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.dataColumn! + index, columnFixed: true)))),0)"
+            }
+            formula += "-SUM(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))),2)"
+            write(worksheet: worksheet, row: chooseBestRow!, column: column, dynamicFormula: formula, format: formatFloatUnderline)
+        }
+        
+        var formula = "=ROUND("
+        for index in 0..<writer.rounds.count {
+            if index > 0 { formula += "+" }
+            formula += "Checksum(\(vstack)(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.dataColumn! + index, columnFixed: true)))),\(vstack)(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))))"
+        }
+        formula += "-("
+        for (index, column) in [localMPsColumn!, nationalMPsColumn!].enumerated() {
+            if index > 0 { formula += "+" }
+            formula += "Checksum(\(vstack)(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))),\(vstack)(\(arrayRef)(\(cell(writer: consolidated, consolidated.dataRow!, rowFixed: true, consolidated.nationalIdColumn!, columnFixed: true)))))"
+        }
+        formula += "),2)"
+        write(worksheet: worksheet, row: chooseBestRow!, column: checksumColumn!, dynamicFormula: formula, format: formatFloatBoldUnderline)
+        
+        // Write Variance and highlight if non-zero
+        write(worksheet: worksheet, row : varianceRow!, column: descriptionColumn!, string: "Variance", format: formatBold)
         for column in [localMPsColumn, nationalMPsColumn, checksumColumn] {
-            highlightTotalDifferent(row: exportedRow!, compareRow: totalRow!, column: column!)
+            formula = "=ROUND("
+            for (index, row) in [totalRow, exportedRow, chooseBestRow].enumerated() {
+                if index != 0 { formula += "-" }
+                formula += "\(cell(row!, rowFixed: true, column!))"
+            }
+            formula += ",2)"
+            write(worksheet: worksheet, row: varianceRow!, column: column!, formula: formula, format: formatZeroFloatBold)
+        }
+        for column in [localMPsColumn, nationalMPsColumn, checksumColumn] {
+            highlightNonZeroVariance(row: varianceRow!, column: column!)
         }
     }
     
@@ -437,10 +520,9 @@ class SummaryWriter : WriterBase {
         write(worksheet: worksheet, row: totalRow!, column: column!, integerFormula: "=ROUND(SUM(\(cell(detailRow!, rowFixed: true, column!)):\(cell(detailRow! + writer.rounds.count - 1, rowFixed: true, column!))),2)", format: format ?? formatZeroFloat)
     }
     
-    private func highlightTotalDifferent(row: Int, compareRow: Int, column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+    private func highlightNonZeroVariance(row: Int, column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let field = "\(cell(row, rowFixed: true, column))"
-        let matchField = "\(cell(compareRow, rowFixed: true, column))"
-        let formula = "\(field)<>\(matchField)"
+        let formula = "\(field)<>0"
         setConditionalFormat(worksheet: worksheet, fromRow: row, fromColumn: column, toRow: row, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
 }
@@ -452,10 +534,11 @@ class FormattedWriter: WriterBase {
     let titleRow = 0
     let dataRow = 1
     var nameColumn: Int?
-    var columns: [Column] = []
+    var columns: [FormattedColumn] = []
     var leftRightColumns: [String] = []
     var directionColumn: Int?
     var hiddenColumns: [Int] = []
+    var chooseBestColumns: [Int] = []
     var categoryColumn: Int?
     
     var formatBottom: UnsafeMutablePointer<lxw_format>?
@@ -489,6 +572,7 @@ class FormattedWriter: WriterBase {
         workbook_define_name(writer.workbook, "FormattedTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, 0, columnFixed: true)):\(cell(titleRow, rowFixed: true, columns.count - 1, columnFixed: true))")
         workbook_define_name(writer.workbook, "Printing", "=false")
         
+        // Setup rows and page format
         worksheet_set_default_row(worksheet, 25, 0)
         setRow(worksheet: worksheet, row: titleRow, height: 50)
         worksheet_fit_to_pages(worksheet, 1, 0)
@@ -514,7 +598,7 @@ class FormattedWriter: WriterBase {
                 setColumn(worksheet: worksheet, column: columnNumber, width: column.width, hidden: column.aggregateAs != nil)
             }
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: column.title, format: bannerFormat)
-            
+                        
             if !column.sortedDynamic {
                 if let referenceDynamic = column.referenceDynamic {
                     writeDynamicReference(rowNumber: dataRow, columnNumber: columnNumber, content: { referenceDynamic() }, format: column.format ?? bodyFormat)
@@ -556,10 +640,19 @@ class FormattedWriter: WriterBase {
             bottomFormula += ")"
         }
         
+        for columnNumber in chooseBestColumns {
+            let rounds = writer.rounds.count
+            let formattedRange = "\(cell(dataRow, chooseBestColumns.first!, columnFixed: true)):\(cell(dataRow, chooseBestColumns.last!, columnFixed: true)))"
+            let consolidated = writer.consolidated!
+            let localNationalCell = cell(writer: consolidated, consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn! + columns[columnNumber].referenceColumn)
+            let consolidatedRange = "\(cell(writer: consolidated, consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn!, columnFixed: true)):\(cell(consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn! + rounds - 1, columnFixed: true))"
+            let csvImport = writer.csvImport!
+            let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columnNumber, toRow: dataRow + writer.maxPlayers - 1, toColumn: columnNumber, formula: "NOT(SumMaxIfIncluded(\(vstack)(\(formattedRange),\(vstack)(\(consolidatedRange)),\(localNationalCell),\(chooseBestCell),\(columns[columnNumber].referenceColumn + 1)))", stopIfTrue: false, format: formatFaint!)
+        }
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftRightFormula, stopIfTrue: true, format: formatLeftRight!)
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: bottomFormula, stopIfTrue: true, format: formatBottom!)
-        
         for column in hiddenColumns {
             setColumn(worksheet: worksheet, column: column, hidden: true)
         }
@@ -582,60 +675,66 @@ class FormattedWriter: WriterBase {
             let ranksPlusMPs = round.ranksPlusMps!
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(Column(title: "National ID (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
+                columns.append(FormattedColumn(title: "National ID (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
                 nationalIdColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(Column(title: "Rank (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
+                columns.append(FormattedColumn(title: "Rank (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
                 rankColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
             
-            columns.append(Column(title: "Position", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.positionColumn!)))" }, cellType: .numericFormula, width: 9))
+            columns.append(FormattedColumn(title: "Position", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.positionColumn!)))" }, cellType: .numericFormula, width: 9))
             leftRightColumns.append(columns.last!.title)
             
             if twoWinners {
-                columns.append(Column(title: "Direction", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.directionColumn!)))" }, cellType: .numericFormula, width: 9))
+                columns.append(FormattedColumn(title: "Direction", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.directionColumn!)))" }, cellType: .numericFormula, width: 9))
                 directionColumn = columns.count - 1
             }
             leftRightColumns.append(columns.last!.title)
-            
-            columns.append(Column(title: (round.maxParticipantPlayers == event.type!.participantType!.players ? "Names" : "Names           *Awards for team members will vary by boards played"), referenceDynamic: { [self] in ranksNamesRef() }, cellType: .string, width: Float(round.maxParticipantPlayers) * (18.0 - Float(round.maxParticipantPlayers))))
+            columns.append(FormattedColumn(title: (round.maxParticipantPlayers == event.type!.participantType!.players ? "Names" : "Names           *Awards for team members will vary by boards played"), referenceDynamic: { [self] in ranksNamesRef() }, cellType: .string, width: Float(round.maxParticipantPlayers) * (18.0 - Float(round.maxParticipantPlayers))))
             nameColumn = columns.count - 1
             
-            columns.append(Column(title: "Category", referenceDynamic: { [self] in categoryNamesRef(rankColumn: rankColumn) }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
+            columns.append(FormattedColumn(title: "Category", referenceDynamic: { [self] in categoryNamesRef(rankColumn: rankColumn) }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
             categoryColumn = columns.count - 1
             
-            columns.append(Column(title: "Score", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.scoreColumn!)))" }, cellType: .numericFormula))
+            columns.append(FormattedColumn(title: "Score", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.scoreColumn!)))" }, cellType: .numericFormula))
             
             if winDraw {
-                columns.append(Column(title: "Wins / Draws", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.winDrawColumn[0])))" }, cellType: .numericFormula))
+                columns.append(FormattedColumn(title: "Wins / Draws", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.winDrawColumn[0])))" }, cellType: .numericFormula))
             }
 
-            columns.append(Column(title: "\(round.scoreData.national ? "National" : "Local") MPs", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.totalMPColumn[0])))" }, cellType: .floatFormula, width: 10))
+            columns.append(FormattedColumn(title: "\(round.scoreData.national ? "National" : "Local") MPs", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.totalMPColumn[0])))" }, cellType: .floatFormula, width: 10))
             leftRightColumns.append(columns.last!.title)
             
         } else {
-            columns.append(Column(title: "National ID", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalIdColumn!))" }, cellType: .numericFormula, width: 9, sortedDynamic: true))
+            let chooseBest = (rounds.filter({$0.scoreData.aggreateAs != nil}).count == 0)
+            
+            columns.append(FormattedColumn(title: "National ID", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalIdColumn!))" }, cellType: .numericFormula, width: 9, sortedDynamic: true))
             let nationalIdColumn = columns.count - 1
             hiddenColumns.append(columns.count - 1)
             
-            columns.append(Column(title: "Rank", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
+            columns.append(FormattedColumn(title: "Rank", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
             let rankColumn = columns.count - 1
             hiddenColumns.append(columns.count - 1)
             
-            columns.append(Column(title: "Name", referenceDynamic: { [self] in "CONCATENATE(\(consolidatedArrayRef(column: consolidated.firstNameColumn!)),\" \",\(consolidatedArrayRef(column: consolidated.otherNamesColumn!)))" }, cellType: .stringFormula, width: 30, sortedDynamic: true))
+            columns.append(FormattedColumn(title: "Name", referenceDynamic: { [self] in "CONCATENATE(\(consolidatedArrayRef(column: consolidated.firstNameColumn!)),\" \",\(consolidatedArrayRef(column: consolidated.otherNamesColumn!)))" }, cellType: .stringFormula, width: 30, sortedDynamic: true))
             nameColumn = columns.count - 1
             leftRightColumns.append(columns.last!.title)
             
-            columns.append(Column(title: "Category", referenceDynamic: { [self] in "=\(categoryNameRef(rankColumn: rankColumn)))" }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
+            columns.append(FormattedColumn(title: "Category", referenceDynamic: { [self] in "=\(categoryNameRef(rankColumn: rankColumn)))" }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
             leftRightColumns.append(columns.last!.title)
             categoryColumn = columns.count - 1
             
             for (roundNumber, round) in rounds.enumerated() {
-                let column = Column(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber, sortedDynamic: true)
+                let column = FormattedColumn(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber, sortedDynamic: true)
+                if chooseBest {
+                    // Note relies on fact that won't happen if later are inserting aggregated columns
+                    column.referenceColumn = roundNumber
+                    chooseBestColumns.append(columns.count)
+                }
                 columns.append(column)
                 if round.scoreData.national {
                     national = true
@@ -660,21 +759,21 @@ class FormattedWriter: WriterBase {
                         reference += "\(consolidatedArrayRef(column: consolidated.dataColumn! + column.roundNumber!))"
                     }
                     
-                    columns.insert(Column(title: title.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { reference }, cellType: .floatFormula, width: 10, sortedDynamic: true), at: position + 1)
+                    columns.insert(FormattedColumn(title: title.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { reference }, cellType: .floatFormula, width: 10, sortedDynamic: true), at: position + 1)
                 }
             }
             
             if local {
-                columns.append(Column(title: "Local MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
+                columns.append(FormattedColumn(title: "Local MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
             }
             if national {
-                columns.append(Column(title: "National MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
+                columns.append(FormattedColumn(title: "National MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
                 
             }
             if local && national {
-                columns.append(Column(title: "Total MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))+\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
+                columns.append(FormattedColumn(title: "Total MPs", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.localMPsColumn!))+\(consolidatedArrayRef(column: consolidated.nationalMPsColumn!))" }, cellType: .floatFormula, width: 10, sortedDynamic: true))
                 leftRightColumns.append(columns.last!.title)
             }
         }
@@ -791,11 +890,6 @@ class FormattedWriter: WriterBase {
         formatBottom = workbook_add_format(workbook)
         format_set_bottom(formatBottom, UInt8(LXW_BORDER_THIN.rawValue))
     }
-    
-    func colorValue(_ color: Color) -> UInt32 {
-        let color = NSColor(color)
-        return UInt32((((color.redComponent * 256) + color.greenComponent) * 256) + color.blueComponent)
-    }
 }
 
 // MARK: - Export CSV
@@ -810,20 +904,21 @@ class CsvImportWriter: WriterBase {
     
     let eventDescriptionRow = 0
     let eventCodeRow = 1
-    let linesPerPageRow = 2
-    let pageOrientationRow = 3
-    let minRankRow = 4
-    let maxRankRow = 5
-    let eventDateRow = 6
-    let clubCodeRow = 7
-    let sortByRow = 9
-    let awardsRow = 10
-    let localMPsRow = 11
-    let nationalMPsRow = 12
-    let checksumRow = 13
+    let eventDateRow = 2
+    let linesPerPageRow = 4
+    let pageOrientationRow = 5
+    let minRankRow = 6
+    let maxRankRow = 7
+    let clubCodeRow = 8
+    let chooseBestRow = 9
+    let sortByRow = 11
+    let awardsRow = 12
+    let localMPsRow = 13
+    let nationalMPsRow = 14
+    let checksumRow = 15
     
-    let titleRow = 15
-    let dataRow = 16
+    let titleRow = 17
+    let dataRow = 18
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -861,11 +956,11 @@ class CsvImportWriter: WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
-        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 1, column: 4)
-        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 4, column: 4)
+        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 9, column: 5)
+        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 12, column: 5)
         if self.writer.includeInRace {
-            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 1, column: 7)
-            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 4, column: 7)
+            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 9, column: 7, width: 70)
+            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 12, column: 7, width: 70)
         }
         
         // Format rows/columns
@@ -886,6 +981,11 @@ class CsvImportWriter: WriterBase {
         setColumn(worksheet: worksheet, column: lookupEmailColumn, width: 25)
         setColumn(worksheet: worksheet, column: lookupStatusColumn, width: 8)
         setColumn(worksheet: worksheet, column: lookupPaymentStatusColumn, width: 25)
+        
+        // Create hidden group for parameters
+        for row in (linesPerPageRow - 1)...chooseBestRow {
+            setRow(worksheet: worksheet, row: row, group: true, hidden: true, collapsed: true)
+        }
         
         // Parameters etc
         let parameters = writer.parameters!
@@ -917,6 +1017,9 @@ class CsvImportWriter: WriterBase {
         
         write(worksheet: worksheet, row: clubCodeRow, column: titleColumn, string: "Club Code:", format: formatBold)
         write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: writer.clubCode, format: formatString)
+        
+        write(worksheet: worksheet, row: chooseBestRow, column: titleColumn, string: "Choose best:", format: formatBold)
+        write(worksheet: worksheet, row: chooseBestRow, column: valuesColumn, integer: writer.chooseBest, format: formatString)
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
         let sortData = parameters.sortData
@@ -980,14 +1083,17 @@ class CsvImportWriter: WriterBase {
         writeLookup(title: "Email", column: lookupEmailColumn, lookupColumn: Settings.current.userDownloadEmailColumn)
         writeLookup(title: "Status", column: lookupStatusColumn, lookupColumn: Settings.current.userDownloadStatusColumn)
         writeLookup(title: "Payment status", column: lookupPaymentStatusColumn, lookupColumn: Settings.current.userDownloadPaymentStatusColumn)
+
+        highlightBadEventDate()
         
         highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 0, format: formatYellow)
         highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 1)
-        highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupPaymentStatusColumn, format: formatGrey)
+        highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupPaymentStatusColumn)
         highlightBadNationalId(column: nationalIdColumn, firstNameColumn: firstNameColumn)
         highlightBadDate(column: eventDateColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: localMPsColumn, firstNameColumn: firstNameColumn)
         highlightBadMPs(column: nationalMPsColumn, firstNameColumn: firstNameColumn)
+        highlightNoHomeClub(column: lookupHomeClubColumn)
         highlightBadRank(column: lookupRankColumn)
         highlightBadStatus(column: lookupStatusColumn)
         highlightBadPaymentStatus(column: lookupPaymentStatusColumn)
@@ -1016,7 +1122,7 @@ class CsvImportWriter: WriterBase {
         }
         field += ")"
         lookupField += ")"
-        let formula = "AND(\(field)<>\(lookupField)"+",\(columnCell(columns[keyIndex]))<>\(columnCell(lookupColumns[keyIndex])))"
+        let formula = "AND(\(field)<>\(lookupField),\(columnCell(columns[keyIndex]))<>\(columnCell(lookupColumns[keyIndex])))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columns[keyIndex], toRow: dataRow + writer.maxPlayers - 1, toColumn: columns[keyIndex], formula: formula, format: format ?? formatRed!)
     }
     
@@ -1027,26 +1133,32 @@ class CsvImportWriter: WriterBase {
     private func highlightLookupError(fromColumn: Int, toColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let lookupCell = "\(cell(dataRow, fromColumn, columnFixed: true))"
         let formula = "=ISNA(\(lookupCell))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: fromColumn, toRow: dataRow + writer.maxPlayers - 1, toColumn: toColumn, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: fromColumn, toRow: dataRow + writer.maxPlayers - 1, toColumn: toColumn, formula: formula, format: format ?? formatGrey!)
+    }
+    
+    private func highlightNoHomeClub(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let statusCell = "\(cell(dataRow, column, columnFixed: true))"
+        let formula = "=(\(statusCell)=0)"
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotActive!)
     }
     
     private func highlightBadStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let statusCell = "\(cell(dataRow, column, columnFixed: true))"
         let formula = "=AND(\(statusCell)<>\"\(Settings.current.goodStatus!)\", \(statusCell)<>\"\")"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotActive!)
     }
 
     private func highlightBadPaymentStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let paymentStatusCell = "\(cell(dataRow, column, columnFixed: true))"
         let formula = "=AND(\(paymentStatusCell)<>\"\(Settings.current.goodPaymentStatus!)\", \(paymentStatusCell)<>\"\")"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatYellow!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotPaid!)
     }
     
     private func highlightBadNationalId(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let nationalIdCell = cell(dataRow, column, columnFixed: true)
         let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
         let formula = "=AND(\(firstNameCell)<>\"\", OR(\(nationalIdCell)<=0, \(nationalIdCell)>\(Settings.current.maxNationalIdNumber!), NOT(ISNUMBER(\(nationalIdCell)))))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, checkDuplicates: true, format: format ?? formatRed!, duplicateFormat: formatRedHatched!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, checkDuplicates: true, format: format ?? formatGrey!, duplicateFormat: formatRedHatched!)
     }
     
     private func highlightBadMPs(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -1056,10 +1168,17 @@ class CsvImportWriter: WriterBase {
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
+    private func highlightBadEventDate(format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let eventDateCell = cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)
+        let formula = "=OR(INT(\(eventDateCell))>TODAY(), INT(\(eventDateCell))<(TODAY()-8))"
+        setConditionalFormat(worksheet: worksheet, fromRow: eventDateRow, fromColumn: valuesColumn, toRow: eventDateRow, toColumn: valuesColumn, formula: formula, format: format ?? formatRed!)
+    }
+    
     private func highlightBadDate(column: Int, firstNameColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let eventDateCell = cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)
         let dateCell = cell(dataRow, column, columnFixed: true)
         let firstNameCell = cell(dataRow, firstNameColumn, columnFixed: true)
-        let formula = "=AND(\(firstNameCell)<>\"\", OR(INT(\(dateCell))>TODAY(), INT(\(dateCell))<(TODAY()-8)))"
+        let formula = "=AND(\(firstNameCell)<>\"\",OR(INT(\(dateCell))>TODAY(), INT(\(dateCell))<(TODAY()-8)), \(dateCell)<>\(eventDateCell))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
@@ -1354,8 +1473,8 @@ class RaceFormattedWriter: WriterBase {
                 format_set_align(format[category]![formatType]!, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
                 format_set_bold(format[category]![formatType]!)
                 format_set_pattern (format[category]![formatType]!, UInt8(LXW_PATTERN_SOLID.rawValue))
-                format_set_bg_color(format[category]![formatType]!, UInt32(category.backgroundColor))
-                format_set_font_color(format[category]![formatType]!, UInt32(category.textColor))
+                format_set_bg_color(format[category]![formatType]!, lxw_color_t(category.backgroundColor))
+                format_set_font_color(format[category]![formatType]!, lxw_color_t(category.textColor))
                 format_set_font_size(format[category]![formatType]!, formatType.fontSize)
                 format_set_text_wrap(format[category]![formatType]!)
             }
@@ -1367,6 +1486,7 @@ class RaceFormattedWriter: WriterBase {
  
 class ConsolidatedWriter: WriterBase {
     override var name: String { "Consolidated" }
+    var localNationalRow: Int?
     var dataRow: Int?
     var firstNameColumn: Int?
     var otherNamesColumn: Int?
@@ -1390,17 +1510,17 @@ class ConsolidatedWriter: WriterBase {
         dataColumn = 6
         
         let titleRow = 3
-        let localNationalRow = 0
+        localNationalRow = 0
         let totalRow = 1
         let checksumRow = 2
         dataRow = 4
         
         freezePanes(worksheet: worksheet, row: dataRow!, column: dataColumn!)
         
-        let localNationalRange = "\(cell(localNationalRow, rowFixed: true, dataColumn!, columnFixed: true)):\(cell(localNationalRow, rowFixed: true, dataColumn! + writer.rounds.count - 1, columnFixed: true))"
+        let localNationalRange = "\(cell(localNationalRow!, rowFixed: true, dataColumn!, columnFixed: true)):\(cell(localNationalRow!, rowFixed: true, dataColumn! + writer.rounds.count - 1, columnFixed: true))"
         
         setRow(worksheet: worksheet, row: titleRow, format: formatBoldUnderline)
-        setRow(worksheet: worksheet, row: localNationalRow, format: formatBoldUnderline)
+        setRow(worksheet: worksheet, row: localNationalRow!, format: formatBoldUnderline)
         setRow(worksheet: worksheet, row: totalRow, format: formatBoldUnderline)
         setRow(worksheet: worksheet, row: checksumRow, format: formatBoldUnderline)
         
@@ -1429,7 +1549,7 @@ class ConsolidatedWriter: WriterBase {
         
             // National/Local row
             let cell = cell(writer: round.ranksPlusMps, round.ranksPlusMps.localCell!)
-            write(worksheet: worksheet, row: localNationalRow, column: dataColumn! + column, formula: "=IF(\(cell)=0,\"\",\(cell))", format: formatRightBoldUnderline)
+            write(worksheet: worksheet, row: localNationalRow!, column: dataColumn! + column, formula: "=IF(\(cell)=0,\"\",\(cell))", format: formatRightBoldUnderline)
         }
         
         for element in 0...1 {
@@ -1481,8 +1601,10 @@ class ConsolidatedWriter: WriterBase {
         // Total local/national columns
         let dataRange = "\(arrayRef)(\(cell(dataRow!, dataColumn!, columnFixed: true))):\(arrayRef)(\(cell(dataRow!, rowFixed: true, dataColumn! + writer.rounds.count - 1, columnFixed: true)))"
         
-        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(localNationalRange), \"<>National\", \(lambdaParam))))")
-        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SUMIF(\(localNationalRange), \"=National\", \(lambdaParam))))")
+        let csvImport = writer.csvImport!
+        let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
+        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"Local\", \(chooseBestCell))))")
+        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"National\", \(chooseBestCell))))")
         
         // Lookup data columns
         for (column, round) in writer.rounds.enumerated() {
@@ -2315,8 +2437,10 @@ class WriterBase {
     var formatZeroBlank: UnsafeMutablePointer<lxw_format>?
     var formatInt: UnsafeMutablePointer<lxw_format>?
     var formatFloat: UnsafeMutablePointer<lxw_format>?
+    var formatFloatUnderline: UnsafeMutablePointer<lxw_format>?
     var formatZeroInt: UnsafeMutablePointer<lxw_format>?
     var formatZeroFloat: UnsafeMutablePointer<lxw_format>?
+    var formatZeroFloatBold: UnsafeMutablePointer<lxw_format>?
     var formatBold: UnsafeMutablePointer<lxw_format>?
     var formatRightBold: UnsafeMutablePointer<lxw_format>?
     var formatBoldUnderline: UnsafeMutablePointer<lxw_format>?
@@ -2329,6 +2453,8 @@ class WriterBase {
     var formatYellow: UnsafeMutablePointer<lxw_format>?
     var formatGrey: UnsafeMutablePointer<lxw_format>?
     var formatFaint: UnsafeMutablePointer<lxw_format>?
+    var formatNotActive: UnsafeMutablePointer<lxw_format>?
+    var formatNotPaid: UnsafeMutablePointer<lxw_format>?
     var formatBannerString: UnsafeMutablePointer<lxw_format>?
     var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
     var formatBannerFloat: UnsafeMutablePointer<lxw_format>?
@@ -2368,8 +2494,10 @@ class WriterBase {
             self.formatZeroBlank = writer.formatZeroBlank
             self.formatInt = writer.formatInt
             self.formatFloat = writer.formatFloat
+            self.formatFloatUnderline = writer.formatFloatUnderline
             self.formatZeroInt = writer.formatZeroInt
             self.formatZeroFloat = writer.formatZeroFloat
+            self.formatZeroFloatBold = writer.formatZeroFloatBold
             self.formatBold = writer.formatBold
             self.formatRightBold = writer.formatRightBold
             self.formatBoldUnderline = writer.formatBoldUnderline
@@ -2382,6 +2510,8 @@ class WriterBase {
             self.formatYellow = writer.formatYellow
             self.formatGrey = writer.formatGrey
             self.formatFaint = writer.formatFaint
+            self.formatNotActive = writer.formatNotActive
+            self.formatNotPaid = writer.formatNotPaid
             self.formatBannerString = writer.formatBannerString
             self.formatBannerCenteredString = writer.formatBannerCenteredString
             self.formatBannerFloat = writer.formatBannerFloat
@@ -2395,7 +2525,7 @@ class WriterBase {
     
     // MARK: - Utility routines
     
-    fileprivate func createMacroButton(worksheet: UnsafeMutablePointer<lxw_worksheet>?, title: String, macro: String, row: Int, column: Int, height: Int = 30, width: Int = 80, xScale: Double = 1.5, yScale: Double = 1.5, xOffset: Int = 2, yOffset: Int = 2) {
+    fileprivate func createMacroButton(worksheet: UnsafeMutablePointer<lxw_worksheet>?, title: String, macro: String, row: Int, column: Int, height: Int = 30, width: Int = 60, xScale: Double = 1.5, yScale: Double = 1.5, xOffset: Int = 2, yOffset: Int = 2) {
         // Add macro buttons
         var options = lxw_button_options()
         options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
@@ -2500,12 +2630,20 @@ class WriterBase {
         formatFloat = workbook_add_format(workbook)
         format_set_num_format(formatFloat, "0.00;-0.00;")
         format_set_align(formatFloat, UInt8(LXW_ALIGN_RIGHT.rawValue))
+        formatFloatUnderline = workbook_add_format(workbook)
+        format_set_num_format(formatFloatUnderline, "0.00;-0.00;")
+        format_set_align(formatFloatUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
+        format_set_bottom(formatFloatUnderline, UInt8(LXW_BORDER_THIN.rawValue))
         formatZeroInt = workbook_add_format(workbook)
         format_set_num_format(formatZeroInt, "0")
         format_set_align(formatZeroInt, UInt8(LXW_ALIGN_RIGHT.rawValue))
         formatZeroFloat = workbook_add_format(workbook)
         format_set_num_format(formatZeroFloat, "0.00")
         format_set_align(formatZeroFloat, UInt8(LXW_ALIGN_RIGHT.rawValue))
+        formatZeroFloatBold = workbook_add_format(workbook)
+        format_set_num_format(formatZeroFloatBold, "0.00")
+        format_set_align(formatZeroFloatBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
+        format_set_bold(formatZeroFloatBold)
         formatDate = workbook_add_format(workbook)
         format_set_num_format(formatDate, "dd/MM/yyyy")
         format_set_align(formatDate, UInt8(LXW_ALIGN_LEFT.rawValue))
@@ -2538,25 +2676,30 @@ class WriterBase {
         format_set_num_format(formatFloatBoldUnderline, "0.00;-0.00;")
         
         formatRed = workbook_add_format(workbook)
-        format_set_bg_color(formatRed, LXW_COLOR_RED.rawValue)
+        format_set_bg_color(formatRed, lxw_color_t(excelRed.rgbValue))
         format_set_font_color(formatRed, LXW_COLOR_WHITE.rawValue)
         formatRedHatched = workbook_add_format(workbook)
-        format_set_bg_color(formatRedHatched, LXW_COLOR_RED.rawValue)
+        format_set_bg_color(formatRedHatched, lxw_color_t(excelRed.rgbValue))
         format_set_fg_color(formatRedHatched, LXW_COLOR_WHITE.rawValue)
         format_set_pattern(formatRedHatched, UInt8(LXW_PATTERN_LIGHT_UP.rawValue))
         formatYellow = workbook_add_format(workbook)
-        format_set_bg_color(formatYellow, 0xFFFB00)
+        format_set_bg_color(formatYellow, lxw_color_t(excelYellow.rgbValue))
         formatGrey = workbook_add_format(workbook)
-        format_set_bg_color(formatGrey, 0xC0C0C0)
+        format_set_bg_color(formatGrey, lxw_color_t(excelGrey.rgbValue))
         formatFaint = workbook_add_format(workbook)
-        format_set_font_color(formatFaint, 0xD9D9D9)
+        format_set_font_color(formatFaint, lxw_color_t(excelFaint.rgbValue))
+        formatNotActive = workbook_add_format(workbook)
+        format_set_bg_color(formatNotActive, lxw_color_t(excelNotActive.rgbValue))
+        format_set_font_color(formatNotActive, LXW_COLOR_WHITE.rawValue)
+        formatNotPaid = workbook_add_format(workbook)
+        format_set_bg_color(formatNotPaid, lxw_color_t(excelNotPaid.rgbValue))
         
         formatBannerString = workbook_add_format(workbook)
         format_set_align(formatBannerString, UInt8(LXW_ALIGN_LEFT.rawValue))
         format_set_align(formatBannerString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         format_set_bold(formatBannerString)
         format_set_pattern (formatBannerString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerString, UInt32(0x1F036C))
+        format_set_bg_color(formatBannerString, lxw_color_t(excelBanner.rgbValue))
         format_set_font_color(formatBannerString, LXW_COLOR_WHITE.rawValue)
         format_set_text_wrap(formatBannerString)
         format_set_indent(formatBannerString, 2)
@@ -2566,7 +2709,7 @@ class WriterBase {
         format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         format_set_bold(formatBannerCenteredString)
         format_set_pattern (formatBannerCenteredString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerCenteredString, UInt32(0x1F036C))
+        format_set_bg_color(formatBannerCenteredString, lxw_color_t(excelBanner.rgbValue))
         format_set_font_color(formatBannerCenteredString, LXW_COLOR_WHITE.rawValue)
         format_set_text_wrap(formatBannerCenteredString)
         
@@ -2575,7 +2718,7 @@ class WriterBase {
         format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         format_set_bold(formatBannerFloat)
         format_set_pattern (formatBannerFloat, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerFloat, UInt32(0x1F036C))
+        format_set_bg_color(formatBannerFloat, lxw_color_t(excelBanner.rgbValue))
         format_set_font_color(formatBannerFloat, LXW_COLOR_WHITE.rawValue)
         format_set_text_wrap(formatBannerFloat)
         
@@ -2727,10 +2870,18 @@ class WriterBase {
         }
     }
     
-    func setRow(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, format: UnsafeMutablePointer<lxw_format>? = nil, height: Float? = nil) {
+    func setRow(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, group: Bool = false, hidden: Bool = false, collapsed: Bool = false, format: UnsafeMutablePointer<lxw_format>? = nil, height: Float? = nil) {
         let row = lxw_row_t(Int32(row))
         let height = (height == nil ? LXW_DEF_ROW_HEIGHT : Double(height!))
-        worksheet_set_row(worksheet, row, height, format)
+        if group {
+            var options = lxw_row_col_options()
+            options.level = 1
+            options.hidden = hidden ? 1 : 0
+            options.collapsed = collapsed ? 1 : 0
+            worksheet_set_row_opt(worksheet, row, height, format, &options)
+        } else {
+            worksheet_set_row_opt(worksheet, row, height, format, nil)
+        }
     }
     
     func freezePanes(worksheet: UnsafeMutablePointer<lxw_worksheet>?, row: Int, column: Int) {

@@ -40,6 +40,7 @@ struct SelectInputView: View {
     @State private var eventMessage: String = ""
     @State private var club: ClubViewModel? = nil
     @State private var clubCode: String = ""
+    @State private var chooseBest: Int = 0
     @State private var clubMessage: String = ""
     @State private var minRank: RankViewModel? = nil
     @State private var minRankCode: Int = 0
@@ -757,6 +758,7 @@ struct SelectInputView: View {
                     writer?.eventDescription = eventDescription
                     writer?.eventCode = eventCode
                     writer?.clubCode = clubCode
+                    writer?.chooseBest = chooseBest
                     writer?.minRank = minRankCode
                     writer?.maxRank = maxRankCode
                 }
@@ -961,13 +963,16 @@ struct SelectInputView: View {
             eventDescription = importInProgress!.event!.description!
             eventCode = importInProgress!.event!.code!
             clubCode = importInProgress!.event!.clubCode ?? ""
+            chooseBest = importInProgress!.event!.chooseBest ?? 0
             minRankCode = importInProgress!.event!.minRank ?? 0
             maxRankCode = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
             
             writer = Writer()
             writer!.eventDescription = eventDescription
             writer!.eventCode = eventCode
+            writer!.chooseBest = chooseBest
             writer!.clubCode = clubCode
+            writer!.chooseBest = chooseBest
             writer!.minRank = minRankCode
             writer!.maxRank = maxRankCode
             writer!.includeInRace = false
