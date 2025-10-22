@@ -300,9 +300,13 @@ End Function
 
 Sub Auto_Open()
     ' Automatically run when Workbook opened to set 'Save External Link Values' to false to keep file size down
+    ' Also reset last error search
     With ActiveWorkbook
         .SaveLinkValues = False
     End With
+    Range("LastErrorType").Value = 0
+    Range("LastErrorRow").Value = 0
+    Range("LastErrorStartRow").Value = 0
 End Sub
 
 Function SumMaxIf(Data() As Variant, Match() As Variant, MatchValue As String, Count As Integer) As Double
@@ -453,7 +457,6 @@ Function CheckSheetErrors(SheetName As String, Optional RowSummary As Boolean = 
             If RowErrors(Index) <> 0 Then
                 If RowSummary Then
                     Errors(Index) = Errors(Index) + 1
-                    Exit For
                 Else
                     Errors(Index) = Errors(Index) + RowErrors(Index)
                 End If
@@ -485,6 +488,84 @@ Function CheckSheetErrors(SheetName As String, Optional RowSummary As Boolean = 
     End If
 End Function
 
+Sub NextSheetErrorRow()
+    Dim ImportRange As Range
+    Dim ActiveRow As Integer
+    Dim CurrentType As Integer
+    Dim CurrentRow As Integer
+    Dim CurrentStartRow As Integer
+    Dim Types
+    Dim Colors
+    Dim Found As Boolean
+    Dim StartType As Integer
+    Dim ButtonTitle As String
+    
+    GetErrorParameters Types, Colors
+    CurrentType = Range("LastErrorType").Value
+    CurrentRow = Range("LastErrorRow").Value
+    StartRow = Range("LastErrorStartRow").Value
+    ActiveRow = ActiveCell.Row
+    Set ImportRange = Worksheets("Import").UsedRange
+    Found = False
+    StartType = CurrentType
+    
+    If ActiveRow <> CurrentRow Then
+        '  Active row has changed - consider this to be a new search
+        CurrentType = 1
+        CurrentRow = ActiveRow
+        StartRow = ActiveRow
+        StartType = CurrentType
+    End If
+    
+    Do
+        CurrentRow = CurrentRow + 1
+        If CurrentRow > ImportRange.Rows.Count Then
+            ' Bottom of data - loop round
+            CurrentRow = 1
+        End If
+        If CurrentRow = StartRow Then
+            ' Finished this type - beep and move to next type
+            If StartType = CurrentType Then
+                Beep
+            End If
+            CurrentType = CurrentType + 1
+            CurrentRow = CurrentRow + 1
+            If CurrentType > UBound(Types) Then
+                ' Finished all types - beep and reset
+                CurrentType = 0
+                CurrentRow = 0
+                StartRow = 0
+                Exit Do
+            End If
+        End If
+        
+        For Column = 1 To ImportRange.Columns.Count
+            If ImportRange.Cells(CurrentRow, Column).DisplayFormat.Interior.Color = Colors(CurrentType) Then
+                ' Found a cell of the correct type select it
+                Found = True
+                FoundType = True
+                ActiveSheet.Cells(CurrentRow, 1).EntireRow.Select
+            End If
+        Next
+    Loop Until Found
+    
+    ' Save current status
+    Range("LastErrorType").Value = CurrentType
+    Range("LastErrorRow").Value = CurrentRow
+    Range("LastErrorStartRow").Value = StartRow
+    If CurrentType = 0 Then
+        ButtonTitle = "Next Error"
+    Else
+        ButtonTitle = "Next " + Types(CurrentType)
+    End If
+    SetButtonText ButtonTitle
+        
+End Sub
+
+Sub SetButtonText(ByVal Text As String)
+    ActiveSheet.Buttons(Application.Caller).Caption = Text
+End Sub
+
 Sub GetErrorParameters(ByRef Types, ByRef Colors)
     Count = Range("ErrorTypes").Rows.Count
     ReDim Types(1 To Count)
@@ -502,4 +583,21 @@ Sub AddMessage(ByRef Message As String, ByVal Value As Integer, ByVal Text As St
         If Value > 1 Then Message = Message + "s"
     End If
 End Sub
+
+Function StripName(ByVal Source As String) As String
+    Dim i As Integer
+    Dim Result As String
+
+    For i = 1 To Len(Source)
+        Char = Mid(Source, i, 1)
+        ascii = Asc(Char)
+        Select Case ascii
+            Case 65 To 90
+                Result = Result & Char
+            Case 97 To 122
+                Result = Result & Chr(ascii - 32)
+        End Select
+    Next
+    StripName = Result
+End Function
 

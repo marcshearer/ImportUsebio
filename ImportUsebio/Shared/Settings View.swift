@@ -48,7 +48,19 @@ struct SettingsView: View {
                                     
                                    Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
                                     
-                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, leadingSpace: 30, width: 250, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, leadingSpace: 30, width: 250, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                    
+                                    Spacer()
+                                }
+                                
+                                Spacer().frame(height: 10)
+                                
+                                HStack {
+                                    Spacer().frame(width: 220)
+                                    
+                                    InputInt(title: "Ignore months :", field: $settings.ignorePaymentFrom, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 114, isEnabled: true)
+                                    
+                                    InputInt(title: "to :", field: $settings.ignorePaymentTo, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 30, isEnabled: true)
                                     
                                     Spacer()
                                 }
@@ -147,7 +159,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .frame(width: 800, height: 530)
+        .frame(width: 800, height: 600)
     }
     
     private var versionOption: BannerOption {

@@ -19,6 +19,8 @@ enum UserDefault: String, CaseIterable {
     case settingMaxNationalIdNumber
     case settingGoodStatus
     case settingGoodPaymentStatus
+    case settingIgnorePaymentFrom
+    case settingIgnorePaymentTo
     case settingMaxPoints
     case settingLargestFieldSize
     case settingLargestPlayerCount
@@ -58,6 +60,10 @@ enum UserDefault: String, CaseIterable {
             return "Active"
         case .settingGoodPaymentStatus:
             return "Payment Confirmed by SBU"
+        case .settingIgnorePaymentFrom:
+            return 9
+        case .settingIgnorePaymentTo:
+            return 11
         case .settingMaxPoints:
             return 15.0
         case .settingLargestFieldSize:

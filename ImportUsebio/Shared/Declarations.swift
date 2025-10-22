@@ -50,6 +50,7 @@ let excelGold = Color(red: 212, green: 175, blue: 55)
 let excelSilver = Color(red: 188, green: 198, blue: 204)
 let excelBronze = Color(red: 169, green: 113, blue: 66)
 let excelNotActive = Color(red: 192, green: 0, blue: 0)
+let excelNoHomeClub = Color(red: 190, green: 0, blue: 0)
 let excelNotPaid = Color(red: 255, green: 160, blue: 160)
     
 // Backups

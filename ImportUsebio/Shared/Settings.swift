@@ -13,6 +13,8 @@
         @Published var maxNationalIdNumber: Int!
         @Published var goodStatus: String!
         @Published var goodPaymentStatus: String!
+        @Published var ignorePaymentFrom: Int!
+        @Published var ignorePaymentTo: Int!
         @Published var maxPoints: Float!
         @Published var largestFieldSize: Int!
         @Published var largestPlayerCount: Int!
@@ -50,6 +52,8 @@
             self.maxNationalIdNumber = from.maxNationalIdNumber
             self.goodStatus = from.goodStatus
             self.goodPaymentStatus = from.goodPaymentStatus
+            self.ignorePaymentFrom = from.ignorePaymentFrom
+            self.ignorePaymentTo = from.ignorePaymentTo
             self.maxPoints = from.maxPoints
             self.largestFieldSize = from.largestFieldSize
             self.largestPlayerCount = from.largestPlayerCount
@@ -74,6 +78,8 @@
             self.maxNationalIdNumber = UserDefault.settingMaxNationalIdNumber.int
             self.goodStatus = UserDefault.settingGoodStatus.string
             self.goodPaymentStatus = UserDefault.settingGoodPaymentStatus.string
+            self.ignorePaymentFrom = UserDefault.settingIgnorePaymentFrom.int
+            self.ignorePaymentTo = UserDefault.settingIgnorePaymentTo.int
             self.maxPoints = UserDefault.settingMaxPoints.float
             self.largestFieldSize = UserDefault.settingLargestFieldSize.int
             self.largestPlayerCount = UserDefault.settingLargestPlayerCount.int
@@ -98,6 +104,8 @@
             UserDefault.settingMaxNationalIdNumber.set(self.maxNationalIdNumber)
             UserDefault.settingGoodStatus.set(self.goodStatus)
             UserDefault.settingGoodPaymentStatus.set(self.goodPaymentStatus)
+            UserDefault.settingIgnorePaymentFrom.set(self.ignorePaymentFrom)
+            UserDefault.settingIgnorePaymentTo.set(self.ignorePaymentTo)
             UserDefault.settingMaxPoints.set(self.maxPoints)
             UserDefault.settingLargestFieldSize.set(self.largestFieldSize)
             UserDefault.settingLargestPlayerCount.set(self.largestPlayerCount)

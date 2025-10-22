@@ -211,6 +211,7 @@ class Writer: WriterBase {
             round.individualMPs.prepare(workbook: workbook)
         }
         parameters.prepare(workbook: workbook)
+        
         workbook_add_vba_project(workbook, "./Award.bin")
         
         // Process data
@@ -223,6 +224,7 @@ class Writer: WriterBase {
         parameters.writeRanks()
         parameters.writeOrientation()
         parameters.writeErrorTypes()
+        parameters.writeLastErrorState()
         csvImport.write()
         summary.write()
         missing.write()
@@ -271,8 +273,11 @@ class ParametersWriter : WriterBase {
     
     let pageOrientationColumn = 7
     
-    let errorTypeColumn = 10
-    let errorColorColumn = 11
+    let errorTypeColumn = 9
+    let errorColorColumn = 10
+    
+    let lastErrorNameColumn = 12
+    let lastErrorValueColumn = 13
    
     let headerRow = 0
     let dataRow = 1
@@ -287,6 +292,7 @@ class ParametersWriter : WriterBase {
     var sortData: [(name: String, column: Int, direction: Int)] = []
     var ranksData: [(from: Int, category: String)] = []
     var errorData: [(type: String, color: Color)] = []
+    var lastErrorData: [(name: String, value: Int)] = []
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -361,11 +367,12 @@ class ParametersWriter : WriterBase {
     }
     
     func writeErrorTypes() {
-        errorData = [ ("Error",           excelRed),
-                      ("Warning",         excelYellow),
-                      ("Bad ID",          excelGrey),
-                      ("Inactive member", excelNotActive),
-                      ("Not Paid Member", excelNotPaid)]
+        errorData = [ ("Error",                 excelRed),
+                      ("Bad ID",                excelGrey),
+                      ("Inactive member",       excelNotActive),
+                      ("No home club member",   excelNoHomeClub),
+                      ("Warning",               excelYellow),
+                      ("Not paid member",       excelNotPaid)]
         
         for (column, header) in ["Error Type", "Colour"].enumerated() {
             write(worksheet: worksheet, row: headerRow, column: errorTypeColumn + column, string: header, format: formatBold)
@@ -380,6 +387,24 @@ class ParametersWriter : WriterBase {
         
         workbook_define_name(writer.workbook, "ErrorTypes", "=\(cell(writer: self, dataRow, rowFixed: true, errorTypeColumn, columnFixed: true)):\(cell(writer: self, dataRow + errorData.count - 1, rowFixed: true, errorColorColumn, columnFixed: true))")
         
+    }
+    
+    func writeLastErrorState() {
+        
+        lastErrorData = [ ("Type",      0),
+                          ("Row",       0),
+                          ("StartRow",  0)]
+        
+        for (column, header) in ["Last error", "Value"].enumerated() {
+            write(worksheet: worksheet, row: headerRow, column: lastErrorNameColumn + column, string: header, format: formatBold)
+        }
+        for (row, element) in lastErrorData.enumerated() {
+            write(worksheet: worksheet, row: dataRow + row, column: lastErrorNameColumn, string: element.name)
+            write(worksheet: worksheet, row: dataRow + row, column: lastErrorValueColumn, integer: element.value)
+            workbook_define_name(writer.workbook, "LastError\(element.name)", "=\(cell(writer: self, dataRow + row, rowFixed: true, lastErrorValueColumn, columnFixed: true))")
+        }
+        
+        setColumn(worksheet: worksheet, column: lastErrorNameColumn, width: 12)
     }
 }
 
@@ -956,6 +981,7 @@ class CsvImportWriter: WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
+        writer.createMacroButton(worksheet: worksheet, title: "Next Error", macro: "NextSheetErrorRow", row: 9, column: 3)
         writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 9, column: 5)
         writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 12, column: 5)
         if self.writer.includeInRace {
@@ -1086,8 +1112,8 @@ class CsvImportWriter: WriterBase {
 
         highlightBadEventDate()
         
-        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 0, format: formatYellow)
-        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn], lookupColumns: [lookupFirstNameColumn, lookupOtherNamesColumn], keyIndex: 1)
+        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn, lookupFirstNameColumn, lookupOtherNamesColumn], column: firstNameColumn, offset: 0, format: formatYellow)
+        highlightLookupDifferent(columns: [firstNameColumn, otherNamesColumn, lookupFirstNameColumn, lookupOtherNamesColumn], column: otherNamesColumn, offset: 1, format: formatRed)
         highlightLookupError(fromColumn: lookupFirstNameColumn, toColumn: lookupPaymentStatusColumn)
         highlightBadNationalId(column: nationalIdColumn, firstNameColumn: firstNameColumn)
         highlightBadDate(column: eventDateColumn, firstNameColumn: firstNameColumn)
@@ -1109,25 +1135,13 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow, column: column, dynamicFormula: "=\(numeric ? "\(fnPrefix)NUMBERVALUE(" : "")\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn, columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(lookupColumn))),,0)\(numeric ? ")" : "")")
     }
     
-    private func highlightLookupDifferent(columns: [Int], lookupColumns: [Int], keyIndex: Int = 0, format: UnsafeMutablePointer<lxw_format>? = nil) {
-        var field = "CONCATENATE("
-        var lookupField = "CONCATENATE("
+    private func highlightLookupDifferent(columns: [Int], column: Int, offset: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        var cells: [String] = []
         for index in 0..<columns.count {
-            field += columnCell(columns[index])
-            lookupField += columnCell(lookupColumns[index])
-            if index < columns.count - 1 {
-                field += ",\" \","
-                lookupField += ",\" \","
-            }
+            cells.append("StripName(\(cell(dataRow,columns[index],columnFixed:true)))")
         }
-        field += ")"
-        lookupField += ")"
-        let formula = "AND(\(field)<>\(lookupField),\(columnCell(columns[keyIndex]))<>\(columnCell(lookupColumns[keyIndex])))"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columns[keyIndex], toRow: dataRow + writer.maxPlayers - 1, toColumn: columns[keyIndex], formula: formula, format: format ?? formatRed!)
-    }
-    
-    private func columnCell(_ column: Int) -> String {
-        return cell(dataRow, column, columnFixed: true)
+        let formula = "=(AND(CONCATENATE(\(cells[0]),\(cells[1]))<>CONCATENATE(\(cells[2]),\(cells[3])),\(cells[offset])<>\(cells[offset+2])))"
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
     
     private func highlightLookupError(fromColumn: Int, toColumn: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -1138,9 +1152,9 @@ class CsvImportWriter: WriterBase {
     
     private func highlightNoHomeClub(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let nationalIdCell = cell(dataRow, nationalIdColumn, columnFixed: true)
-        let statusCell = "AND(\(nationalIdCell)<>\"\", \(cell(dataRow, column, columnFixed: true)))"
-        let formula = "=(\(statusCell)=0)"
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotActive!)
+        let statusCell = cell(dataRow, column, columnFixed: true)
+        let formula = "AND(\(nationalIdCell)<>\"\", \(statusCell)=0)"
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNoHomeClub!)
     }
     
     private func highlightBadStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
@@ -1151,7 +1165,8 @@ class CsvImportWriter: WriterBase {
 
     private func highlightBadPaymentStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let paymentStatusCell = "\(cell(dataRow, column, columnFixed: true))"
-        let formula = "=AND(\(paymentStatusCell)<>\"\(Settings.current.goodPaymentStatus!)\", \(paymentStatusCell)<>\"\")"
+        let eventDateCell = cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)
+        let formula = "=AND(\(paymentStatusCell)<>\"\(Settings.current.goodPaymentStatus!)\", \(paymentStatusCell)<>\"\", OR(MONTH(\(eventDateCell))>=\(Settings.current.ignorePaymentTo! + 1),MONTH(\(eventDateCell))<=\(Settings.current.ignorePaymentFrom!-1)))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotPaid!)
     }
     
@@ -2455,6 +2470,7 @@ class WriterBase {
     var formatGrey: UnsafeMutablePointer<lxw_format>?
     var formatFaint: UnsafeMutablePointer<lxw_format>?
     var formatNotActive: UnsafeMutablePointer<lxw_format>?
+    var formatNoHomeClub: UnsafeMutablePointer<lxw_format>?
     var formatNotPaid: UnsafeMutablePointer<lxw_format>?
     var formatBannerString: UnsafeMutablePointer<lxw_format>?
     var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
@@ -2512,6 +2528,7 @@ class WriterBase {
             self.formatGrey = writer.formatGrey
             self.formatFaint = writer.formatFaint
             self.formatNotActive = writer.formatNotActive
+            self.formatNoHomeClub = writer.formatNoHomeClub
             self.formatNotPaid = writer.formatNotPaid
             self.formatBannerString = writer.formatBannerString
             self.formatBannerCenteredString = writer.formatBannerCenteredString
@@ -2692,6 +2709,11 @@ class WriterBase {
         formatNotActive = workbook_add_format(workbook)
         format_set_bg_color(formatNotActive, lxw_color_t(excelNotActive.rgbValue))
         format_set_font_color(formatNotActive, LXW_COLOR_WHITE.rawValue)
+        formatNoHomeClub = workbook_add_format(workbook)
+        format_set_bg_color(formatNoHomeClub, lxw_color_t(excelNoHomeClub.rgbValue))
+        format_set_font_color(formatNoHomeClub, LXW_COLOR_WHITE.rawValue)
+        format_set_num_format(formatNoHomeClub, "0.00;-0.00;\"No Home Club\"")
+        format_set_align(formatNoHomeClub, UInt8(LXW_ALIGN_LEFT.rawValue))
         formatNotPaid = workbook_add_format(workbook)
         format_set_bg_color(formatNotPaid, lxw_color_t(excelNotPaid.rgbValue))
         
