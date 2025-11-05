@@ -1802,10 +1802,10 @@ class RanksPlusMPsWriter: WriterBase {
         }
         
         for playerNumber in 0..<playerCount {
-            columns.append(Column(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name!, element: 0) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(Column(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 0) }, playerNumber: playerNumber, cellType: .string))
             firstNameColumn.append(columns.count - 1)
             
-            columns.append(Column(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name!, element: 1) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(Column(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 1) }, playerNumber: playerNumber, cellType: .string))
             otherNamesColumn.append(columns.count - 1)
             
             columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
