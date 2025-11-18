@@ -1264,7 +1264,7 @@ class RaceDetailWriter: WriterBase {
             
             let sectionCell = cell(sectionRow, rowFixed: true, startColumn + sectionCategoryColumnOffset, columnFixed: true)
             let filterLogic = "\(indivPlayerRaceCategoryArray)=\(sectionCell)"
-            let sortLogic = "\(filter)(\(indivPositionArray),\(filterLogic)"
+            let sortLogic = "\(filter)(\(indivPositionArray),\(filterLogic),\"\")"
             
             // Section cell
             write(worksheet: worksheet, row: sectionRow, column: startColumn + sectionCategoryColumnOffset, string: category.string, format: formatBold)
@@ -1285,39 +1285,34 @@ class RaceDetailWriter: WriterBase {
             
             // National Id
             write(worksheet: worksheet, row: titleRow, column: startColumn + nationalIdColumnOffset, string: "SBU", format: formatBoldUnderline)
-            write(worksheet: worksheet, row: dataRow, column: startColumn + nationalIdColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivNationalIdArray),\(filterLogic)), \(sortLogic)), 1)")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + nationalIdColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivNationalIdArray),\(filterLogic),\"\"), \(sortLogic), 1)")
             nationalIdColumn[category] = startColumn + nationalIdColumnOffset
             
             // Overall Position
             write(worksheet: worksheet, row: titleRow, column: startColumn + positionColumnOffset, string: "Overall position", format: formatBoldUnderline)
-            write(worksheet: worksheet, row: dataRow, column: startColumn + positionColumnOffset, dynamicFormula: "=\(sortBy)(\(sortLogic)), \(sortLogic)), 1)")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + positionColumnOffset, dynamicFormula: "=\(sortBy)(\(sortLogic), \(sortLogic), 1)")
             positionColumn[category] = startColumn + positionColumnOffset
             
             // Race Position
             write(worksheet: worksheet, row: titleRow, column: startColumn + racePositionColumnOffset, string: "Race Position", format: formatBoldUnderline)
             let positionArray = "\(arrayRef)(\(cell(dataRow, rowFixed: true, positionColumn[category]!, columnFixed: true)))"
-            write(worksheet: worksheet, row: dataRow, column: startColumn + racePositionColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,\(fnPrefix)RANK.EQ(RelativeTo(\(positionArray),\(lambdaParam)row,\(lambdaParam)column),\(positionArray),1)))")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + racePositionColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,IF(RelativeTo(\(nationalIdArray),\(lambdaParam)row,\(lambdaParam)column)=\"\",\"\",\(fnPrefix)RANK.EQ(RelativeTo(\(positionArray),\(lambdaParam)row,\(lambdaParam)column),\(positionArray),1))))")
             racePositionColumn[category] = startColumn + racePositionColumnOffset
-            
-            // Overall Position
-            write(worksheet: worksheet, row: titleRow, column: startColumn + positionColumnOffset, string: "Overall position", format: formatBoldUnderline)
-            write(worksheet: worksheet, row: dataRow, column: startColumn + positionColumnOffset, dynamicFormula: "=\(sortBy)(\(sortLogic)), \(sortLogic)), 1)")
-            positionColumn[category] = startColumn + positionColumnOffset
             
             // Player Name
             write(worksheet: worksheet, row: titleRow, column: startColumn + playerNameColumnOffset, string: "Name", format: formatBoldUnderline)
-            write(worksheet: worksheet, row: dataRow, column: startColumn + playerNameColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(CONCATENATE(\(indivFirstNameArray),\" \",\(indivOtherNamesArray)),\(filterLogic)), \(sortLogic)), 1)")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + playerNameColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(CONCATENATE(\(indivFirstNameArray),\" \",\(indivOtherNamesArray)),\(filterLogic),\"\"), \(sortLogic), 1)")
             playerNameColumn[category] = startColumn + playerNameColumnOffset
             
             // Actual Rank
             write(worksheet: worksheet, row: titleRow, column: startColumn + playerRankColumnOffset, string: "Actual Category", format: formatBoldUnderline)
-            write(worksheet: worksheet, row: dataRow, column: startColumn + playerRankColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivPlayerCategoryArray),\(filterLogic)), \(sortLogic)), 1)")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + playerRankColumnOffset, dynamicFormula: "=\(sortBy)(\(filter)(\(indivPlayerCategoryArray),\(filterLogic),\"\"), \(sortLogic), 1)")
             playerRankColumn[category] = startColumn + playerRankColumnOffset
             
             // Race Points
             write(worksheet: worksheet, row: titleRow, column: startColumn + racePointsColumnOffset, string: "Race Points", format: formatBoldUnderline)
             let racePositionArray = "\(arrayRef)(\(cell(dataRow, rowFixed: true, racePositionColumn[category]!, columnFixed: true)))"
-            write(worksheet: worksheet, row: dataRow, column: startColumn + racePointsColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,MAX(0,11-RelativeTo(\(racePositionArray),\(lambdaParam)row,\(lambdaParam)column))))")
+            write(worksheet: worksheet, row: dataRow, column: startColumn + racePointsColumnOffset, dynamicFormula: "=\(fnPrefix)MAKEARRAY(ROWS(\(nationalIdArray)),1,\(lambda)(\(lambdaParam)row,\(lambdaParam)column,IF(RelativeTo(\(nationalIdArray),\(lambdaParam)row,\(lambdaParam)column)=\"\",\"\",MAX(0,11-RelativeTo(\(racePositionArray),\(lambdaParam)row,\(lambdaParam)column)))))")
             racePointsColumn[category] = startColumn + racePointsColumnOffset
         }
     }
