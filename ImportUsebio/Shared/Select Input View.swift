@@ -409,6 +409,7 @@ struct SelectInputView: View {
         VStack(spacing: 0) {
             HStack {
                 Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", topSpace: 20, leadingSpace: 30, width: 707, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile)
+                    
                 Spacer()
             }
         }
@@ -889,6 +890,10 @@ struct SelectInputView: View {
             var errorList = RoundErrorList(name: filename, errors: [], warnings: [])
             if let errors = errors {
                 errorList.errors = errors
+            } else {
+                if let usebioDescription = scoreData.events.last?.description, eventDescription == ""  {
+                    eventDescription = usebioDescription
+                }
             }
             if let warnings = warnings {
                 errorList.warnings = warnings
