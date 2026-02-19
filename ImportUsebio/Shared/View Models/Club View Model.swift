@@ -100,9 +100,27 @@ public class ClubViewModel : ViewModel, ObservableObject {
     return !(MasterData.shared.clubs.array as! [ClubViewModel]).filter({$0.clubCode == clubCode && $0.clubId != self.clubId}).isEmpty
     }
     
-    override public var description: String {
+    public override var description: String {
         "Club: \(self.clubCode)"
     }
     
-    override public var debugDescription: String { self.description }
+    public override var debugDescription: String { self.description }
+    
+    override public func value(forKey key: String) -> Any {
+        switch key {
+            case "clubId": return clubId as Any
+            case "clubCode": return clubCode as Any
+            case "clubName": return clubName as Any
+        default: fatalError("Unknown property '\(key)'")
+        }
+    }
+    
+    override public func setValue(_ value: Any?, forKey key: String) {
+        switch key {
+            case "clubId": self.clubId = value as! UUID
+            case "clubCode": self.clubCode = value as! String
+            case "clubName": self.clubName = value as! String
+            default: fatalError("Unknown property '\(key)'")
+        }
+    }
 }

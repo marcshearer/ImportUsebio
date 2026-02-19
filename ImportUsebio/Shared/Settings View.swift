@@ -44,15 +44,15 @@ struct SettingsView: View {
                             }
                                 
                             VStack {
-                                InputTitle(title: "Good Status Values:", topSpace: 16)
+                                InputTitle(title: "Specific Values:", topSpace: 16)
                                 Spacer().frame(height: 8)
                                 HStack {
                                     
-                                   Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 100, isEnabled: true)
+                                   Input(title: "Status  :", field: $settings.goodStatus, topSpace: 0, leadingSpace: 30, width: 80, inlineTitle: true, inlineTitleWidth: 110, isEnabled: true)
                                         .help("Value of status column in download that is considered 'Active'")
                                     
-                                    Input(title: "Payment  :", field: $settings.goodPaymentStatus, topSpace: 0, leadingSpace: 30, width: 250, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
-                                        .help("Value in current season payment status column that is considered 'Paid'")
+                                    Input(title: "Not Paid  :", field: $settings.notPaidPaymentStatus, topSpace: 0, leadingSpace: 30, width: 250, inlineTitle: true, inlineTitleWidth: 120, isEnabled: true)
+                                        .help("Value in current season payment status column that is considered 'Not Paid'")
                                     
                                     Spacer()
                                 }
@@ -60,7 +60,10 @@ struct SettingsView: View {
                                 Spacer().frame(height: 10)
                                 
                                 HStack {
-                                    Spacer().frame(width: 220)
+                                    
+                                    InputInt(title: "Non-SBU rank: ", field: $settings.otherNBORank, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 108, isEnabled: true)
+                                    
+                                    Spacer().frame(width: 44)
                                     
                                     InputInt(title: "Ignore months :", field: $settings.ignorePaymentFrom, topSpace: 0, leadingSpace: 30, width: 40, inlineTitle: true, inlineTitleWidth: 114, isEnabled: true)
                                         .help("Months after this month and before the 'to' month will be ignored for payment warning")

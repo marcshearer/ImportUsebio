@@ -114,9 +114,45 @@ public class EventViewModel : ViewModel, ObservableObject {
     return !(MasterData.shared.events.array as! [EventViewModel]).filter({$0.eventCode == eventCode && $0.eventId != self.eventId}).isEmpty
     }
     
-    override public var description: String {
+    public override var description: String {
         "Event: \(self.eventCode)"
     }
     
-    override public var debugDescription: String { self.description }
+    public override var debugDescription: String { self.description }
+    
+    override public func value(forKey key: String) -> Any {
+        switch key {
+            case "eventId": return self.eventId as Any
+            case "eventCode": return self.eventCode as Any
+            case "eventName": return self.eventName as Any
+            case "active": return self.active as Any
+            case "startDate": return self.startDate as Any
+            case "endDate": return self.endDate as Any
+            case "validMinRank": return self.validMinRank as Any
+            case "validMaxRank": return self.validMaxRank as Any
+            case "originatingClubCode": return self.originatingClubCode as Any
+            case "clubMandatory": return self.clubMandatory as Any
+            case "nationalAllowed": return self.nationalAllowed as Any
+            case "localAllowed": return self.localAllowed as Any
+            default: fatalError("Unknown property '\(key)'")
+        }
+    }
+    
+    override public func setValue(_ value: Any?, forKey key: String) {
+        switch key {
+            case "eventId": self.eventId = value as! UUID
+            case "eventCode": self.eventCode = value as! String
+            case "eventName": self.eventName = value as! String
+            case "active": self.active = value as! Bool
+            case "startDate": self.startDate = value as! Date?
+            case "endDate": self.endDate = value as! Date?
+            case "validMinRank": self.validMinRank = value as! Int
+            case "validMaxRank": self.validMaxRank = value as! Int
+            case "originatingClubCode": self.originatingClubCode = value as! String
+            case "clubMandatory": self.clubMandatory = value as! Bool
+            case "nationalAllowed": self.nationalAllowed = value as! Bool
+            case "localAllowed": self.localAllowed = value as! Bool
+            default: fatalError("Unknown property '\(key)'")
+        }
+    }
 }

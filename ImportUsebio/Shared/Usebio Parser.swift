@@ -528,6 +528,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         var useData: ScoreData?
         var messages: [String] = []
         var suffix: String?
+        var triplesDetected = 0
+        
         // Use other sessions if no matches in session being filtered
         if let event = scoreData.events.first {
             if (event.matches).isEmpty {
@@ -568,6 +570,15 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                         increment = 1.0
                                     }
                                 }
+                                // Allow for triples
+                                let matchBoards = match.boards.count
+                                let boardsPerRound = useEvent.boardsPerRound ?? 0
+                                if boardsPerRound != 0 && matchBoards != 0 && matchBoards != boardsPerRound {
+                                    // Looks like a triple - adjust credit for match
+                                    increment = (increment * Float(matchBoards) / Float(boardsPerRound)).roundUp(places: 2)
+                                    triplesDetected += 1
+                                }
+                                
                                 winDraw += increment
                                 // Add to wins/draws in teams pairs if relevant (more than 2 pairs/team)
                                 if increment != 0 {
@@ -590,6 +601,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                 messages.append("Win/draws \(participant.winDraw == nil ? "set" : "updated from \(participant.winDraw!)") to \(winDraw) - \(participant.type.string) \(name!)")
                                 participant.winDraw = winDraw
                             }
+                        }
+                        if triplesDetected != 0 {
+                            messages.append("\(triplesDetected / 2) triple\(triplesDetected == 1 ? "" : "s") detected")
                         }
                     } else {
                         messages.append("No \(scoreData.winDrawLevel.string) level data available for win/draws")

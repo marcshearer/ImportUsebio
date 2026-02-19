@@ -13,6 +13,8 @@ struct InputInt : View {
     @Binding var field: Int
     var message: Binding<String>?
     var messageOffset: CGFloat = 0
+    var desc: Binding<String>?
+    var descOffset: CGFloat = 0
     var topSpace: CGFloat = inputTopHeight
     var leadingSpace: CGFloat = 0
     var height: CGFloat = inputDefaultHeight
@@ -71,17 +73,17 @@ struct InputInt : View {
                             .cornerRadius(inputCornerRadius)
                     }
                     if inlineTitle || title == nil {
-                        if let message = message?.wrappedValue {
+                        if let desc = desc?.wrappedValue {
                             HStack {
-                                Spacer().frame(width: messageOffset)
+                                Spacer().frame(width: descOffset)
                                 HStack {
-                                    Text(message)
+                                    Text(desc)
                                         .foregroundColor(Palette.input.themeText)
                                         .truncationMode(.tail)
                                         .font(lookupFont)
                                     Spacer()
                                 }
-                                .frame(width: width - messageOffset - pickerWidth)
+                                .frame(width: width - descOffset - pickerWidth)
                             }
                         }
                     }
@@ -118,7 +120,7 @@ struct InputInt : View {
                             }
                         }
                     }
-                    .frame(width: (messageOffset != 0 ? messageOffset : width - pickerWidth), height: height)
+                    .frame(width: (descOffset != 0 ? descOffset : width - pickerWidth), height: height)
                     .background(Palette.input.background)
                     .cornerRadius(inputCornerRadius)
                     

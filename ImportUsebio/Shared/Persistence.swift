@@ -30,7 +30,7 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "SystemControl", managedObjectModel: MyApp.objectModel.model)
+        container = NSPersistentContainer(name: "ImportUsebio", managedObjectModel: MyApp.objectModel.model)
           
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")

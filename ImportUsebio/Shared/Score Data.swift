@@ -417,3 +417,13 @@ public class ScoreData {
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false
 }
+
+public class Stratum {
+    public var maxRank: Int = 0
+    public var maxAward: Float = 0.0
+    
+    init(maxRank: Int = 0, maxAward: Float = 0) {
+        self.maxRank = maxRank
+        self.maxAward = maxAward
+    }
+}

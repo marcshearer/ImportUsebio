@@ -12,7 +12,8 @@
         
         @Published var maxNationalIdNumber: Int!
         @Published var goodStatus: String!
-        @Published var goodPaymentStatus: String!
+        @Published var notPaidPaymentStatus: String!
+        @Published var otherNBORank: Int!
         @Published var ignorePaymentFrom: Int!
         @Published var ignorePaymentTo: Int!
         @Published var maxPoints: Float!
@@ -51,9 +52,10 @@
         public func copy(from: Settings) {
             self.maxNationalIdNumber = from.maxNationalIdNumber
             self.goodStatus = from.goodStatus
-            self.goodPaymentStatus = from.goodPaymentStatus
+            self.notPaidPaymentStatus = from.notPaidPaymentStatus
             self.ignorePaymentFrom = from.ignorePaymentFrom
             self.ignorePaymentTo = from.ignorePaymentTo
+            self.otherNBORank = from.otherNBORank
             self.maxPoints = from.maxPoints
             self.largestFieldSize = from.largestFieldSize
             self.largestPlayerCount = from.largestPlayerCount
@@ -77,7 +79,8 @@
         public func load() {
             self.maxNationalIdNumber = UserDefault.settingMaxNationalIdNumber.int
             self.goodStatus = UserDefault.settingGoodStatus.string
-            self.goodPaymentStatus = UserDefault.settingGoodPaymentStatus.string
+            self.notPaidPaymentStatus = UserDefault.settingnotPaidPaymentStatus.string
+            self.otherNBORank = UserDefault.settingNonSBURank.int
             self.ignorePaymentFrom = UserDefault.settingIgnorePaymentFrom.int
             self.ignorePaymentTo = UserDefault.settingIgnorePaymentTo.int
             self.maxPoints = UserDefault.settingMaxPoints.float
@@ -103,7 +106,8 @@
         public func save() {
             UserDefault.settingMaxNationalIdNumber.set(self.maxNationalIdNumber)
             UserDefault.settingGoodStatus.set(self.goodStatus)
-            UserDefault.settingGoodPaymentStatus.set(self.goodPaymentStatus)
+            UserDefault.settingnotPaidPaymentStatus.set(self.notPaidPaymentStatus)
+            UserDefault.settingNonSBURank.set(self.otherNBORank)
             UserDefault.settingIgnorePaymentFrom.set(self.ignorePaymentFrom)
             UserDefault.settingIgnorePaymentTo.set(self.ignorePaymentTo)
             UserDefault.settingMaxPoints.set(self.maxPoints)

@@ -21,7 +21,7 @@ public class Model {
     }
 }
 
-@objcMembers public class ViewModel: NSObject, ViewModelProtocol {
+@objcMembers public class ViewModel: ViewModelProtocol {
     
     public var entity: Entity? = nil
     public var id: UUID { fatalError("Must be overridden") }
@@ -83,10 +83,10 @@ public class Model {
         assert(viewModel.exists, "\(viewModel.entity?.name ?? "Entity") does not exist and cannot be deleted")
         viewModel.beforeRemove()
         CoreData.update {
-            CoreData.context.delete(viewModel.managedObject!)
-            if let index = viewModel.masterData.array.firstIndex(where: {$0 == viewModel}) {
+            if let index = viewModel.masterData.array.firstIndex(where: {$0.id == viewModel.id}) {
                 viewModel.masterData.array.remove(at: index)
             }
+            CoreData.context.delete(viewModel.managedObject!)
         }
     }
     
@@ -98,7 +98,7 @@ public class Model {
             CoreData.update {
                 viewModel.updateMO()
             }
-            if let index = viewModel.masterData.array.firstIndex(where: {$0 == viewModel}) {
+            if let index = viewModel.masterData.array.firstIndex(where: {$0.id == viewModel.id}) {
                 viewModel.masterData.array[index] = viewModel
             }
         }
@@ -107,7 +107,7 @@ public class Model {
         get {
             var result = false
             if let entity = entity {
-                entity.forEach { (name, type, _) in
+                entity.forEach { (name, type, _, custom) in
                     if let managedObject = managedObject {
                         let moValue = managedObject.value(forKey: name)
                         let vmValue = self.value(forKey: name)
@@ -150,7 +150,7 @@ public class Model {
                             }
                         case .viewModel:
                             if let vmValue = vmValue as? ViewModel, let moValue = moValue as? ViewModel {
-                                if vmValue != moValue {
+                                if !(vmValue == moValue) {
                                     result = true
                                 }
                             }
@@ -169,7 +169,7 @@ public class Model {
     }
     
     func revert() {
-        entity?.forEach { (name, type, isOptional) in
+        entity?.forEach { (name, type, isOptional, custom) in
             if let moValue = managedObject?.value(forKey: name) {
                 self.setValue(moValue, forKey: name)
             } else {
@@ -182,8 +182,8 @@ public class Model {
         }
     }
     
-    func copy(from: ViewModel) {
-        entity?.forEach { (name, type, isOptional) in
+    func copy(from: ViewModel, copyMO: Bool = true) {
+        entity?.forEach { (name, type, isOptional, custom) in
             if let fromValue = from.value(forKey: name) {
                 self.setValue(fromValue, forKey: name)
             } else {
@@ -194,11 +194,13 @@ public class Model {
                 }
             }
         }
-        self.managedObject = from.managedObject
+        if copyMO {
+            self.managedObject = from.managedObject
+        }
     }
     
     func updateMO() {
-        entity?.forEach { (name, type, isOptional) in
+        entity?.forEach { (name, type, isOptional, custom) in
             if let managedObject = managedObject {
                 if let vmValue = self.value(forKey: name) {
                     managedObject.setValue(vmValue, forKey: name)
@@ -212,11 +214,38 @@ public class Model {
             }
         }
     }
+    
+    public func value(forKey key: String) -> Any? {
+        switch key {
+            default : fatalError("Unknown property '\(key)'")
+        }
+    }
+    
+    public func setValue(_ value: Any?, forKey key: String) {
+        switch key {
+        default : fatalError("Unknown property '\(key)'")
+        }
+    }
+    
+    static public func == (lhs: ViewModel, rhs: ViewModel) -> Bool {
+        fatalError("Must be overridden")
+    }
+
+    public var description: String {
+        "ViewModel base instance"
+    }
+    
+    public var debugDescription: String {
+        self.description
+    }
 }
 
-public protocol ViewModelProtocol: Identifiable {
+public protocol ViewModelProtocol: Identifiable, CustomStringConvertible, CustomDebugStringConvertible {
     var id: UUID {get}
     var newManagedObject: NSManagedObject {get}
+    func value(forKey key: String) -> Any?
+    func setValue(_: Any?, forKey: String)
+    static func == (lhs: Self, rhs: Self) -> Bool
 }
 
 public class Entity {
@@ -241,9 +270,9 @@ public class Entity {
     }
     
     
-    func forEach(action: (String, EntityAttributeType, Bool)->()) {
+    func forEach(action: (String, EntityAttributeType, Bool, Bool)->()) {
         for attribute in attributes {
-            action(attribute.equivalent ?? attribute.name, attribute.equivalentType, attribute.isOptional)
+            action(attribute.equivalent ?? attribute.name, attribute.equivalentType, attribute.isOptional, attribute.custom)
         }
     }
     
@@ -253,6 +282,7 @@ public class Attribute {
     var name: String = ""
     var attributeType: NSAttributeType = .stringAttributeType
     var isOptional: Bool = false
+    var custom: Bool = false
     var equivalent: String? = nil
     var equivalentType: EntityAttributeType = .notSupported
     
@@ -266,13 +296,14 @@ public class Attribute {
         }
     }
     
-    convenience init(_ name: String, _ type: NSAttributeType, isOptional: Bool = false, equivalent: String? = nil, equivalentType: EntityAttributeType? = nil) {
+    convenience init(_ name: String, _ type: NSAttributeType, isOptional: Bool = false, equivalent: String? = nil, equivalentType: EntityAttributeType? = nil, custom: Bool = false) {
         self.init()
         self.name = name
         self.attributeType = type
         self.isOptional = isOptional
         self.equivalent = equivalent
         self.equivalentType = equivalentType ?? EntityAttributeType(type: type)
+        self.custom = custom
     }
 }
     
@@ -396,3 +427,4 @@ public enum EntityAttributeType {
 public class WrappedArray {
     public var array: [ViewModel] = []
 }
+

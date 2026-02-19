@@ -16,12 +16,18 @@
 		B208738C2E4C88DF00E509C5 /* Rank Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */; };
 		B208738E2E4CCE5A00E509C5 /* Event Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */; };
 		B20CFF382994EC8800B09269 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20CFF372994EC8800B09269 /* Validation.swift */; };
+		B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B482F473843008ACA67 /* Auto Complete.swift */; };
+		B228E6452F320C5700C24918 /* Member Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B228E6442F320C5200C24918 /* Member Import.swift */; };
 		B245BF1D2E4DB5B0003D74B7 /* Club Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */; };
 		B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */; };
 		B271D0E529A7B70C003C417C /* Notes.txt in Resources */ = {isa = PBXBuildFile; fileRef = B271D0E429A7B70C003C417C /* Notes.txt */; };
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
 		B28D69082994CDCD00BA73E5 /* File System.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69072994CDCD00BA73E5 /* File System.swift */; };
+		B28E7B3C2F3DAC41005282E9 /* Custom Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28E7B3B2F3DAC3E005282E9 /* Custom Button.swift */; };
 		B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */ = {isa = PBXBuildFile; fileRef = B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */; };
+		B2A22CC62F4328DB00FC3B0C /* Strata Definition Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */; };
+		B2A22CC82F432AE400FC3B0C /* Strata Defintion View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */; };
+		B2A22CCB2F43409900FC3B0C /* Stratifications View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */; };
 		B2A784EA29AE293F000425C4 /* Import Rounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784E929AE293F000425C4 /* Import Rounds.swift */; };
 		B2A784EC29B09C87000425C4 /* Show Errors View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784EB29B09C87000425C4 /* Show Errors View.swift */; };
 		B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */; };
@@ -35,6 +41,11 @@
 		B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */; };
 		B2C3247229CEC5D1005D8DED /* Generic Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */; };
 		B2C3247429CF6340005D8DED /* Award.bas in Resources */ = {isa = PBXBuildFile; fileRef = B2C3247329CF6340005D8DED /* Award.bas */; };
+		B2D601072F3B4D8E00015BD2 /* Member Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */; };
+		B2D601092F3B4F0E00015BD2 /* Member View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D601082F3B4F0800015BD2 /* Member View Model.swift */; };
+		B2D6010B2F3C9F3600015BD2 /* Blocked Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */; };
+		B2D6010D2F3CA04600015BD2 /* Blocked View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */; };
+		B2D6010F2F3CA4D400015BD2 /* Blocked Numbers View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -93,12 +104,18 @@
 		B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Rank Codes Search View.swift"; sourceTree = "<group>"; };
 		B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Codes Search View.swift"; sourceTree = "<group>"; };
 		B20CFF372994EC8800B09269 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
+		B2250B482F473843008ACA67 /* Auto Complete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Auto Complete.swift"; sourceTree = "<group>"; };
+		B228E6442F320C5200C24918 /* Member Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import.swift"; sourceTree = "<group>"; };
 		B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club Codes Search View.swift"; sourceTree = "<group>"; };
 		B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bridge Calculations.swift"; sourceTree = "<group>"; };
 		B271D0E429A7B70C003C417C /* Notes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Notes.txt; sourceTree = "<group>"; };
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
 		B28D69072994CDCD00BA73E5 /* File System.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "File System.swift"; sourceTree = "<group>"; };
+		B28E7B3B2F3DAC3E005282E9 /* Custom Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Custom Button.swift"; sourceTree = "<group>"; };
 		B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ImportUsebio.xcworkspace; sourceTree = "<group>"; };
+		B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strata Definition Managed Object.swift"; sourceTree = "<group>"; };
+		B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strata Defintion View Model.swift"; sourceTree = "<group>"; };
+		B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Stratifications View.swift"; sourceTree = "<group>"; };
 		B2A784E929AE293F000425C4 /* Import Rounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Import Rounds.swift"; sourceTree = "<group>"; };
 		B2A784EB29B09C87000425C4 /* Show Errors View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Show Errors View.swift"; sourceTree = "<group>"; };
 		B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BridgeWebs Csv Parser.swift"; sourceTree = "<group>"; };
@@ -112,6 +129,11 @@
 		B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Manual Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Generic Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3247329CF6340005D8DED /* Award.bas */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Award.bas; sourceTree = "<group>"; };
+		B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Managed Object.swift"; sourceTree = "<group>"; };
+		B2D601082F3B4F0800015BD2 /* Member View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member View Model.swift"; sourceTree = "<group>"; };
+		B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Managed Object.swift"; sourceTree = "<group>"; };
+		B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked View Model.swift"; sourceTree = "<group>"; };
+		B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Numbers View.swift"; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -187,6 +209,9 @@
 				B2BA8AA12E4A27D400B415F5 /* Event Managed Object.swift */,
 				B208737F2E4B7F4D00E509C5 /* Club Managed Object.swift */,
 				B20873832E4B833300E509C5 /* Rank Managed Object.swift */,
+				B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */,
+				B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */,
+				B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */,
 			);
 			path = "Managed Objects";
 			sourceTree = "<group>";
@@ -197,6 +222,9 @@
 				B2BA8AA72E4A301C00B415F5 /* Event View Model.swift */,
 				B20873812E4B802B00E509C5 /* Club View Model.swift */,
 				B20873852E4B834300E509C5 /* Rank View Model.swift */,
+				B2D601082F3B4F0800015BD2 /* Member View Model.swift */,
+				B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */,
+				B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */,
 			);
 			path = "View Models";
 			sourceTree = "<group>";
@@ -330,9 +358,10 @@
 				B2E103A92992817600A35645 /* Flags.swift */,
 				B2E103AF2992851400A35645 /* My Color.swift */,
 				B2E1036929927EB100A35645 /* Other Extensions.swift */,
-				B2E1036329927EB100A35645 /* Palette.swift */,
 				B2E1036229927EB100A35645 /* String Extensions.swift */,
+				B2E1036329927EB100A35645 /* Palette.swift */,
 				B2E1036A29927EB100A35645 /* Themes.swift */,
+				B2250B482F473843008ACA67 /* Auto Complete.swift */,
 				B2E1036729927EB100A35645 /* Utility Extension.swift */,
 				B2E1036529927EB100A35645 /* Utility.swift */,
 			);
@@ -359,6 +388,7 @@
 				B2E1037A2992806E00A35645 /* Target View Modifiers.swift */,
 				B2E1037B2992806E00A35645 /* Toolbar View.swift */,
 				B2E1037C2992806E00A35645 /* Undo Handler.swift */,
+				B28E7B3B2F3DAC3E005282E9 /* Custom Button.swift */,
 				B2E103B729928D7E00A35645 /* Overlap Button.swift */,
 			);
 			name = "Reusable SwiftUI Components";
@@ -373,6 +403,8 @@
 				B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */,
 				B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */,
 				B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */,
+				B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */,
+				B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */,
 				B2BA8A992E49F84F00B415F5 /* Event Import View.swift */,
 				B20873872E4B880E00E509C5 /* Club Import View.swift */,
 				B20873892E4B8A3900E509C5 /* Rank Import View.swift */,
@@ -386,6 +418,7 @@
 				B20CFF372994EC8800B09269 /* Validation.swift */,
 				B2E103C42994120700A35645 /* Writer.swift */,
 				B2A784E929AE293F000425C4 /* Import Rounds.swift */,
+				B228E6442F320C5200C24918 /* Member Import.swift */,
 			);
 			name = "Main Classes";
 			sourceTree = "<group>";
@@ -523,10 +556,12 @@
 			files = (
 				B2E103A82992815B00A35645 /* Core Data.swift in Sources */,
 				B2E103C52994120700A35645 /* Writer.swift in Sources */,
+				B228E6452F320C5700C24918 /* Member Import.swift in Sources */,
 				B2BA8A9A2E49F86000B415F5 /* Event Import View.swift in Sources */,
 				B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */,
 				B2E1036B29927EB100A35645 /* String Extensions.swift in Sources */,
 				B2E103A62992806F00A35645 /* Standard View.swift in Sources */,
+				B2A22CC82F432AE400FC3B0C /* Strata Defintion View Model.swift in Sources */,
 				B2E1035D29927C3300A35645 /* Declarations.swift in Sources */,
 				B2E103AE2992846000A35645 /* Custom View Animations.swift in Sources */,
 				B2A784EA29AE293F000425C4 /* Import Rounds.swift in Sources */,
@@ -545,9 +580,11 @@
 				B2E103942992806F00A35645 /* Undo Handler.swift in Sources */,
 				B2E1039B2992806F00A35645 /* Separator.swift in Sources */,
 				B20873802E4B7F5700E509C5 /* Club Managed Object.swift in Sources */,
+				B2D601072F3B4D8E00015BD2 /* Member Managed Object.swift in Sources */,
 				B2E1036E29927EB100A35645 /* Utility.swift in Sources */,
 				B2E103B02992851400A35645 /* My Color.swift in Sources */,
 				B2E103922992806F00A35645 /* Target View Modifiers.swift in Sources */,
+				B2D6010D2F3CA04600015BD2 /* Blocked View Model.swift in Sources */,
 				B2E103AA2992817600A35645 /* Flags.swift in Sources */,
 				B2E1039C2992806F00A35645 /* Inset View.swift in Sources */,
 				B2E103BC29928EB900A35645 /* Select Input View.swift in Sources */,
@@ -561,6 +598,9 @@
 				B245BF1D2E4DB5B0003D74B7 /* Club Codes Search View.swift in Sources */,
 				B2E1037329927EB100A35645 /* Themes.swift in Sources */,
 				B20873862E4B834800E509C5 /* Rank View Model.swift in Sources */,
+				B28E7B3C2F3DAC41005282E9 /* Custom Button.swift in Sources */,
+				B2A22CCB2F43409900FC3B0C /* Stratifications View.swift in Sources */,
+				B2D6010B2F3C9F3600015BD2 /* Blocked Managed Object.swift in Sources */,
 				B2E103932992806F00A35645 /* Toolbar View.swift in Sources */,
 				B2E103B22992857D00A35645 /* Import Usebio App.swift in Sources */,
 				B2EE64CF2D76027200CB73DC /* Debug Utilities.swift in Sources */,
@@ -569,14 +609,18 @@
 				B2E1037029927EB100A35645 /* Utility Extension.swift in Sources */,
 				B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */,
 				B2E1039A2992806F00A35645 /* List Tile View.swift in Sources */,
+				B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */,
 				B2E103992992806F00A35645 /* Slide In Menu.swift in Sources */,
 				B2E103A22992806F00A35645 /* Swipe Gestures.swift in Sources */,
 				B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */,
 				B2BA8AA42E4A290000B415F5 /* Object Model.swift in Sources */,
 				B28D69082994CDCD00BA73E5 /* File System.swift in Sources */,
 				B20CFF382994EC8800B09269 /* Validation.swift in Sources */,
+				B2A22CC62F4328DB00FC3B0C /* Strata Definition Managed Object.swift in Sources */,
 				B2E103B829928D7E00A35645 /* Overlap Button.swift in Sources */,
+				B2D6010F2F3CA4D400015BD2 /* Blocked Numbers View.swift in Sources */,
 				B208738C2E4C88DF00E509C5 /* Rank Codes Search View.swift in Sources */,
+				B2D601092F3B4F0E00015BD2 /* Member View Model.swift in Sources */,
 				B2BA8A9E2E49FAC200B415F5 /* Drop Delegate.swift in Sources */,
 				B2E1036029927E0600A35645 /* Version.swift in Sources */,
 				B208738E2E4CCE5A00E509C5 /* Event Codes Search View.swift in Sources */,
@@ -715,11 +759,22 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 78;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -745,11 +800,22 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 77;
+				CURRENT_PROJECT_VERSION = 78;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

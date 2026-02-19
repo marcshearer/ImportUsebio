@@ -105,4 +105,22 @@ public class RankViewModel : ViewModel, ObservableObject {
     }
     
     override public var debugDescription: String { self.description }
+    
+    override public func value(forKey key: String) -> Any? {
+        switch key {
+            case "rankId": return self.rankId as Any
+            case "rankCode": return self.rankCode as Any
+            case "rankName": return self.rankName as Any
+            default: fatalError("Unknown property '\(key)'")
+        }
+    }
+    
+    override public func setValue(_ value: Any?, forKey key: String)  {
+        switch key {
+            case "rankId": self.rankId = value as! UUID
+            case "rankCode": self.rankCode = value as! Int
+            case "rankName": self.rankName = value as! String
+            default: fatalError("Unknown property '\(key)'")
+        }
+    }
 }

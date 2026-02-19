@@ -128,7 +128,9 @@ extension ScoreData {
             
             switch participant.type {
             case .player:
-                validate(player: participant.member as! Player)
+                // validate(player: participant.member as! Player)
+                // Don't think we need this as repeated below
+                break
             case .pair:
                 validate(pair: participant.member as! Pair)
             case .team:
@@ -181,6 +183,13 @@ extension ScoreData {
         
         if (player.nationalId ?? "") == "" || player.nationalId == "0" {
             validateMissingNationalIds = true
+        } else if let blocked = (MasterData.shared.blocked.array as! [BlockedViewModel]).filter({$0.nationalId == player.nationalId!}).first {
+            let message = "Blocked member \(blocked.nationalId) - \(blocked.reason)"
+            if blocked.warnOnly {
+                warnings.append(message)
+            } else {
+                errors.append(message)
+            }
         }
     }
     

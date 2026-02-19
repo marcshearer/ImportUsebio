@@ -90,6 +90,16 @@ class FormattedColumn : Column {
     var referenceColumn: Int = 0
 }
 
+class RanksPlusMPsColumn : Column {
+    var strataNumber: Int? = nil
+    var strataContent: ((Int, Int?, Int) -> String)?
+    
+    init(title: String, content: ((Participant, Int)->String)? = nil, playerContent: ((Participant, Player, Int, Int)->String)? = nil, calculatedContent: ((Int?, Int) -> String)? = nil, strataContent: ((Int, Int?, Int) -> String)? = nil, playerNumber: Int? = nil, strataNumber: Int? = nil, referenceContent: ((Int)->Int)? = nil, referenceDynamic: (()->String)? = nil, cellType: CellType = .string, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil, aggregateAs: String? = nil, roundNumber: Int? = nil, sortedDynamic: Bool = false) {
+        self.strataNumber = strataNumber
+        self.strataContent = strataContent
+        super.init(title: title, content: content, playerContent: playerContent, calculatedContent: calculatedContent, playerNumber: playerNumber, referenceDynamic: referenceDynamic, cellType: cellType, format: format, width: width, aggregateAs: aggregateAs, roundNumber: roundNumber, sortedDynamic: sortedDynamic)
+    }
+}
 class Round {
     var writer: Writer
     var scoreData: ScoreData
@@ -141,7 +151,6 @@ class Round {
             return nil
         }
     }
-    
 }
 
 class Writer: WriterBase {
@@ -163,6 +172,8 @@ class Writer: WriterBase {
     var eventDescription: String = ""
     var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
     var includeInRace = true
+    var strata: [Stratum] = [] /*[Stratum(maxRank: 180, maxAward: 2),
+                                  Stratum(maxRank: 160, maxAward: 1)]*/
     
     var maxPlayers: Int { min(1000, rounds.map{ $0.maxPlayers }.reduce(0, +)) }
     
@@ -565,6 +576,7 @@ class FormattedWriter: WriterBase {
     var hiddenColumns: [Int] = []
     var chooseBestColumns: [Int] = []
     var categoryColumn: Int?
+    var fromStratumColumn: Int?
     
     var formatBottom: UnsafeMutablePointer<lxw_format>?
     var formatLeftRight: UnsafeMutablePointer<lxw_format>?
@@ -615,7 +627,7 @@ class FormattedWriter: WriterBase {
             } else if column.cellType == .numeric || column.cellType == .numericFormula {
                 bannerFormat = formatBannerNumeric
                 bodyFormat = formatBodyNumeric
-            } else if column.format == formatBodyCenteredString {
+            } else if column.format == formatBodyCenteredString || column.format == formatBodyCenteredInt {
                 bannerFormat = formatBannerCenteredString
                 bodyFormat = formatBodyCenteredString
             }
@@ -658,9 +670,13 @@ class FormattedWriter: WriterBase {
         let csvImport = writer.csvImport!
         var bottomFormula = "OR(AND(\(nextNameDataAddress)=\"\",\(nameDataAddress)<>\"\"),AND(Printing,MOD(ROW(\(nameDataAddress)),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
         if singleEvent && twoWinners {
-            let directionAddress = cell(dataRow, rowFixed: false, nameColumn!, columnFixed: true)
-            let nextDirectionAddress = cell(dataRow + 1, rowFixed: false, nameColumn!, columnFixed: true)
+            let directionAddress = cell(dataRow, rowFixed: false, directionColumn!, columnFixed: true)
+            let nextDirectionAddress = cell(dataRow + 1, rowFixed: false, directionColumn!, columnFixed: true)
             bottomFormula += ",AND(\(nameDataAddress)<>\"\",\(directionAddress)<>\(nextDirectionAddress)))"
+        } else if !self.writer.strata.isEmpty {
+            let stratumAddress = cell(dataRow, rowFixed: false, fromStratumColumn!, columnFixed: true)
+            let nextStratumAddress = cell(dataRow + 1, rowFixed: false, fromStratumColumn!, columnFixed: true)
+            bottomFormula += ",AND(\(nameDataAddress)<>\"\",\(stratumAddress)<>\(nextStratumAddress)))"
         } else {
             bottomFormula += ")"
         }
@@ -733,6 +749,12 @@ class FormattedWriter: WriterBase {
 
             columns.append(FormattedColumn(title: "\(round.scoreData.national ? "National" : "Local") MPs", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.totalMPColumn[0])))" }, cellType: .floatFormula, width: 10))
             leftRightColumns.append(columns.last!.title)
+            
+            if !self.writer.strata.isEmpty , let ranksFromStratumColumn = ranksPlusMPs.fromStratumColumn.first {
+                columns.append(FormattedColumn(title: "From\nStratum", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksFromStratumColumn)))" }, cellType: .numericFormula, format: formatBodyCenteredInt, width: 10))
+                fromStratumColumn = columns.count - 1
+                leftRightColumns.append(columns.last!.title)
+            }
             
         } else {
             let chooseBest = (rounds.filter({$0.scoreData.aggreateAs != nil}).count == 0)
@@ -816,6 +838,9 @@ class FormattedWriter: WriterBase {
         if twoWinners {
             let direction = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.directionColumn!))
             result += "\(direction), -1, "
+        } else if self.writer.strata.count > 0 {
+            let fromStratum = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.fromStratumColumn[0]))
+            result += "\(fromStratum), 1, "
         }
         
         let position = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.positionColumn!))
@@ -1166,7 +1191,7 @@ class CsvImportWriter: WriterBase {
     private func highlightBadPaymentStatus(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
         let paymentStatusCell = "\(cell(dataRow, column, columnFixed: true))"
         let eventDateCell = cell(eventDateRow, rowFixed: true, valuesColumn, columnFixed: true)
-        let formula = "=AND(\(paymentStatusCell)<>\"\(Settings.current.goodPaymentStatus!)\", \(paymentStatusCell)<>\"\", OR(MONTH(\(eventDateCell))>=\(Settings.current.ignorePaymentTo! + 1),MONTH(\(eventDateCell))<=\(Settings.current.ignorePaymentFrom!-1)))"
+        let formula = "=AND(\(paymentStatusCell)=\"\(Settings.current.notPaidPaymentStatus!)\", \(paymentStatusCell)<>\"\", OR(MONTH(\(eventDateCell))>=\(Settings.current.ignorePaymentTo! + 1),MONTH(\(eventDateCell))<=\(Settings.current.ignorePaymentFrom!-1)))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatNotPaid!)
     }
     
@@ -1633,7 +1658,7 @@ class RanksPlusMPsWriter: WriterBase {
     private var scoreData: ScoreData!
     
     override var name: String { "Source" }
-    private var columns: [Column] = []
+    private var columns: [RanksPlusMPsColumn] = []
     private var headerTitleRow = 0
     private var headerDataRow = 1
     private var dataTitleRow = 3
@@ -1646,15 +1671,20 @@ class RanksPlusMPsWriter: WriterBase {
     var firstNameColumn: [Int] = []
     var otherNamesColumn: [Int] = []
     var nationalIdColumn: [Int] = []
-    var rankColumn: [Int] = []
+    var frozenRankColumn: [Int] = []
+    var strataRankColumn: [Int] = []
     var boardsPlayedColumn: [Int] = []
     var winDrawColumn: [Int] = []
     var bonusMPColumn: [Int] = []
     var winDrawMPColumn: [Int] = []
+    var strataMPColumn: [[Int]] = []
+    var maxStrataMPColumn: [Int] = []
     var scoreColumn: Int?
     var totalMPColumn: [Int] = []
-    var rankCategoryColumn: Int?
-    
+    var fromStratumColumn: [Int] = []
+    var frozenRankCategoryColumn: Int?
+    var stratumColumn: Int?
+
     var eventDescriptionCell: String?
     var entryCell: String?
     var tablesCell: String?
@@ -1663,6 +1693,7 @@ class RanksPlusMPsWriter: WriterBase {
     var minEntryCell: String?
     var awardToCell: String?
     var ewAwardToCell: String?
+    var awardPercentCell: String?
     var perWinCell: String?
     var eventDateCell: String?
     var eventIdCell: String?
@@ -1670,6 +1701,8 @@ class RanksPlusMPsWriter: WriterBase {
     var localMPsCell :String?
     var nationalMPsCell :String?
     var checksumCell :String?
+    var strataRankCell: [String] = []
+    var strataMaxAwardCell: [String] = []
     
     init(writer: Writer, round: Round, scoreData: ScoreData) {
         super.init(writer: writer)
@@ -1685,7 +1718,8 @@ class RanksPlusMPsWriter: WriterBase {
         writeheader()
         
         freezePanes(worksheet: worksheet, row: dataRow, column: firstNameColumn[0])
-        setRow(worksheet: worksheet, row: dataTitleRow, height: 30)
+        setRow(worksheet: worksheet, row: headerTitleRow, height: 30)
+        setRow(worksheet: worksheet, row: dataTitleRow, height: 45)
                 
         for (columnNumber, column) in columns.enumerated() {
             var format = formatBoldUnderline
@@ -1729,10 +1763,17 @@ class RanksPlusMPsWriter: WriterBase {
                                 let cellType = (playerContent.left(1) == "=" ? .integerFormula : column.cellType)
                                 write(cellType: (playerContent == "" ? .string : cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: playerContent)
                             }
+                            if let strataNumber = column.strataNumber, let strataContent = column.strataContent?(playerNumber, strataNumber, rowNumber) {
+                                write(cellType: (strataContent == "" ? .string : column.cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: strataContent)
+                            }
                         } else {
                             write(cellType: .string, worksheet: worksheet, row: rowNumber, column: columnNumber, content: "")
                         }
                     }
+                }
+                
+                if column.playerNumber == nil, let strataNumber = column.strataNumber, let strataContent = column.strataContent?(strataNumber, nil, rowNumber) {
+                    write(cellType: (strataContent == "" ? .string : column.cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: strataContent)
                 }
                 
                 if let calculatedContent = column.calculatedContent?(column.playerNumber, rowNumber) {
@@ -1779,55 +1820,67 @@ class RanksPlusMPsWriter: WriterBase {
         let playerCount = round.maxParticipantPlayers
         let winDraw = event.type?.requiresWinDraw ?? false
         
-        columns.append(Column(title: "Place", content: { (participant, _) in "\(participant.place ?? 0)" }, cellType: .integer))
+        columns.append(RanksPlusMPsColumn(title: "Place", content: { (participant, _) in "\(participant.place ?? 0)" }, cellType: .integer))
         positionColumn = columns.count - 1
         
         if event.winnerType == 2 && event.type?.participantType == .pair {
-            columns.append(Column(title: "Direction", content: { (participant, _) in (participant.member as! Pair).direction?.string ?? "NS"} , cellType: .string))
+            columns.append(RanksPlusMPsColumn(title: "Direction", content: { (participant, _) in (participant.member as! Pair).direction?.string ?? "NS"} , cellType: .string))
             directionColumn = columns.count - 1
         }
         
-        columns.append(Column(title: "@P number", content: { (participant, _) in participant.member.number!} , cellType: .integer)) ; participantNoColumn = columns.count - 1
+        columns.append(RanksPlusMPsColumn(title: "@P number", content: { (participant, _) in participant.member.number!} , cellType: .integer)) ; participantNoColumn = columns.count - 1
         
-        columns.append(Column(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float)); scoreColumn = columns.count - 1
+        columns.append(RanksPlusMPsColumn(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float)); scoreColumn = columns.count - 1
+        
+        if !self.writer.strata.isEmpty {
+            // Pre-allocate stratum column so that we can reference it
+            // so that we can reference it before we calculate it
+            columns.append(RanksPlusMPsColumn(title: "")); stratumColumn = columns.count - 1
+        }
         
         if winDraw && playerCount <= event.type?.participantType?.players ?? playerCount {
-            columns.append(Column(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw ?? 0)" }, cellType: .float))
+            columns.append(RanksPlusMPsColumn(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw ?? 0)" }, cellType: .float))
             winDrawColumn.append(columns.count - 1)
         }
         
         for playerNumber in 0..<playerCount {
-            columns.append(Column(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 0) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(RanksPlusMPsColumn(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 0) }, playerNumber: playerNumber, cellType: .string))
             firstNameColumn.append(columns.count - 1)
             
-            columns.append(Column(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 1) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(RanksPlusMPsColumn(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 1) }, playerNumber: playerNumber, cellType: .string))
             otherNamesColumn.append(columns.count - 1)
             
-            columns.append(Column(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
+            columns.append(RanksPlusMPsColumn(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
             nationalIdColumn.append(columns.count - 1)
             
             if self.writer.includeInRace {
-                columns.append(Column(title: "Rank (\(playerNumber+1))", calculatedContent: playerRank, playerNumber: playerNumber, cellType: .integerFormula))
-                rankColumn.append(columns.count - 1)
+                columns.append(RanksPlusMPsColumn(title: "Frozen Rank (\(playerNumber+1))", playerContent: playerFrozenRank, playerNumber: playerNumber, cellType: .integerFormula))
+                frozenRankColumn.append(columns.count - 1)
+            }
+            
+            if !self.writer.strata.isEmpty {
+                columns.append(RanksPlusMPsColumn(title: "Current Rank (\(playerNumber+1))", playerContent: playerCurrentRank, playerNumber: playerNumber, cellType: .integerFormula))
+                strataRankColumn.append(columns.count - 1)
+                
             }
             
             if !scoreData.manualMPs {
                 
                 if playerCount > event.type?.participantType?.players ?? playerCount {
                     if event.type != .head_to_head {
-                        columns.append(Column(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
+                        columns.append(RanksPlusMPsColumn(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
                             "\(player.boardsPlayed ?? event.boards ?? 1)"
                         }, playerNumber: playerNumber, cellType: .integer))
                         boardsPlayedColumn.append(columns.count - 1)
                     }
                     
                     if winDraw {
-                        columns.append(Column(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
+                        columns.append(RanksPlusMPsColumn(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
                         winDrawColumn.append(columns.count - 1)
                     }
                     
                     if event.type != .head_to_head {
-                        columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP (\(playerNumber+1))", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        addBonusMPColumns(playerNumber: playerNumber)
                     }
                     
                     if !winDraw {
@@ -1836,11 +1889,11 @@ class RanksPlusMPsWriter: WriterBase {
                         if event.type != .head_to_head {
                             bonusMPColumn.append(columns.count - 1)
                         }
-                        columns.append(Column(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        columns.append(RanksPlusMPsColumn(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
                         winDrawMPColumn.append(columns.count - 1)
                         
                         if event.type != .head_to_head {
-                            columns.append(Column(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
+                            columns.append(RanksPlusMPsColumn(title: "Total MP (\(playerNumber+1))", calculatedContent: playerTotalAward, playerNumber: playerNumber, cellType: .floatFormula))
                         }
                         totalMPColumn.append(columns.count - 1)
                     }
@@ -1849,13 +1902,18 @@ class RanksPlusMPsWriter: WriterBase {
         }
         
         if self.writer.includeInRace {
-            columns.append(Column(title: "\(event.type?.participantType?.string ?? "Team") Category", calculatedContent: rankCategory, cellType: .stringFormula))
-            rankCategoryColumn = columns.count - 1
+            columns.append(RanksPlusMPsColumn(title: "\(event.type?.participantType?.string ?? "Team") Category", calculatedContent: frozenRankCategory, cellType: .stringFormula))
+            frozenRankCategoryColumn = columns.count - 1
+        }
+        
+        if !self.writer.strata.isEmpty {
+            // Note column already allocated
+            columns[stratumColumn!] = (RanksPlusMPsColumn(title: "\(event.type?.participantType?.string ?? "Team") Stratum", calculatedContent: stratum, cellType: .integerFormula, format: formatZeroInt))
         }
         
         if scoreData.manualMPs {
             
-            columns.append(Column(title: "Total MPs", content: { (participant, _) in "\(participant.manualMps ?? 0)" }, cellType: .floatFormula))
+            columns.append(RanksPlusMPsColumn(title: "Total MPs", content: { (participant, _) in "\(participant.manualMps ?? 0)" }, cellType: .floatFormula))
             for _ in 0..<playerCount {
                 totalMPColumn.append(columns.count - 1)
             }
@@ -1864,7 +1922,7 @@ class RanksPlusMPsWriter: WriterBase {
             
             if playerCount <= event.type?.participantType?.players ?? playerCount {
                 
-                columns.append(Column(title: "\(winDraw ? "Bonus" : "Total") MP", calculatedContent: bonusAward, cellType: .floatFormula))
+                addBonusMPColumns()
                 
                 if !winDraw {
                     for _ in 0..<playerCount {
@@ -1873,15 +1931,41 @@ class RanksPlusMPsWriter: WriterBase {
                 } else {
                     bonusMPColumn.append(columns.count - 1)
                     
-                    columns.append(Column(title: "Win/Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
+                    columns.append(RanksPlusMPsColumn(title: "Win/Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
                     winDrawMPColumn.append(columns.count - 1)
                     
-                    columns.append(Column(title: "Total MP", calculatedContent: totalAward, cellType: .floatFormula))
+                    columns.append(RanksPlusMPsColumn(title: "Total MP", calculatedContent: totalAward, cellType: .floatFormula))
                     for _ in 0..<playerCount {
                         totalMPColumn.append(columns.count - 1)
                     }
                 }
             }
+        }
+    }
+    
+    //
+    
+    func addBonusMPColumns(playerNumber: Int? = nil) {
+        let event = scoreData.events.first!
+        let winDraw = event.type?.requiresWinDraw ?? false
+        let playerSuffix = (playerNumber == nil ? "" : " (\(playerNumber! + 1))")
+        
+        columns.append(RanksPlusMPsColumn(title: "\((!self.writer.strata.isEmpty ? "Whole Field" : (winDraw ? "Bonus" : "Total"))) MP\(playerSuffix)", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
+        
+        if !self.writer.strata.isEmpty {
+            var playerStrataMPColumn: [Int] = [columns.count - 1]
+            
+            for (index, _) in self.writer.strata.enumerated() {
+                columns.append(RanksPlusMPsColumn(title: "Strata \(index + 1) MP\(playerSuffix)", strataContent: playerStrataBonusAward, playerNumber: playerNumber, strataNumber: index, cellType: .floatFormula))
+                playerStrataMPColumn.append(columns.count - 1)
+            }
+            strataMPColumn.append(playerStrataMPColumn)
+            
+            columns.append(RanksPlusMPsColumn(title: "From\nStratum", calculatedContent: playerFromStratum, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
+            fromStratumColumn.append(columns.count - 1)
+            
+            columns.append(RanksPlusMPsColumn(title: "Max Strata", calculatedContent: playerBestStratumAward, playerNumber: playerNumber, cellType: .floatFormula))
+            maxStrataMPColumn.append(columns.count - 1)
         }
     }
     
@@ -1903,28 +1987,45 @@ class RanksPlusMPsWriter: WriterBase {
         return result
     }
     
+    private func playerBestStratumAward(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = "=MAX("
+        let playerNumber = playerNumber ?? 0
+        for (index, strataMPColumn) in strataMPColumn[playerNumber].enumerated() {
+            if index != 0 {
+                result += ","
+            }
+            result += cell(rowNumber, strataMPColumn, columnFixed: true)
+        }
+        result += ")"
+        return result
+    }
+    
+    private func playerFromStratum(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = "=\(fnPrefix)XMATCH("
+        let playerNumber = playerNumber ?? 0
+        result += cell(rowNumber, maxStrataMPColumn[playerNumber], columnFixed: true) + ",\(hstack)("
+        for (index, strataMPColumn) in strataMPColumn[playerNumber].enumerated() {
+            if index != 0 {
+                result += ","
+            }
+            result += cell(rowNumber, strataMPColumn, columnFixed: true)
+        }
+        result += "))-1"
+        return result
+    }
+    
     private func bonusAward(_: Int?, rowNumber: Int) -> String {
-        return playerBonusAward(rowNumber: rowNumber)
+        return playerStrataBonusAward(rowNumber: rowNumber)
     }
     
     private func playerBonusAward(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        return playerStrataBonusAward(playerNumber: playerNumber, rowNumber: rowNumber)
+    }
+    
+    private func playerStrataBonusAward(strataNumber: Int? = nil, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = "="
         let event = scoreData.events.first!
-        var useAwardCell: String
-        var useAwardToCell: String
         let positionCell = cell(rowNumber, positionColumn!)
-        var allPositionsRange = ""
-        
-        if event.winnerType == 2 && event.type?.participantType == .pair {
-            let directionCell = cell(rowNumber, directionColumn!, columnFixed: true)
-            useAwardCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(maxAwardCell!),\(ewMaxAwardCell!))"
-            useAwardToCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(awardToCell!),\(ewAwardToCell!))"
-            allPositionsRange = "\(filter)(\(vstack)(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true))),\(vstack)(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)))=\(directionCell))"
-        } else {
-            useAwardCell = maxAwardCell!
-            useAwardToCell = awardToCell!
-            allPositionsRange = "\(filter)(\(vstack)(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true))),\(vstack)(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)))<>0)"
-        }
         
         if let playerNumber = playerNumber {
             // Need to calculate percentage played
@@ -1940,13 +2041,36 @@ class RanksPlusMPsWriter: WriterBase {
             result += "ROUNDUP((\(cell(rowNumber, boardsPlayedColumn[playerNumber], columnFixed: true))/(MAX(1,\(totalBoardsPlayed))/\(event.type!.participantType!.players)))*"
         }
         
-        result += "IF(\(positionCell)=0,0,Award(\(useAwardCell), \(positionCell), \(useAwardToCell), 2, \(allPositionsRange)))"
-        
+        if let strataNumber = strataNumber {
+            let stratumCell = cell(rowNumber, stratumColumn!, columnFixed: true)
+            let allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: stratumColumn!, comparison: ">=\(strataNumber + 1)")
+            result += "IF(\(stratumCell)<\(strataNumber + 1),0,StratumAward(\(strataMaxAwardCell[strataNumber]),\(positionCell), \(awardPercentCell!), 2, \(allPositionsRange)))"
+        } else {
+            var useAwardCell: String
+            var useAwardToCell: String
+            var allPositionsRange = ""
+            
+            if event.winnerType == 2 && event.type?.participantType == .pair {
+                let directionCell = cell(rowNumber, directionColumn!, columnFixed: true)
+                useAwardCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(maxAwardCell!),\(ewMaxAwardCell!))"
+                useAwardToCell = "IF(\(directionCell)=\"\(Direction.ns.string)\",\(awardToCell!),\(ewAwardToCell!))"
+                allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: directionColumn!, comparison: "=\(directionCell)")
+            } else {
+                useAwardCell = maxAwardCell!
+                useAwardToCell = awardToCell!
+                allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: positionColumn!, comparison: "<>0")
+            }
+            
+            result += "IF(\(positionCell)=0,0,Award(\(useAwardCell), \(positionCell), \(useAwardToCell), 2, \(allPositionsRange)))"
+        }
         if playerNumber != nil {
             result += ", 2)"
         }
-        
         return result
+    }
+    
+    private func getAllPositionsRange(positionColumn: Int, comparisonColumn: Int, comparison: String) -> String {
+        return  "\(filter)(\(vstack)(\(cell(dataRow, rowFixed: true, positionColumn, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn, columnFixed: true))),\(vstack)(\(cell(dataRow, rowFixed: true, comparisonColumn, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, comparisonColumn, columnFixed: true)))\(comparison))"
     }
     
     private func winDrawAward(_: Int?, rowNumber: Int) -> String {
@@ -1980,26 +2104,67 @@ class RanksPlusMPsWriter: WriterBase {
         return result
     }
     
-    private func playerRank(playerNumber: Int? = nil, rowNumber: Int) -> String {
+    private func playerFrozenRank(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
         
         let lookupCell = cell(rowNumber, nationalIdColumn[playerNumber ?? 0], columnFixed: true)
         result = "\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(lookupCell),\(vstack)(\(lookupFrozenRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupFrozenRange(Settings.current.userDownloadRankColumn))),1,0))"
+
         return result
     }
     
-    private func rankCategory(_: Int? = nil, rowNumber: Int) -> String {
+    private func playerCurrentRank(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = ""
+        var currentRankCode: Int? = nil
+        
+        // Use current rank if available
+        if let nationalId = player.nationalId, let rankCode = MemberViewModel.member(nationalId: nationalId)?.rankCode {
+            currentRankCode = rankCode
+        }
+            
+        if let currentRankCode = currentRankCode {
+            result = "\(currentRankCode)"
+        } else {
+            // Couldn't get current rank - look it up in the spreadsheet
+            let lookupCell = cell(rowNumber, nationalIdColumn[playerNumber ?? 0], columnFixed: true)
+            result = "\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(lookupCell),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),1,0))"
+        }
+        return result
+    }
+    
+    private func frozenRankCategory(_: Int? = nil, rowNumber: Int) -> String {
         let round = writer.rounds.first!
-        var result = "\(fnPrefix)IF(\(cell(rowNumber, rankColumn[0], columnFixed: true))=0,\"\",CombinedCategory(TRUE,"
+        var result = "\(fnPrefix)IF(\(cell(rowNumber, frozenRankColumn[0], columnFixed: true))=0,\"\",CombinedCategory(TRUE,"
         for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
                 result += ","
             }
-            result += "\(vstack)(\(cell(rowNumber, rankColumn[playerNumber], columnFixed: true)))"
+            result += "\(vstack)(\(cell(rowNumber, frozenRankColumn[playerNumber], columnFixed: true)))"
         }
         result += "))"
         return result
     }
+
+    private func stratum(_: Int? = nil, rowNumber: Int) -> String {
+        let round = writer.rounds.first!
+        var result = "\(fnPrefix)IF(\(cell(rowNumber, strataRankColumn[0], columnFixed: true))=0,0,Stratum(\(vstack)("
+        for playerNumber in 0..<round.maxParticipantPlayers {
+            if playerNumber != 0 {
+                result += ","
+            }
+            result += cell(rowNumber, strataRankColumn[playerNumber], columnFixed: true)
+        }
+        result += "),\(hstack)("
+        for (index, _) in self.writer.strata.enumerated() {
+            if index != 0 {
+                result += ","
+            }
+            result += strataRankCell[index]
+        }
+        result += ")))"
+        return result
+    }
+
     
     // Ranks plus MPs header
     
@@ -2085,7 +2250,13 @@ class RanksPlusMPsWriter: WriterBase {
         writeCell(string: "Local MPs", format: formatRightBold)
         writeCell(string: "National MPs", format: formatRightBold)
         writeCell(string: "Checksum", format: formatRightBold)
-        
+        for (index, _) in self.writer.strata.enumerated() {
+            writeCell(string: "Strata \(index + 1) Rank", format: formatRightBold)
+        }
+        for (index, _) in self.writer.strata.enumerated() {
+            writeCell(string: "Strata \(index + 1) Max Award", format: formatRightBold)
+        }
+
         headerColumns = column + 1
 
         column = -1
@@ -2133,11 +2304,11 @@ class RanksPlusMPsWriter: WriterBase {
             writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseEwMaxAwardCell!)*\(entryFactorCell),2)*\(reduceToCell),2)") ; ewMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,4)", format: formatPercent) ; let awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,4)", format: formatPercent) ;  awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
         
-        writeCell(formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell!),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(formula: "=ROUNDUP(\(ewEntryRef)*\(awardPercentCell),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(formula: "=ROUNDUP(\(ewEntryRef)*\(awardPercentCell!),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
         }
         
         writeCell(floatFormula: "=ROUND(\(scoreData.perWin),2)") ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)
@@ -2153,6 +2324,13 @@ class RanksPlusMPsWriter: WriterBase {
         writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
         
         writeCell(floatFormula: "=CheckSum(\(vstack)(\(range(column: totalMPColumn))),\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true)
+        
+        for stratum in self.writer.strata {
+            writeCell(integer: stratum.maxRank) ; strataRankCell.append(cell(row, rowFixed: true, column, columnFixed: true))
+        }
+        for stratum in self.writer.strata {
+            writeCell(float: stratum.maxAward) ; strataMaxAwardCell.append(cell(row, rowFixed: true, column, columnFixed: true))
+        }
     }
     
     private func range(column: [Int])->String {
@@ -2270,14 +2448,14 @@ class IndividualMPsWriter: WriterBase {
         if self.writer.includeInRace {
             
             columns.append(Column(title: "\(event.type?.participantType?.string ?? "Team") Category", referenceContent: { [self] (_) in
-                round.ranksPlusMps.rankCategoryColumn! }, cellType: .integerFormula)) ; participantCategoryColumn = columns.count - 1
+                round.ranksPlusMps.frozenRankCategoryColumn! }, cellType: .integerFormula)) ; participantCategoryColumn = columns.count - 1
 
             columns.append(Column(title: "Player Rank", referenceContent: { [self] (playerNumber) in
-                round.ranksPlusMps.rankColumn[playerNumber] }, cellType: .integerFormula)) ; playerRankColumn = columns.count - 1
+                round.ranksPlusMps.frozenRankColumn[playerNumber] }, cellType: .integerFormula)) ; playerRankColumn = columns.count - 1
         
             columns.append(Column(title: "Player Category", referenceDynamic: { [self] in "=Category(\(arrayRef)(\(cell(dataRow, playerRankColumn!, columnFixed: true))))" }, cellType: .stringFormula)) ; playerCategoryColumn = columns.count - 1
             
-            let logic = "=\(fnPrefix)MAKEARRAY(ROWS(\(arrayRef)(\(cell(dataRow, positionColumn!, columnFixed: true)))),1,\(lambda)(\(lambdaParam)Row,\(lambdaParam)Column,IF(RelativeTo(\(arrayRef)(\(cell(dataRow, playerRankColumn!, columnFixed: true))),\(lambdaParam)Row,1) = 1, \"Non-SBU\",RelativeTo(\(arrayRef)(\(cell(dataRow, participantCategoryColumn!, columnFixed: true))),\(lambdaParam)Row,1))))"
+            let logic = "=\(fnPrefix)MAKEARRAY(ROWS(\(arrayRef)(\(cell(dataRow, positionColumn!, columnFixed: true)))),1,\(lambda)(\(lambdaParam)Row,\(lambdaParam)Column,IF(RelativeTo(\(arrayRef)(\(cell(dataRow, playerRankColumn!, columnFixed: true))),\(lambdaParam)Row,1) = \(Settings.current.otherNBORank!), \"Non-SBU\",RelativeTo(\(arrayRef)(\(cell(dataRow, participantCategoryColumn!, columnFixed: true))),\(lambdaParam)Row,1))))"
             columns.append(Column(title: "Race Category", referenceDynamic: { logic }, cellType: .stringFormula)) ; playerRaceCategoryColumn = columns.count - 1
         }
         
@@ -2473,6 +2651,7 @@ class WriterBase {
     var formatBannerNumeric: UnsafeMutablePointer<lxw_format>?
     var formatBodyString: UnsafeMutablePointer<lxw_format>?
     var formatBodyCenteredString: UnsafeMutablePointer<lxw_format>?
+    var formatBodyCenteredInt: UnsafeMutablePointer<lxw_format>?
     var formatBodyFloat: UnsafeMutablePointer<lxw_format>?
     var formatBodyNumeric: UnsafeMutablePointer<lxw_format>?
     
@@ -2531,6 +2710,7 @@ class WriterBase {
             self.formatBannerNumeric = writer.formatBannerNumeric
             self.formatBodyString = writer.formatBodyString
             self.formatBodyCenteredString = writer.formatBodyCenteredString
+            self.formatBodyCenteredInt = writer.formatBodyCenteredInt
             self.formatBodyFloat = writer.formatBodyFloat
             self.formatBodyNumeric = writer.formatBodyNumeric
         }
@@ -2665,12 +2845,12 @@ class WriterBase {
         format_set_align(formatPercent, UInt8(LXW_ALIGN_RIGHT.rawValue))
         formatBold = workbook_add_format(workbook)
         format_set_bold(formatBold)
-        formatBold = workbook_add_format(workbook)
-        format_set_bold(formatBold)
+        format_set_text_wrap(formatBold)
         formatRightBold = workbook_add_format(workbook)
         format_set_bold(formatRightBold)
         format_set_align(formatRightBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
         format_set_num_format(formatRightBold, "0;-0;")
+        format_set_text_wrap(formatRightBold)
         formatBoldUnderline = workbook_add_format(workbook)
         format_set_bold(formatBoldUnderline)
         format_set_bottom(formatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
@@ -2751,6 +2931,11 @@ class WriterBase {
         format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
         format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
         
+        formatBodyCenteredInt = workbook_add_format(workbook)
+        format_set_align(formatBodyCenteredInt, UInt8(LXW_ALIGN_CENTER.rawValue))
+        format_set_align(formatBodyCenteredInt, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
+        format_set_num_format(formatBodyCenteredInt, "0;-0;")
+
         formatBodyFloat = workbook_add_format(workbook)
         format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
         format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))

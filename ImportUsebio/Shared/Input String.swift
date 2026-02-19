@@ -13,6 +13,8 @@ struct Input : View {
     @Binding var field: String
     var message: Binding<String>?
     var messageOffset: CGFloat = 0.0
+    var desc: Binding<String>?
+    var descOffset: CGFloat = 0.0
     var placeHolder: String = ""
     var secure: Bool = false
     var topSpace: CGFloat = inputTopHeight
@@ -24,7 +26,7 @@ struct Input : View {
     var keyboardType: KeyboardType = .default
     var autoCapitalize: AutoCapitalization = .sentences
     var autoCorrect: Bool = true
-    var isEnabled: Bool
+    var isEnabled: Bool = true
     var isReadOnly: Bool = false
     var limitText: Int? = nil
     var pickerAction: (()->())?
@@ -58,18 +60,23 @@ struct Input : View {
                             .foregroundColor(Palette.input.background)
                             .cornerRadius(inputCornerRadius)
                     }
+                    .if(pickerAction != nil && isReadOnly && isEnabled) { (view) in
+                        view.onTapGesture {
+                            pickerAction?()
+                        }
+                    }
                     if inlineTitle || title == nil {
-                        if let message = message?.wrappedValue {
+                        if let desc = desc?.wrappedValue {
                             HStack {
-                                Spacer().frame(width: messageOffset)
+                                Spacer().frame(width: descOffset)
                                 HStack {
-                                    Text(message)
+                                    Text(desc)
                                         .font(lookupFont)
                                         .foregroundColor(Palette.input.themeText)
                                         .truncationMode(.tail)
                                     Spacer()
                                 }
-                                .frame(width: width - messageOffset - pickerWidth)
+                                .frame(width: width - descOffset - pickerWidth)
                             }
                         }
                     }
@@ -96,7 +103,7 @@ struct Input : View {
                                     .disabled(!isEnabled || isReadOnly)
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
                                     .inputStyle(width: width, height: inputDefaultHeight)
-                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                    .frame(width: descOffset == 0 ? width - pickerWidth : descOffset)
                                     .if(detectKeys != nil) { (view) in
                                         view.onKeyPress(keys: detectKeys!) { press in
                                             return (onKeyPress?(press) ?? .ignored)
@@ -104,7 +111,7 @@ struct Input : View {
                                     }
                                 Spacer()
                             }
-                        } else if height > inputDefaultHeight || !isEnabled || isReadOnly {
+                        } else if height > inputDefaultHeight {
                             VStack {
                                 if isEnabled && !isReadOnly {
                                     TextEditor(text: $field)
@@ -123,7 +130,7 @@ struct Input : View {
                                     .myAutocapitalization(autoCapitalize)
                                     .disableAutocorrection(!autoCorrect)
                                     .textCase(.uppercase)
-                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                    .frame(width: descOffset == 0 ? width - pickerWidth : descOffset)
                                     .if(detectKeys != nil) { (view) in
                                         view.onKeyPress(keys: detectKeys!) { press in
                                             return (onKeyPress?(press) ?? .ignored)
@@ -142,7 +149,12 @@ struct Input : View {
                                         }
                                         Spacer()
                                     }
-                                    .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                    .if(pickerAction != nil && isReadOnly && isEnabled) { (view) in
+                                        view.onTapGesture {
+                                            pickerAction?()
+                                        }
+                                    }
+                                    .frame(width: descOffset == 0 ? width - pickerWidth : descOffset)
                                 }
                             }
                             .font(inputFont)
@@ -163,13 +175,14 @@ struct Input : View {
                                 .myKeyboardType(self.keyboardType)
                                 .myAutocapitalization(autoCapitalize)
                                 .disableAutocorrection(!autoCorrect)
+                                .disabled(!isEnabled || isReadOnly)
                                 .frame(height: height)
                                 .if(detectKeys != nil) { (view) in
                                     view.onKeyPress(keys: detectKeys!) { press in
                                         return (onKeyPress?(press) ?? .ignored)
                                     }
                                 }
-                                .frame(width: messageOffset == 0 ? width - pickerWidth : messageOffset)
+                                .frame(width: descOffset == 0 ? width - pickerWidth : descOffset)
                             Spacer()
                         }
                     }
@@ -180,6 +193,11 @@ struct Input : View {
                                 Text(placeHolder)
                                     .font(inputFont)
                                     .foregroundColor(Palette.input.faintText)
+                            }
+                        }
+                        .if(pickerAction != nil && isReadOnly && isEnabled) { (view) in
+                            view.onTapGesture {
+                                pickerAction?()
                             }
                         }
                     }

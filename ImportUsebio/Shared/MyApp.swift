@@ -33,7 +33,7 @@ class MyApp {
         }
     }
     
-    static let objectModel = Model(eventEntity, clubEntity, rankEntity)
+    static let objectModel = Model(eventEntity, clubEntity, rankEntity, memberEntity, blockedEntity, strataDefEntity)
     
     static let shared = MyApp()
     

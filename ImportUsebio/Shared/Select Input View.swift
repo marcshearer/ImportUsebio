@@ -18,36 +18,33 @@ enum Basis: Int {
     case headToHead = 2
 }
 
-enum ViewField {
+fileprivate enum ViewField {
     case eventDescription
     case eventCode
     case clubCode
-    case minRankCode
-    case maxRankCode
-}
-
-struct AutoCompleteData : Hashable {
-    var index: Int
-    var code: String
-    var desc: String
+    case minRankText
+    case maxRankText
 }
 
 struct SelectInputView: View {
+    @Environment(\.scenePhase) var scenePhase
     @State private var inputFilename: String = ""
     @State private var roundName: String = ""
     @State private var event: EventViewModel? = nil
     @State private var eventCode: String = ""
-    @State private var eventMessage: String = ""
+    @State private var eventDesc: String = ""
     @State private var club: ClubViewModel? = nil
     @State private var clubCode: String = ""
     @State private var chooseBest: Int = 0
-    @State private var clubMessage: String = ""
+    @State private var clubDesc: String = ""
     @State private var minRank: RankViewModel? = nil
     @State private var minRankCode: Int = 0
+    @State private var minRankText: String = ""
     @State private var minRankMessage: String = "No minimum rank"
     @State private var maxRank: RankViewModel? = nil
     @State private var maxRankCode: Int = 999
-    @State private var maxRankMessage: String = "No maximum rank"
+    @State private var maxRankText: String = ""
+    @State private var maxRankDesc: String = "No maximum rank"
     @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
     @State private var includeInRace: Bool = false
@@ -76,29 +73,30 @@ struct SelectInputView: View {
     @State private var showImportEvents = false
     @State private var showImportClubs = false
     @State private var showImportRanks = false
-    @State private var showEventCodesSearch = false
-    @State private var showClubCodesSearch = false
-    @State private var showMinRankCodesSearch = false
-    @State private var showMaxRankCodesSearch = false
+    @State private var showBlockedNumbers = false
+    @State private var showStratifications = false
     @State private var missingNationalIds = false
     @State private var showAdvancedParameters = false
     @State private var editSettings = Settings.current.copy()
-    @State private var windowHeight: CGFloat = 580
-    @State private var expandedWindowHeight: CGFloat = 680
+    @State private var windowHeight: CGFloat = 575
+    @State private var unexpandedWindowHeight: CGFloat = 575
+    @State private var expandedWindowHeight: CGFloat = 675
     @FocusState private var focusedField: ViewField?
-    @State private var autoCompleteField: ViewField?
     @State private var eventCodeData: [AutoCompleteData] = []
     @State private var clubCodeData: [AutoCompleteData] = []
     @State private var minRankCodeData: [AutoCompleteData] = []
     @State private var maxRankCodeData: [AutoCompleteData] = []
     @State private var selected: Int? = nil
-    let detectKeys: Set<KeyEquivalent> = [.upArrow, .downArrow, .return]
+    @State private var downloadingMemberList: Bool = true
+    @State private var downloadMemberListMessage: String = ""
+    let minRankList = ([RankViewModel(rankCode: 0, rankName: "No minimum rank")] + MasterData.shared.ranks.array as! [RankViewModel]).filter({$0.rankCode != 1})
+    let maxRankList = (MasterData.shared.ranks.array as! [RankViewModel] + [RankViewModel(rankCode: 999, rankName: "No maximum rank")]).filter({$0.rankCode != 1})
 
     @Namespace private var autoComplete
     
     var body: some View {
-        
-            // Just to trigger view refresh
+       
+        // Just to trigger view refresh
         if refresh { EmptyView() }
         
         StandardView("Select Input") {
@@ -169,7 +167,7 @@ struct SelectInputView: View {
                                             .font(inputFont)
                                             .onTapGesture {
                                                 showAdvancedParameters.toggle()
-                                                windowHeight = showAdvancedParameters ? expandedWindowHeight : windowHeight
+                                                windowHeight = showAdvancedParameters ? expandedWindowHeight : unexpandedWindowHeight
                                             }
                                         Spacer()
                                     }
@@ -207,20 +205,20 @@ struct SelectInputView: View {
                 VStack {
                     switch focusedField {
                     case .eventCode:
-                        autoCompleteView(field: .eventCode, codeWidth: 80, data: $eventCodeData, valid: event != nil) { (newValue) in
+                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.eventCode, selected: $selected, codeWidth: 80, data: $eventCodeData, valid: event != nil) { (newValue) in
                             eventCode = newValue
                         }
                     case .clubCode:
-                        autoCompleteView(field: .clubCode, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
+                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.clubCode, selected: $selected, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
                             clubCode = newValue
                         }
-                    case .minRankCode:
-                        autoCompleteView(field: .minRankCode, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
-                            minRankCode = Int(newValue)!
+                    case .minRankText:
+                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.minRankText, selected: $selected, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
+                            minRankText = newValue
                         }
-                    case .maxRankCode:
-                        autoCompleteView(field: .maxRankCode, codeWidth: 80 , data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
-                            maxRankCode = Int(newValue)!
+                    case .maxRankText:
+                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.maxRankText, selected: $selected, codeWidth: 80 , data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
+                            maxRankText = newValue
                         }
                     default:
                         EmptyView()
@@ -230,35 +228,23 @@ struct SelectInputView: View {
             Spacer()
         }
         .frame(width: 900, height: windowHeight)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            phaseChange(newPhase)
+        }
+        .onChange(of: focusedField) { (oldValue, _) in
+            changeFocus(leaving: oldValue)
+        }
         .sheet(isPresented: $showErrors) {
             ShowErrorsView(roundErrors: roundErrors)
         }
-        .sheet(isPresented: $showEventCodesSearch) {
-            EventCodesSearchView() { event in
-                set(eventCode: event.eventCode)
-                focusedField = .eventCode
-            }
-        }
-        .sheet(isPresented: $showClubCodesSearch) {
-            ClubCodesSearchView() { club in
-                set(clubCode: club.clubCode)
-                focusedField = .clubCode
-            }
-        }
-        .sheet(isPresented: $showMinRankCodesSearch) {
-            RankCodesSearchView(showNoMinimum: true) { rank in
-                set(minRankCode: rank.rankCode)
-                focusedField = .minRankCode
-            }
-        }
-        .sheet(isPresented: $showMaxRankCodesSearch) {
-            RankCodesSearchView(showNoMaximum: true) { rank in
-                set(maxRankCode: rank.rankCode)
-                focusedField = .maxRankCode
-            }
-        }
         .sheet(isPresented: $showSettings) {
             SettingsView(settings: editSettings)
+        }
+        .sheet(isPresented: $showBlockedNumbers) {
+            BlockedNumbersView()
+        }
+        .sheet(isPresented: $showStratifications) {
+            StratificationsView()
         }
         .sheet(isPresented: $showImportEvents) {
             EventImportView()
@@ -269,102 +255,101 @@ struct SelectInputView: View {
         .sheet(isPresented: $showImportRanks) {
             RankImportView()
         }
+        .sheet(isPresented: $downloadingMemberList) {
+            downloadingMemberListView()
+        }
+        .onAppear {
+            downloadingMemberList = false
+            downloadMemberList()
+        }
     }
     
-    private func autoCompleteView(field: ViewField, codeWidth: CGFloat, data: Binding<[AutoCompleteData]>, valid: Bool, selectAction: @escaping (String)->()) -> some View {
-        VStack(spacing: 0) {
-            if data.wrappedValue.count > (valid ? 1 : 0) {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(data.wrappedValue, id: \.index) { (element) in
-                            VStack(spacing: 0) {
-                                HStack(spacing: 0) {
-                                    Spacer().frame(width: 12)
-                                    HStack(spacing: 0) {
-                                        Text(element.code)
-                                            .font(inputFont)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .padding(0)
-                                        Spacer()
-                                    }
-                                    .frame(width: codeWidth - 12)
-                                    Text(element.desc)
-                                        .font(lookupFont)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .padding(0)
-                                    Spacer()
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectAction(element.code)
-                                }
-                            }
-                            .frame(height: 20)
-                            .background(element.index != selected ? Palette.autoComplete.background : Palette.autoCompleteSelected.background)
-                            .foregroundColor(element.index != selected ? Palette.autoComplete.text : Palette.autoCompleteSelected.text)
-                        }
-                    }
-                    .scrollTargetLayout()
-                    .listStyle(DefaultListStyle())
-                }
-                .scrollPosition(id: $selected)
+    private func phaseChange(_ newPhase: ScenePhase) {
+        if newPhase == .active && !downloadingMemberList, let lastDownloaded = MemberList.shared.lastDownloaded {
+            // When view becomes active then update memmber list if it is more than 12 hours old
+            if Date().timeIntervalSince(lastDownloaded) > 12 * 60 * 60 {
+                downloadMemberList(message: "Updating Member List")
             }
         }
-        .zIndex(1)
-        .clipShape(
-            .rect(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 8,
-                bottomTrailingRadius: 8,
-                topTrailingRadius: 0
-            )
-        )
-        .matchedGeometryEffect(
-            id: field,
-            in: autoComplete,
-            properties: .position,
-            anchor: .topTrailing,
-            isSource: false)
-        .frame(width: 270, height: CGFloat(min(6, data.wrappedValue.count) * 20))
     }
     
-    private func onKeyPress(_ keyPress: KeyPress, maxSelected: Int, onSelect: ()->()) -> KeyPress.Result {
-        switch keyPress.key {
-        case .downArrow:
-            selected = min(maxSelected - 1, (selected ?? -1) + 1)
-            return .handled
-        case .upArrow:
-            selected = ((selected ?? 0) == 0 ? nil : selected! - 1)
-            return .handled
-        case .return:
-            if selected != nil {
-                onSelect()
+    private func downloadMemberList(message: String = "Downloading Member List") {
+        downloadMemberListMessage = message
+        downloadingMemberList = true
+        MemberList.shared.download() { (success, errorMessage) in
+            downloadingMemberList = false
+            if !success {
+                MessageBox.shared.show("Failed to download member list \n(\(errorMessage))\n\n\nWill continue using previous version but some ranks may be out of date. This is probably only an issue for stratified events.", okAction: {
+                    downloadingMemberList = false
+                })
             }
-            return .handled
+        }
+    }
+    
+    private func downloadingMemberListView() -> some View {
+        VStack {
+            Spacer()
+            Spacer().frame(height: 100)
+            HStack {
+                Spacer()
+                Text(downloadMemberListMessage).font(defaultFont).foregroundColor(.blue)
+                Spacer()
+            }
+            Spacer().frame(height: 10)
+            Text("Please wait").font(captionFont)
+            Spacer().frame(height: 100)
+            Spacer()
+        }
+    }
+    
+    private func changeFocus(leaving: ViewField?) {
+        switch leaving {
+        case .minRankText:
+            let list = getMinRankList(text: minRankText)
+            if list.count == 1 {
+                set(minRankText: "\(list.first!.code)")
+            }
+            if Int(minRankText) == 0 {
+                set(minRankText: "")
+            }
+        case .maxRankText:
+            let list = getMaxRankList(text: maxRankText)
+            if list.count == 1 {
+                set(maxRankText: "\(list.first!.code)")
+            }
+            if Int(maxRankText) == 999 {
+                set(maxRankText: "")
+            }
+        case .eventCode:
+            let list = getEventList()
+            if list.count == 1 {
+                set(eventCode: list.first!.code)
+            }
+        case .clubCode:
+            let list = getClubList()
+            if list.count == 1 {
+                set(clubCode: list.first!.code)
+            }
         default:
-            return .ignored
+            break
         }
     }
-    
-    
     
     private func set(eventCode newValue: String) {
         event = EventViewModel.event(eventCode: newValue)
         eventCode = newValue
-        eventMessage = event?.eventName ?? "Invalid event code"
+        eventDesc = event?.eventName ?? "Invalid event code"
         if let event = event {
             if event.localAllowed && !event.nationalAllowed {
                 localNational = .local
             } else if !event.localAllowed && event.nationalAllowed {
                 localNational = .national
             }
-            if event.validMinRank > 0 {
-                set(minRankCode: event.validMinRank)
+            if event.validMinRank > 0, let minRank = RankViewModel.rank(rankCode: event.validMinRank) {
+                set(minRankText: minRank.rankName)
             }
-            if event.validMaxRank < 999 {
-                set(maxRankCode: event.validMaxRank)
+            if event.validMaxRank < 999, let maxRank = RankViewModel.rank(rankCode: event.validMaxRank) {
+                set(maxRankText: maxRank.rankName)
             }
             if event.originatingClubCode != "" {
                 set(clubCode: event.originatingClubCode)
@@ -375,25 +360,35 @@ struct SelectInputView: View {
     private func set(clubCode newValue: String) {
         club = ClubViewModel.club(clubCode: newValue)
         clubCode = newValue
-        clubMessage = club?.clubName ?? (clubCode == "" ? "No club code specified" : "Invalid club code")
+        clubDesc = club?.clubName ?? (clubCode == "" ? "No club code specified" : "Invalid club code")
     }
     
-    private func set(minRankCode newValue: Int) {
-        minRank = RankViewModel.rank(rankCode: newValue)
-        minRankCode = newValue
-        minRankMessage = minRank?.rankName ?? (minRankCode == 0 ? "No minimum rank" : "Invalid rank code")
+    private func set(minRankText newValue: String) {
+        if let newRankCode = Int(newValue.trim() == "" ? "0" : newValue) {
+            minRank = minRankList.first(where: { $0.rankCode == newRankCode })
+        } else {
+            minRank = minRankList.first(where: { $0.rankName == newValue })
+        }
+        minRankText = newValue
+        minRankCode = minRank?.rankCode ?? -1
+        minRankMessage = (minRank?.rankName ?? "Invalid rank code")
         if minRank != nil && maxRankCode < minRankCode {
-            set(maxRankCode: minRankCode)
+            set(maxRankText: minRankText)
         }
     }
     
-    private func set(maxRankCode newValue: Int) {
-        maxRank = RankViewModel.rank(rankCode: newValue)
-        maxRankCode = newValue
-        if maxRankCode < minRankCode {
-            maxRankMessage = "Below minimum rank"
+    private func set(maxRankText newValue: String) {
+        if let newRankCode = Int(newValue.trim() == "" ? "999" : newValue) {
+            maxRank = maxRankList.first(where: { $0.rankCode == newRankCode })
         } else {
-            maxRankMessage = maxRank?.rankName ?? (maxRankCode == 999 ? "No maximum rank" : "Invalid rank code")
+            maxRank = maxRankList.first(where: { $0.rankName == newValue })
+        }
+        maxRankText = newValue
+        maxRankCode = maxRank?.rankCode ?? -1
+        if maxRank != nil && maxRankCode < minRankCode {
+            maxRankDesc = "Below minimum rank"
+        } else {
+            maxRankDesc = (maxRank?.rankName ?? "Invalid rank code")
         }
     }
     
@@ -408,7 +403,8 @@ struct SelectInputView: View {
     private var filenameView: some View {
         VStack(spacing: 0) {
             HStack {
-                Input(title: "Import filename:", field: $inputFilename, placeHolder: "No import file specified", topSpace: 20, leadingSpace: 30, width: 707, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile)
+                Input(title: "Import filename", field: $inputFilename, placeHolder: "No import file specified", topSpace: 16, leadingSpace: 14, width: 365, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile)
+                    .help("Select input XML file for a single round event.\nFor a multi-round event use the Paste Config button below to import the details.")
                     
                 Spacer()
             }
@@ -416,18 +412,27 @@ struct SelectInputView: View {
     }
     
     private var eventDescriptionView: some View {
-        VStack {
-            InputTitle(title: "Event Description")
+        VStack(spacing: 5) {
             HStack {
-                Input(field: $eventDescription, leadingSpace: 30, width: 400, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
+                InputTitle(title: "Event Description", fillTrailing: false)
+                VStack(spacing: 0) {
+                    Spacer().frame(height: inputTopHeight)
+                    Text("(Spreadsheet name)")
+                }
+                Spacer()
+            }
+            HStack {
+                Input(field: $eventDescription, leadingSpace: 50, width: 365, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true)
                     .focused($focusedField, equals: .eventDescription)
-                Spacer().frame(width: 139)
-                Picker("Include in race:     ", selection: $includeInRace) {
+                    .help("Enter the event description. Note that this becomes the default name for the event spreadsheet and the title for outputs.")
+                Spacer().frame(width: 30)
+                Text("Include race:").font(inputFont)
+                Picker("", selection: $includeInRace) {
                     Text("Include").tag(true)
                     Text("Exclude").tag(false)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 250)
+                .help("Include/exclude the event in a multi-event race")
                 .disabled((writer?.rounds.count ?? 0) >= 1)
                 Spacer()
             }
@@ -438,18 +443,33 @@ struct SelectInputView: View {
         HStack {
             Spacer().frame(width: 42)
             
-            Input(title: "Event code:", field: $eventCode, message: $eventMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, pickerAction: { showEventCodesSearch = true }, onKeyPress: eventKeyPress, detectKeys: detectKeys) { (newValue) in
+            Input(title: "Event code:", field: $eventCode, desc: $eventDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, onKeyPress: eventKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
                 set(eventCode: newValue)
                 eventCodeData = getEventList()
             }
+            .help("Enter an event code to be used to post the MPs")
             .focused($focusedField, equals: .eventCode)
             .matchedGeometryEffect(id: ViewField.eventCode, in: autoComplete, anchor: .bottomTrailing)
         }
     }
     
     private func eventKeyPress(_ press: KeyPress) -> KeyPress.Result{
-        onKeyPress(press, maxSelected: eventCodeData.count) {
+        AutoComplete.onKeyPress(press, selected: $selected, maxSelected: eventCodeData.count) {
             set(eventCode: eventCodeData[selected!].code)
+        }
+    }
+    
+    private func getEventList() -> [AutoCompleteData] {
+        selected = nil
+        if eventCode != "" {
+            return (MasterData.shared.events.array as! [EventViewModel])
+                .filter({Utility.wordSearch(for: eventCode, in: "\($0.eventCode) \($0.eventName)")
+                     && $0.active && ($0.startDate ?? Date()) <= Date() && ($0.endDate ?? Date()) >= Date()})
+                .sorted(by: {$0.eventCode < $1.eventCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: element.eventCode, desc: element.eventName)})
+        } else {
+            return []
         }
     }
     
@@ -458,18 +478,32 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            Input(title: "Club code:", field: $clubCode, message: $clubMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, pickerAction: { showClubCodesSearch = true }, onKeyPress: clubKeyPress, detectKeys: detectKeys) { (newValue) in
+            Input(title: "Club code:", field: $clubCode, desc: $clubDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, onKeyPress: clubKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
                 set(clubCode: newValue)
                 clubCodeData = getClubList()
             }
+            .help("Enter a club code if this is not a licensed event. Leave blank on licensed events.")
             .focused($focusedField, equals: .clubCode)
             .matchedGeometryEffect(id: ViewField.clubCode, in: autoComplete, anchor: .bottomTrailing)
         }
     }
     
     private func clubKeyPress(_ press: KeyPress) -> KeyPress.Result{
-        onKeyPress(press, maxSelected: clubCodeData.count) {
+        AutoComplete.onKeyPress(press, selected: $selected, maxSelected: clubCodeData.count) {
             set(clubCode: clubCodeData[selected!].code)
+        }
+    }
+    
+    private func getClubList() -> [AutoCompleteData] {
+        selected = nil
+        if clubCode != "" {
+            return (MasterData.shared.clubs.array as! [ClubViewModel])
+                .filter({Utility.wordSearch(for: clubCode, in: "\($0.clubCode) \($0.clubName)") && !$0.clubName.uppercased().contains("CLOSED")})
+                .sorted(by: {$0.clubCode < $1.clubCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: element.clubCode, desc: element.clubName)})
+        } else {
+            return []
         }
     }
     
@@ -478,35 +512,53 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 42)
             
-            InputInt(title: "Minimum:", field: $minRankCode, message: $minRankMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMinRank == 0, pickerAction: { showMinRankCodesSearch = true }, onKeyPress: minRankKeyPress, detectKeys: detectKeys) { (newValue) in
-                set(minRankCode: newValue)
-                minRankCodeData = getMinRankList()
+            Input(title: "Minimum:", field: $minRankText, desc: $minRankMessage, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMinRank == 0, onKeyPress: minRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+                set(minRankText: newValue)
+                minRankCodeData = (newValue == "" ? [] : getMinRankList(text: newValue))
             }
-            .focused($focusedField, equals: .minRankCode)
-            .matchedGeometryEffect(id: ViewField.minRankCode, in: autoComplete, anchor: .bottomTrailing)
+            .help("Enter a minimum rank code for this event or leave blank if you do not want to filter by rank")
+            .focused($focusedField, equals: .minRankText)
+            .matchedGeometryEffect(id: ViewField.minRankText, in: autoComplete, anchor: .bottomTrailing)
             
             Spacer().frame(width: 30)
             
-            InputInt(title: "Maximum:", field: $maxRankCode, message: $maxRankMessage, messageOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, maxValue: 999, isEnabled: event == nil || event!.validMaxRank == 999, pickerAction: { showMaxRankCodesSearch = true }, onKeyPress: maxRankKeyPress, detectKeys: detectKeys) { (newValue) in
-                set(maxRankCode: newValue)
-                maxRankCodeData = getMaxRankList()
+            Input(title: "Maximum:", field: $maxRankText, desc: $maxRankDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMaxRank == 999, onKeyPress: maxRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+                set(maxRankText: newValue)
+                maxRankCodeData = (newValue == "" ? [] : getMaxRankList(text: newValue))
             }
-            .focused($focusedField, equals: .maxRankCode)
-            .matchedGeometryEffect(id: ViewField.maxRankCode, in: autoComplete, anchor: .bottomTrailing)
+            .help("Enter a maximum rank code for this event or leave blank if you do not want to filter by rank")
+            .focused($focusedField, equals: .maxRankText)
+            .matchedGeometryEffect(id: ViewField.maxRankText, in: autoComplete, anchor: .bottomTrailing)
             
             Spacer()
         }
     }
     
+    private func getMinRankList(text: String) -> [AutoCompleteData] {
+        getRankList(text: text, minimum: true)
+    }
+    
+    private func getMaxRankList(text: String) -> [AutoCompleteData] {
+        getRankList(text: text, minimum: false)
+    }
+    
+    private func getRankList(text: String, minimum: Bool) -> [AutoCompleteData] {
+        selected = nil
+        return (minimum ? minRankList : maxRankList).filter({Utility.wordSearch(for: text, in: "\($0.rankCode) \($0.rankName)")})
+                .sorted(by: {$0.rankCode < $1.rankCode}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: "\(element.rankCode)", desc: element.rankName)})
+    }
+    
     private func minRankKeyPress(_ press: KeyPress) -> KeyPress.Result{
-        onKeyPress(press, maxSelected: minRankCodeData.count) {
-            set(minRankCode: Int(minRankCodeData[selected!].code)!)
+        AutoComplete.onKeyPress(press, selected: $selected, maxSelected: minRankCodeData.count) {
+            set(minRankText: "\(minRankCodeData[selected!].code)")
         }
     }
     
     private func maxRankKeyPress(_ press: KeyPress) -> KeyPress.Result{
-        onKeyPress(press, maxSelected: maxRankCodeData.count) {
-            set(maxRankCode: Int(maxRankCodeData[selected!].code)!)
+        AutoComplete.onKeyPress(press, selected: $selected, maxSelected: maxRankCodeData.count) {
+            set(maxRankText: "\(maxRankCodeData[selected!].code)")
         }
     }
     
@@ -515,6 +567,7 @@ struct SelectInputView: View {
             Spacer().frame(width: 42)
             
             Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 117, isEnabled: true)
+                .help("Enter a (short) name for this round of the event. This will be used as a prefix for some tabs in the spreadsheet.")
             
             Spacer()
         }
@@ -524,12 +577,13 @@ struct SelectInputView: View {
         VStack {
             HStack {
                 
-                Spacer().frame(width: 42)
+                Spacer().frame(width: 24)
                 
-                Picker("Level:                    ", selection: $localNational) {
+                Picker("Level:                     ", selection: $localNational) {
                     Text("Local").tag(Level.local)
                     Text("National").tag(Level.national)
                 }
+                .help("Select the type of MPs to be awarded")
                 .disabled(event == nil || !event!.nationalAllowed || !event!.localAllowed)
                 .pickerStyle(.segmented)
                 .focusable(false)
@@ -545,9 +599,11 @@ struct SelectInputView: View {
                 Spacer().frame(width: 42)
                 
                 InputFloat(title: "Max award:", field: $maxAward, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 117)
+                    .help("Enter the maximum MP award. This might be reduced if the minimum entry is not reached.")
                     .disabled(basis != .standard)
                 
                 InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 120)
+                    .help("Enter the maximum E/W MP award if this is a 2-winner event with different points for each direction.")
                     .disabled(basis != .standard)
                 
                 Spacer()
@@ -559,12 +615,15 @@ struct SelectInputView: View {
                 Spacer().frame(width: 42)
                 
                 InputInt(title: "Min entry:", field: $minEntry, topSpace: 0, width: 60, inlineTitle: true, inlineTitleWidth: 117)
+                    .help("Enter the minimum number of entries for the event to be eligible for the full MP award. If the field is smaller the maximum award will be scaled down pro rata.")
                     .disabled(basis != .standard)
                 
                 InputFloat(title: "Award to %:", field: $awardTo, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 120)
                     .disabled(basis != .standard)
+                    .help("Enter the percentage of the field who should receive a bonus award.")
                 
                 InputFloat(title: "Per win:", field: $perWin, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 70)
+                    .help("Enter the the number of MPs to be awarded for each win in a Swiss event. Half of this value (rounded up) will be awarded for a draw.")
                     .disabled(basis == Basis.manual)
                 
                 Spacer()
@@ -576,7 +635,7 @@ struct SelectInputView: View {
         VStack {
             HStack{
                 Spacer().frame(width: 42)
-                Picker("Calculation basis:   ", selection: $basis) {
+                Picker("Calculation basis:  ", selection: $basis) {
                     Text("Standard").tag(Basis.standard)
                     Text("Manual").tag(Basis.manual)
                     Text("Head-to-head").tag(Basis.headToHead)
@@ -650,10 +709,10 @@ struct SelectInputView: View {
             HStack {
                 Spacer().frame(width: 42)
                 HStack {
-                    InputInt(title: "Override players:", field: $overrideTeamMembers, width: 127, inlineTitle: true, inlineTitleWidth: 120)
+                    InputInt(title: "Override players:", field: $overrideTeamMembers, width: 127, inlineTitle: true, inlineTitleWidth: 123)
                         .help(Text("Used to override the number of team members considered in the raw data. Primarily used to remove subs from the awards when their impact has not been material, or to increase the number of players to allow manual entry in the spreadsheet"))
                 }
-                Spacer().frame(width: 72)
+                Spacer().frame(width: 68)
                 HStack {
                     Picker("VP type:   ", selection: $vpType) {
                         Text("Discrete").tag(VpType.discrete)
@@ -690,17 +749,30 @@ struct SelectInputView: View {
     private var settingsMenuView: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Settings").bold()
-                .padding([.top], 6)
-                .padding([.leading, .trailing], 8)
+                .padding([.top], 10)
+                .padding([.leading, .trailing], 10)
                 .padding([.bottom], 0)
             Button("Edit Settings") { showSettings = true }
                 .padding([.leading, .trailing], 28)
                 .padding([.top], 6)
                 .padding([.bottom], 10)
             Separator()
+            Text("Configuration Data").bold()
+                .padding([.top], 10)
+                .padding([.leading, .trailing], 10)
+                .padding([.bottom], 0)
+            Button("Stratifications") { showStratifications = true }
+                .padding([.leading, .trailing], 28)
+                .padding([.top], 6)
+                .padding([.bottom], 10)
+            Button("Blocked National Ids") { showBlockedNumbers = true }
+                .padding([.leading, .trailing], 28)
+                .padding([.top], 6)
+                .padding([.bottom], 10)
+            Separator()
             Text("Imports").bold()
                 .padding([.top], 6)
-                .padding([.leading, .trailing], 8)
+                .padding([.leading, .trailing], 10)
                 .padding([.bottom], 0)
             Button("Import Ranks") { showImportRanks = true }
                 .padding([.leading, .trailing], 28)
@@ -724,6 +796,7 @@ struct SelectInputView: View {
         } label: {
             Image(systemName: "gearshape.fill").font(.largeTitle).foregroundColor(Palette.banner.background)
         }
+        .help("Click here to change settings, import ranks, clubs or events from Mempad, or to setup other configuration data.")
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
     }
@@ -793,7 +866,8 @@ struct SelectInputView: View {
                 }
             }
         } label: {
-            Text("Add Sheet")
+            Text("Add Round")
+                .help("Click this to add the round defined above to the current event.")
                 .foregroundColor(Palette.highlightButton.text)
                 .frame(width: 100, height: 30)
                 .font(.callout).minimumScaleFactor(0.5)
@@ -802,7 +876,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || awardTo <= 0 || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
     
@@ -823,7 +897,8 @@ struct SelectInputView: View {
                 }
             }
         } label: {
-            Text("Create Workbook")
+            Text("Create Spreadsheet")
+                .help("Click this to create the spreadsheet")
                 .foregroundColor(Palette.highlightButton.text)
                 .frame(width: 150, height: 30)
                 .font(.callout).minimumScaleFactor(0.5)
@@ -853,6 +928,7 @@ struct SelectInputView: View {
             }
         } label: {
             Text("Paste Config")
+                .help("Click this to import details of a multi-round event. The clipboard must be in a very specific format, normally copied from a 'rounds' spreadheet.")
                 .foregroundColor(Palette.enabledButton.text)
                 .frame(width: 120, height: 30)
                 .font(.callout).minimumScaleFactor(0.5)
@@ -869,6 +945,7 @@ struct SelectInputView: View {
             self.writer = nil
         } label: {
             Text("Clear")
+                .help("Click this to clear the current event. This happens automatically if a spreadsheet is created.")
                 .foregroundColor(Palette.highlightButton.text)
                 .frame(width: 100, height: 30)
                 .font(.callout).minimumScaleFactor(0.5)
@@ -903,7 +980,7 @@ struct SelectInputView: View {
             }
             
             roundErrors = []
-            if errors != nil || warnings != nil {
+            if errors != nil || warnings != nil || messages != [] {
                 roundErrors.append(errorList)
             }
             if errors != nil {
@@ -1017,6 +1094,7 @@ struct SelectInputView: View {
             addMissingNationalIdWarning()
             if !roundErrors.isEmpty {
                 showErrors = true
+                writer = nil
             }
         }
     }
@@ -1058,55 +1136,6 @@ struct SelectInputView: View {
             roundErrors.append(RoundErrorList(name: "General", errors: [], warnings: ["Some players have missing National Ids"]))
         }
     }
-    
-    private func getEventList() -> [AutoCompleteData] {
-        selected = nil
-        if eventCode != "" {
-            return (MasterData.shared.events.array as! [EventViewModel])
-                .filter({$0.eventCode.hasPrefix(eventCode.uppercased()) && $0.active && ($0.startDate ?? Date()) <= Date() && ($0.endDate ?? Date()) >= Date()})
-                .sorted(by: {$0.eventCode < $1.eventCode}).enumerated()
-                .map({ (index, element) in
-                    AutoCompleteData(index: index, code: element.eventCode, desc: element.eventName)})
-        } else {
-            return []
-        }
-    }
-    
-    private func getClubList() -> [AutoCompleteData] {
-        selected = nil
-        if clubCode != "" {
-            return (MasterData.shared.clubs.array as! [ClubViewModel])
-                .filter({$0.clubCode.hasPrefix(clubCode.uppercased()) && !$0.clubName.uppercased().contains("CLOSED")})
-                .sorted(by: {$0.clubCode < $1.clubCode}).enumerated()
-                .map({ (index, element) in
-                    AutoCompleteData(index: index, code: element.clubCode, desc: element.clubName)})
-        } else {
-            return []
-        }
-    }
-    
-    private func getMinRankList() -> [AutoCompleteData] {
-        getRankList(rankCode: minRankCode, rank: minRank, nullRank: 0)
-    }
-    
-    private func getMaxRankList() -> [AutoCompleteData] {
-        getRankList(rankCode: maxRankCode, rank: maxRank, nullRank: 999)
-    }
-    
-    private func getRankList(rankCode: Int, rank: RankViewModel?, nullRank: Int) -> [AutoCompleteData] {
-        selected = nil
-        if rankCode != nullRank {
-            var list = MasterData.shared.ranks.array as! [RankViewModel]
-            list.append(RankViewModel(rankCode: nullRank, rankName: "No \(nullRank == 0 ? "minimum" : "maximum") rank"))
-            return list.filter({"\($0.rankCode)".hasPrefix("\(rankCode)")})
-                .sorted(by: {$0.rankCode < $1.rankCode}).enumerated()
-                .map({ (index, element) in
-                    AutoCompleteData(index: index, code: "\(element.rankCode)", desc: element.rankName)})
-        } else {
-            return []
-        }
-    }
-    
 }
 
 struct EdgeBorder: Shape {

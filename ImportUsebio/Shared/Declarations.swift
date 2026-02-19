@@ -63,7 +63,7 @@ let nullUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
 // Localisable names
 
-public let appName = "Import Usebio XML"
+public let appName = "Import Results"
 public let appImage = "ImportUsebio"
 
 public let dateFormat = "EEEE d MMMM yyyy"

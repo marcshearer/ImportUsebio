@@ -100,7 +100,8 @@ struct MessageBoxView: View {
                             }
                             .frame(width: 100, height: 30)
                             .buttonStyle(PlainButtonStyle())
-                      }
+                            .focusable(false)
+                        }
                         
                         if let cancelText = values.cancelText {
                             if values.okText != nil {
@@ -117,6 +118,9 @@ struct MessageBoxView: View {
                                     .background(Palette.highlightButton.background)
                                     .cornerRadius(15)
                             }
+                            .frame(width: 100, height: 30)
+                            .buttonStyle(PlainButtonStyle())
+                            .focusable(false)
                         }
                         
                         if values.okText == nil && values.cancelText == nil {

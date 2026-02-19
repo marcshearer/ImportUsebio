@@ -1,26 +1,109 @@
 Attribute VB_Name = "ImportUsebio"
-Function Award(MaxAward As Double, Rank As Integer, totalAwards As Integer, roundDP As Integer, ParamArray allRanksArray() As Variant) As Double
-        Dim ties As Double
-        Dim aggregateAwards As Double
-        Dim AllRanks As Variant
-        ties = 0
-        aggregateAwards = 0
-        AllRanks = allRanksArray(0)
-        For Each OtherRank In AllRanks
-            matchRank = OtherRank
-            If matchRank = Rank Then
-                If ties = 0 Or Rank + ties <= totalAwards Then
-                    ties = ties + 1
-                    aggregateAwards = aggregateAwards + SingleAward(MaxAward, matchRank + ties - 1, totalAwards)
-                End If
+Function Stratum(RankArray() As Variant, StrataBoundsArray() As Variant) As Integer
+        ' Compute highest rank (allowing for Other NBO) and then find which stratum that is in
+        Result = 0
+        Max = 0
+        For i = LBound(RankArray) To UBound(RankArray)
+            If RankArray(i, 1) = 1 Then
+                Max = 999
+            ElseIf RankArray(i, 1) > Max Then
+                Max = RankArray(i, 1)
             End If
-        Next OtherRank
-        Award = Application.WorksheetFunction.RoundUp(aggregateAwards / ties, roundDP)
+        Next i
+        If Max = 999 Then
+            Result = 0
+        Else
+            For i = LBound(StrataBoundsArray) To UBound(StrataBoundsArray)
+               If Max <= StrataBoundsArray(i) Then
+                    Result = i
+                End If
+            Next i
+        End If
+        Stratum = Result
 End Function
 
-Private Function SingleAward(MaxAward As Double, Rank As Variant, totalAwards As Integer) As Double
-        If Rank <= totalAwards Then
-            SingleAward = (MaxAward / totalAwards) * (totalAwards - Rank + 1)
+Function StratumAward(MaxAward As Double, Position As Integer, AwardTo As Double, roundDP As Integer, ParamArray AllPositionsArray() As Variant) As Double
+    ' Compute the award for a particular positions given an array of positions for the stratum - this will have gaps in it (from other stratum)
+    Dim Indices() As Variant
+    Dim allPositions() As Variant
+    Dim NewPosition As Integer
+    Dim Interim() As Variant
+    Dim totalAwards As Integer
+    Dim fieldSize As Integer
+        
+    ' Set up array of all positions
+    Interim = AllPositionsArray(0)
+    ReDim allPositions(LBound(Interim) To UBound(Interim))
+    ReDim Indices(LBound(Interim) To UBound(Interim))
+    Result = 0
+    
+    fieldSize = UBound(allPositions) - LBound(allPositions) + 1
+    If fieldSize <= 1 Then
+        ' Not enough in stratum - award 0
+        StratumAward = 0
+        Exit Function
+    End If
+
+    For Index = LBound(allPositions) To UBound(allPositions)
+        allPositions(Index) = Interim(Index, 1)
+        Indices(Index) = Index
+    Next Index
+    
+    ' Sort it
+    Quicksort allPositions, Indices
+    
+    ' Remove gaps in positions
+    NewPosition = 0
+    LastPosition = -1
+    For Index = LBound(allPositions) To UBound(allPositions)
+        If allPositions(Index) = LastPosition Then
+            ' Tie - make it same as previous tie
+            allPositions(Index) = NewPosition
+        Else
+            ' Non-tie - allocate a new position
+            LastPosition = allPositions(Index)
+            NewPosition = NewPosition + 1
+            allPositions(Index) = NewPosition
+        End If
+        If Position = LastPosition Then
+            ' This is the actal position - adjust it
+            Position = NewPosition
+        End If
+    Next Index
+    
+    ' Calculate total awards
+    totalAwards = Application.WorksheetFunction.RoundUp(fieldSize * AwardTo, 0)
+    
+    ' Now allocate the award
+    StratumAward = AwardInternal(MaxAward, Position, totalAwards, roundDP, allPositions)
+End Function
+
+Function Award(MaxAward As Double, Position As Integer, totalAwards As Integer, roundDP As Integer, ParamArray AllPositionsArray() As Variant) As Double
+        Dim allPositions As Variant
+        allPositions = AllPositionsArray(0)
+        Award = AwardInternal(MaxAward, Position, totalAwards, roundDP, allPositions)
+End Function
+        
+Private Function AwardInternal(MaxAward As Double, Position As Integer, totalAwards As Integer, roundDP As Integer, allPositions As Variant) As Double
+        Dim ties As Double
+        Dim aggregateAwards As Double
+        ties = 0
+        aggregateAwards = 0
+        For Each OtherPosition In allPositions
+            matchPosition = OtherPosition
+            If matchPosition = Position Then
+                If ties = 0 Or Position + ties <= totalAwards Then
+                    ties = ties + 1
+                    aggregateAwards = aggregateAwards + SingleAward(MaxAward, matchPosition + ties - 1, totalAwards)
+                End If
+            End If
+        Next OtherPosition
+        AwardInternal = Application.WorksheetFunction.RoundUp(aggregateAwards / ties, roundDP)
+End Function
+
+Private Function SingleAward(MaxAward As Double, Position As Variant, totalAwards As Integer) As Double
+        If Position <= totalAwards Then
+            SingleAward = (MaxAward / totalAwards) * (totalAwards - Position + 1)
         Else
             SingleAward = 0
         End If

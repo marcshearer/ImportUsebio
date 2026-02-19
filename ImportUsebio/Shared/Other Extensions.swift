@@ -382,6 +382,11 @@ extension Float {
         let number = NSNumber(value: rounded)
         return formatter.string(from: number)!
     }
+    
+    func roundUp(places: Int) -> Float {
+        let multiplier = pow(10, Float(places))
+        return ceil(self * multiplier) / multiplier
+    }
 }
 
 extension Decimal {
@@ -415,9 +420,9 @@ extension View {
     }
 }
 
-extension NSObject {
+extension ViewModel {
     
-    class func sort(_ first: NSObject, _ second: NSObject, sortKeys: [(value: String, direction: SortDirection)]) -> Bool {
+    class func sort(_ first: ViewModel, _ second: ViewModel, sortKeys: [(value: String, direction: SortDirection)]) -> Bool {
         // Returns true if the first record is less than the second on the sort criteria
         var sign: [Int: Int] = [:]
         var result = false
@@ -426,6 +431,8 @@ extension NSObject {
                 // Also handles Ints and Bools
                 sign[index] = (firstValue == secondValue ? 0 : firstValue < secondValue ? -1 : 1) * (key.direction == .descending ? -1 : 1)
             } else if let firstValue = first.value(forKey: key.value) as? String, let secondValue = second.value(forKey: key.value) as? String {
+                sign[index] = (firstValue == secondValue ? 0 : firstValue < secondValue ? -1 : 1) * (key.direction == .descending ? -1 : 1)
+            } else if let firstValue = first.value(forKey: key.value) as? Int, let secondValue = second.value(forKey: key.value) as? Int {
                 sign[index] = (firstValue == secondValue ? 0 : firstValue < secondValue ? -1 : 1) * (key.direction == .descending ? -1 : 1)
             } else {
                 fatalError("This type is not supported")
@@ -458,4 +465,20 @@ extension Color {
         return (((Int(NSColor(self).blueComponent) * 256) + Int(NSColor(self).greenComponent)) * 256) + Int(NSColor(self).redComponent)
     }
     
+}
+
+struct PaletteModifier : ViewModifier {
+    var color: PaletteColor
+    var textType: ThemeTextType = .normal
+    
+    func body(content: Content) -> some View { content
+        .background(color.background)
+        .foregroundColor(color.textColor(textType))
+    }
+}
+
+extension View {
+    func palette(_ color: ThemeBackgroundColorName, _ textType: ThemeTextType? = .normal) -> some View {
+        self.modifier(PaletteModifier(color: PaletteColor(color), textType: textType ?? .normal))
+    }
 }
