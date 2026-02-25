@@ -19,6 +19,8 @@ struct InputFloat : View {
     var inlineTitle: Bool = true
     var inlineTitleWidth: CGFloat = 150
     var onChange: ((Float?)->())?
+    @FocusState private var focus: Bool?
+
     
     @State private var refresh = false
     @State private var wrappedText = ""
@@ -59,10 +61,7 @@ struct InputFloat : View {
 
                 HStack {
                     UndoWrapper(text) { text in
-                        TextField("", text: text, onEditingChanged: {(editing) in
-                            text.wrappedValue = Float(text.wrappedValue)?.toString(places: places) ?? ""
-                            field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
-                        })
+                        TextField("", text: text)
                             .onSubmit {
                                 text.wrappedValue = Float(text.wrappedValue)?.toString(places: places) ?? ""
                                 field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
@@ -78,6 +77,11 @@ struct InputFloat : View {
                                     onChange?(field)
                                 }
                             }
+                            .onChange(of: focus) {
+                                text.wrappedValue = Float(text.wrappedValue)?.toString(places: places) ?? ""
+                                field = Utility.round(Float(text.wrappedValue) ?? 0, places: places)
+                            }
+                            .focused($focus, equals: true)
                             .lineLimit(1)
                             .padding(.all, 10)
                             .disableAutocorrection(false)

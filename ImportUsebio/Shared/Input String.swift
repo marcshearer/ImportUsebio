@@ -6,6 +6,7 @@
     //
 
 import SwiftUI
+import AudioToolbox
 
 struct Input : View {
         
@@ -33,6 +34,7 @@ struct Input : View {
     var onKeyPress: ((KeyPress)->(KeyPress.Result))?
     var detectKeys: Set<KeyEquivalent>?
     var onChange: ((String)->())?
+    @FocusState private var focus: Bool?
 
     var body: some View {
         let pickerWidth: CGFloat = (pickerAction == nil ? 0 : inputDefaultHeight * 0.95)
@@ -87,6 +89,16 @@ struct Input : View {
                                 .frame(width: pickerWidth, height: height)
                         }
                     }
+                    if field.isEmpty && placeHolder != "" && (pickerAction == nil || !isReadOnly || !isEnabled) {
+                        VStack {
+                            HStack {
+                                Spacer().frame(width: 10)
+                                LeadingClickableText(text: placeHolder)
+                                    .font(inputFont)
+                                    .foregroundColor(Palette.input.faintText)
+                            }
+                        }
+                    }
                     HStack {
                         if secure {
                             VStack {
@@ -102,6 +114,7 @@ struct Input : View {
                                     .textFieldStyle(PlainTextFieldStyle())
                                     .disabled(!isEnabled || isReadOnly)
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
+                                    .background(.clear)
                                     .inputStyle(width: width, height: inputDefaultHeight)
                                     .frame(width: descOffset == 0 ? width - pickerWidth : descOffset)
                                     .if(detectKeys != nil) { (view) in
@@ -123,8 +136,15 @@ struct Input : View {
                                         }
                                         onChange?(field)
                                     }
+                                    .onChange(of: focus) {
+                                        if focus ?? false {
+                                            
+                                        }
+                                    }
+                                    .focused($focus, equals: true)
                                     .disabled(!isEnabled || isReadOnly)
                                     .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
+                                    .background(.clear)
                                     .inputStyle(width: width, height: height - (MyApp.target == .macOS ? 16 : 0), padding: 5.0)
                                     .myKeyboardType(self.keyboardType)
                                     .myAutocapitalization(autoCapitalize)
@@ -162,15 +182,25 @@ struct Input : View {
                         } else {
                             TextField("", text: $field)
                                 .font(inputFont)
-                                .onChange(of: field, initial: false) { (_, value) in
+                                .onChange(of: field, initial: false) { (oldValue, value) in
                                     if let limitText = limitText, value.count > limitText {
                                         field = String(value.prefix(limitText))
                                     }
                                     onChange?(value)
                                 }
+                                .onChange(of: focus) {
+                                    if focus ?? false {
+                                        if field == "" {
+                                            
+                                        } else {
+                                            
+                                        }
+                                    }
+                                }
+                                .focused($focus, equals: true)
                                 .textFieldStyle(PlainTextFieldStyle())
                                 .foregroundColor(Palette.input.text)
-                                .background(Palette.input.background)
+                                .background(.clear)
                                 .inputStyle(width: width, height: height)
                                 .myKeyboardType(self.keyboardType)
                                 .myAutocapitalization(autoCapitalize)
@@ -186,19 +216,18 @@ struct Input : View {
                             Spacer()
                         }
                     }
-                    if field.isEmpty {
+                    if field.isEmpty && placeHolder != "" && pickerAction != nil && isReadOnly && isEnabled {
                         VStack {
                             HStack {
                                 Spacer().frame(width: 10)
-                                Text(placeHolder)
+                                LeadingClickableText(text: placeHolder)
                                     .font(inputFont)
                                     .foregroundColor(Palette.input.faintText)
                             }
                         }
-                        .if(pickerAction != nil && isReadOnly && isEnabled) { (view) in
-                            view.onTapGesture {
-                                pickerAction?()
-                            }
+                        .onTapGesture {
+                            // Allow click on placeHolder to activate picker
+                            pickerAction?()
                         }
                     }
                 }
@@ -288,3 +317,4 @@ extension NSSecureTextField {
   }
 }
 #endif
+

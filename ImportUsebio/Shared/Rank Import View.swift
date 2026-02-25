@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 
 struct RankImportView: View {
     @Environment(\.dismiss) private var dismiss
+    var completion: () -> ()
     @State private var droppedFiles: [(filename: String, contents: String)] = []
     @State private var dropZoneEntered = false
     private let uttypes = [UTType.data]
@@ -23,7 +24,7 @@ struct RankImportView: View {
     
     var dropZone: some View {
         VStack(spacing: 0) {
-            Banner(title: Binding.constant("Import Rank Code Data"))
+            Banner(title: Binding.constant("Import Rank Code Data"), backAction: { completion() ; return true })
             HStack {
                 Spacer().frame(width: 50)
                 VStack {

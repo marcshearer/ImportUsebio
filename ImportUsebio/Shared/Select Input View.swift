@@ -24,6 +24,7 @@ fileprivate enum ViewField {
     case clubCode
     case minRankText
     case maxRankText
+    case strataDefName
 }
 
 struct SelectInputView: View {
@@ -45,6 +46,8 @@ struct SelectInputView: View {
     @State private var maxRankCode: Int = 999
     @State private var maxRankText: String = ""
     @State private var maxRankDesc: String = "No maximum rank"
+    @State private var strataDefName: String = ""
+    @State private var strataDef: StrataDefViewModel? = nil
     @State private var basis: Basis = .standard
     @State private var eventDescription: String = ""
     @State private var includeInRace: Bool = false
@@ -86,17 +89,18 @@ struct SelectInputView: View {
     @State private var clubCodeData: [AutoCompleteData] = []
     @State private var minRankCodeData: [AutoCompleteData] = []
     @State private var maxRankCodeData: [AutoCompleteData] = []
+    @State private var strataDefData: [AutoCompleteData] = []
     @State private var selected: Int? = nil
     @State private var downloadingMemberList: Bool = true
     @State private var downloadMemberListMessage: String = ""
-    let minRankList = ([RankViewModel(rankCode: 0, rankName: "No minimum rank")] + MasterData.shared.ranks.array as! [RankViewModel]).filter({$0.rankCode != 1})
-    let maxRankList = (MasterData.shared.ranks.array as! [RankViewModel] + [RankViewModel(rankCode: 999, rankName: "No maximum rank")]).filter({$0.rankCode != 1})
+    @State var minRankList: [RankViewModel] = []
+    @State var maxRankList: [RankViewModel] = []
 
     @Namespace private var autoComplete
     
     var body: some View {
-       
-        // Just to trigger view refresh
+        
+            // Just to trigger view refresh
         if refresh { EmptyView() }
         
         StandardView("Select Input") {
@@ -131,7 +135,6 @@ struct SelectInputView: View {
                             HStack {
                                 
                                 rankingsView
-                                
                             }
                             
                             VStack(spacing: 0) {
@@ -139,7 +142,15 @@ struct SelectInputView: View {
                                 InputTitle(title: "Other details")
                                 Spacer().frame(height: 8)
                                 
-                                roundNameView
+                                HStack {
+                                    
+                                    roundNameView
+                                    
+                                    strataDefView
+                                    
+                                    Spacer()
+                                }
+                                
                                 
                                 HStack {
                                     VStack {
@@ -165,14 +176,16 @@ struct SelectInputView: View {
                                         Text(showAdvancedParameters ? "􀄥" : "􀄧")
                                             .foregroundColor(Palette.background.themeText)
                                             .font(inputFont)
-                                            .onTapGesture {
-                                                showAdvancedParameters.toggle()
-                                                windowHeight = showAdvancedParameters ? expandedWindowHeight : unexpandedWindowHeight
-                                            }
                                         Spacer()
                                     }
                                     Spacer()
-                                }.frame(height: 20)
+                                }
+                                .frame(height: 20)
+                                .onTapGesture {
+                                    showAdvancedParameters.toggle()
+                                    windowHeight = showAdvancedParameters ? expandedWindowHeight : unexpandedWindowHeight
+                                }
+                                
                                 if showAdvancedParameters {
                                     advancedParametersView
                                 }
@@ -202,28 +215,7 @@ struct SelectInputView: View {
                         }
                     }
                 }
-                VStack {
-                    switch focusedField {
-                    case .eventCode:
-                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.eventCode, selected: $selected, codeWidth: 80, data: $eventCodeData, valid: event != nil) { (newValue) in
-                            eventCode = newValue
-                        }
-                    case .clubCode:
-                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.clubCode, selected: $selected, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
-                            clubCode = newValue
-                        }
-                    case .minRankText:
-                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.minRankText, selected: $selected, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
-                            minRankText = newValue
-                        }
-                    case .maxRankText:
-                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.maxRankText, selected: $selected, codeWidth: 80 , data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
-                            maxRankText = newValue
-                        }
-                    default:
-                        EmptyView()
-                    }
-                }
+                autoCompleteViews
             }
             Spacer()
         }
@@ -231,8 +223,8 @@ struct SelectInputView: View {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             phaseChange(newPhase)
         }
-        .onChange(of: focusedField) { (oldValue, _) in
-            changeFocus(leaving: oldValue)
+        .onChange(of: focusedField) { (oldValue, newValue) in
+            changeFocus(leaving: oldValue, entering: newValue)
         }
         .sheet(isPresented: $showErrors) {
             ShowErrorsView(roundErrors: roundErrors)
@@ -253,14 +245,18 @@ struct SelectInputView: View {
             ClubImportView()
         }
         .sheet(isPresented: $showImportRanks) {
-            RankImportView()
+            RankImportView() {
+                refreshRankLists()
+            }
         }
         .sheet(isPresented: $downloadingMemberList) {
             downloadingMemberListView()
         }
         .onAppear {
+            setupFields()
             downloadingMemberList = false
-            downloadMemberList()
+                // downloadMemberList()
+            refreshRankLists()
         }
     }
     
@@ -271,6 +267,19 @@ struct SelectInputView: View {
                 downloadMemberList(message: "Updating Member List")
             }
         }
+    }
+    
+    private func setupFields() {
+        set(eventCode: "")
+        set(clubCode: "")
+        set(minRankText: "0")
+        set(maxRankText: "999")
+        set(strataDefName: "")
+    }
+    
+    private func refreshRankLists() {
+        minRankList = ([RankViewModel(rankCode: 0, rankName: "No minimum rank")] + MasterData.shared.ranks.array as! [RankViewModel]).filter({$0.rankCode != 1})
+        maxRankList = (MasterData.shared.ranks.array as! [RankViewModel] + [RankViewModel(rankCode: 999, rankName: "No maximum rank")]).filter({$0.rankCode != 1})
     }
     
     private func downloadMemberList(message: String = "Downloading Member List") {
@@ -302,33 +311,86 @@ struct SelectInputView: View {
         }
     }
     
-    private func changeFocus(leaving: ViewField?) {
+    private var autoCompleteViews : some View {
+        VStack {
+            switch focusedField {
+            case .eventCode:
+                AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $eventCodeData, valid: event != nil) { (newValue) in
+                    eventCode = newValue
+                }
+            case .clubCode:
+                AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
+                    clubCode = newValue
+                }
+            case .minRankText:
+                AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
+                    minRankText = newValue
+                }
+            case .maxRankText:
+                AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80 , data: $maxRankCodeData, valid: maxRank != nil) { (newValue) in
+                    maxRankText = newValue
+                }
+            case .strataDefName:
+                AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 270, data: $strataDefData, hideList: strataDef != nil, hasDescription: false) { (newValue) in
+                    strataDefName = newValue
+                }
+            default:
+                EmptyView()
+            }
+        }
+    }
+    
+    private func changeFocus(leaving: ViewField?, entering: ViewField?) {
+        let listSelected = selected
         switch leaving {
         case .minRankText:
             let list = getMinRankList(text: minRankText)
-            if list.count == 1 {
-                set(minRankText: "\(list.first!.code)")
+            if list.count == 1 || (list.count > 0 && listSelected != nil) {
+                set(minRankText: "\(list[listSelected ?? 0].code)")
             }
             if Int(minRankText) == 0 {
+                set(minRankText: "")
+            } else if minRank == nil {
                 set(minRankText: "")
             }
         case .maxRankText:
             let list = getMaxRankList(text: maxRankText)
-            if list.count == 1 {
-                set(maxRankText: "\(list.first!.code)")
+            if list.count == 1 || (list.count > 0 && listSelected != nil) {
+                set(maxRankText: "\(list[listSelected ?? 0].code)")
             }
             if Int(maxRankText) == 999 {
+                set(maxRankText: "")
+            } else if maxRank == nil {
                 set(maxRankText: "")
             }
         case .eventCode:
             let list = getEventList()
-            if list.count == 1 {
-                set(eventCode: list.first!.code)
+            if list.count == 1 || (list.count > 0 && listSelected != nil) {
+                set(eventCode: (list[listSelected ?? 0].code))
+            } else if event == nil {
+                set(eventCode: "")
             }
         case .clubCode:
             let list = getClubList()
-            if list.count == 1 {
-                set(clubCode: list.first!.code)
+            if list.count == 1 || (list.count > 0 && listSelected != nil) {
+                set(clubCode: list[listSelected ?? 0].code)
+            } else if club == nil {
+                set(clubCode: "")
+            }
+        case .strataDefName:
+            let list = getStrataDefList()
+            if list.count == 1 || (list.count > 0 && listSelected != nil) {
+                set(strataDefName: list[listSelected ?? 0].code)
+            } else if strataDef == nil {
+                set(strataDefName: "")
+            }
+            if strataDef != nil {
+                // Clear 2-winner pairs award
+                ewMaxAward = 0
+            }
+        case .eventDescription:
+            if entering == nil {
+                focusedField = .eventCode
             }
         default:
             break
@@ -346,10 +408,10 @@ struct SelectInputView: View {
                 localNational = .national
             }
             if event.validMinRank > 0, let minRank = RankViewModel.rank(rankCode: event.validMinRank) {
-                set(minRankText: minRank.rankName)
+                set(minRankText: "\(minRank.rankCode)")
             }
             if event.validMaxRank < 999, let maxRank = RankViewModel.rank(rankCode: event.validMaxRank) {
-                set(maxRankText: maxRank.rankName)
+                set(maxRankText: "\(maxRank.rankCode)")
             }
             if event.originatingClubCode != "" {
                 set(clubCode: event.originatingClubCode)
@@ -369,7 +431,7 @@ struct SelectInputView: View {
         } else {
             minRank = minRankList.first(where: { $0.rankName == newValue })
         }
-        minRankText = newValue
+        minRankText = (newValue.trim() == "" ? "0" : newValue)
         minRankCode = minRank?.rankCode ?? -1
         minRankMessage = (minRank?.rankName ?? "Invalid rank code")
         if minRank != nil && maxRankCode < minRankCode {
@@ -383,13 +445,18 @@ struct SelectInputView: View {
         } else {
             maxRank = maxRankList.first(where: { $0.rankName == newValue })
         }
-        maxRankText = newValue
-        maxRankCode = maxRank?.rankCode ?? -1
+        maxRankText = (newValue.trim() == "" ? "999" : newValue)
+        maxRankCode = maxRank?.rankCode ?? 0
         if maxRank != nil && maxRankCode < minRankCode {
             maxRankDesc = "Below minimum rank"
         } else {
             maxRankDesc = (maxRank?.rankName ?? "Invalid rank code")
         }
+    }
+    
+    private func set(strataDefName newValue: String) {
+        strataDef = StrataDefViewModel.strataDef(name: newValue)
+        strataDefName = newValue
     }
     
     private var separatorView: some View {
@@ -403,8 +470,10 @@ struct SelectInputView: View {
     private var filenameView: some View {
         VStack(spacing: 0) {
             HStack {
-                Input(title: "Import filename", field: $inputFilename, placeHolder: "No import file specified", topSpace: 16, leadingSpace: 14, width: 365, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile)
-                    .help("Select input XML file for a single round event.\nFor a multi-round event use the Paste Config button below to import the details.")
+                Input(title: "Import filename", field: $inputFilename, placeHolder: "No import file specified", topSpace: 16, leadingSpace: 14, width: 365, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile, onChange: { newValue in
+                    focusedField = .eventDescription
+                })
+                .help("Select input XML file for a single round event.\nFor a multi-round event use the Paste Config button below to import the details.")
                     
                 Spacer()
             }
@@ -426,6 +495,7 @@ struct SelectInputView: View {
                     .focused($focusedField, equals: .eventDescription)
                     .help("Enter the event description. Note that this becomes the default name for the event spreadsheet and the title for outputs.")
                 Spacer().frame(width: 30)
+                
                 Text("Include race:").font(inputFont)
                 Picker("", selection: $includeInRace) {
                     Text("Include").tag(true)
@@ -434,6 +504,8 @@ struct SelectInputView: View {
                 .pickerStyle(.segmented)
                 .help("Include/exclude the event in a multi-event race")
                 .disabled((writer?.rounds.count ?? 0) >= 1)
+                .focusable(false)
+                
                 Spacer()
             }
         }
@@ -448,7 +520,6 @@ struct SelectInputView: View {
                 eventCodeData = getEventList()
             }
             .help("Enter an event code to be used to post the MPs")
-            .focused($focusedField, equals: .eventCode)
             .matchedGeometryEffect(id: ViewField.eventCode, in: autoComplete, anchor: .bottomTrailing)
         }
     }
@@ -568,8 +639,39 @@ struct SelectInputView: View {
             
             Input(title: "Round name:", field: $roundName, topSpace: 0, width: 160, inlineTitle: true, inlineTitleWidth: 117, isEnabled: true)
                 .help("Enter a (short) name for this round of the event. This will be used as a prefix for some tabs in the spreadsheet.")
+        }
+    }
+    
+    private var strataDefView: some View {
+        HStack {
+            Spacer().frame(width: 120)
             
-            Spacer()
+            Input(title: "Stratification:", field: $strataDefName, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, onKeyPress: strataDefKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+                set(strataDefName: newValue)
+                strataDefData = getStrataDefList()
+            }
+            .help("Enter a stratification defintion if this is a stratified event.")
+            .focused($focusedField, equals: .strataDefName)
+            .matchedGeometryEffect(id: ViewField.strataDefName, in: autoComplete, anchor: .bottomTrailing)
+        }
+    }
+    
+    private func strataDefKeyPress(_ press: KeyPress) -> KeyPress.Result{
+        AutoComplete.onKeyPress(press, selected: $selected, maxSelected: strataDefData.count) {
+            set(strataDefName: strataDefData[selected!].code)
+        }
+    }
+    
+    private func getStrataDefList() -> [AutoCompleteData] {
+        selected = nil
+        if strataDefName != "" {
+            return (MasterData.shared.strataDefs.array as! [StrataDefViewModel])
+                .filter({Utility.wordSearch(for: strataDefName, in: $0.name)})
+                .sorted(by: {StrataDefViewModel.defaultSort($0, $1)}).enumerated()
+                .map({ (index, element) in
+                    AutoCompleteData(index: index, code: element.name, desc: "")})
+        } else {
+            return []
         }
     }
     
@@ -604,8 +706,7 @@ struct SelectInputView: View {
                 
                 InputFloat(title: "Max E/W award:", field: $ewMaxAward, topSpace: 0, leadingSpace: 30, width: 60, inlineTitle: true, inlineTitleWidth: 120)
                     .help("Enter the maximum E/W MP award if this is a 2-winner event with different points for each direction.")
-                    .disabled(basis != .standard)
-                
+                    .disabled(basis != .standard || strataDef != nil)
                 Spacer()
             }
             
@@ -850,6 +951,8 @@ struct SelectInputView: View {
                 scoreData.reducedTo = 1
                 scoreData.awardTo = awardTo
                 scoreData.perWin = perWin
+                scoreData.strata = strataDef?.activeStrata() ?? []
+                scoreData.customFooter = strataDef?.customFooter ?? ""
                 writer?.add(name: roundName, scoreData: scoreData)
                 
                 MessageBox.shared.show("Added Successfully", okAction: {
@@ -970,6 +1073,9 @@ struct SelectInputView: View {
             } else {
                 if let usebioDescription = scoreData.events.last?.description, eventDescription == ""  {
                     eventDescription = usebioDescription
+                }
+                if let usebioType = scoreData.events.last?.type?.participantType?.desc, roundName == ""  {
+                    roundName = usebioType
                 }
             }
             if let warnings = warnings {

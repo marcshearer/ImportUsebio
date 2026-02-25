@@ -133,6 +133,13 @@ struct StratificationsDetailView: View {
                     Spacer()
                 }
                 
+                Spacer().frame(height: 20)
+                
+                HStack {
+                    Input(title: "Custom footer: ", field: $edit.customFooter, leadingSpace: 20, height: 60, width: 480, isReadOnly: !editMode.enabled, limitText: 255)
+                    Spacer()
+                }
+                
                 Spacer().frame(height: 30)
                 
                 let tableColums = [GridItem(.fixed(30), spacing: 10, alignment: .leading),
@@ -161,40 +168,40 @@ struct StratificationsDetailView: View {
                             .frame(height: 30)
                             .foregroundColor(Palette.tile.text)
                             
-                            ForEach(edit.strata.indices, id: \.self) { index in
+                            ForEach(edit.strata, id: \.strataElementid) { strata in
                                 GridRow {
                                     
-                                    CenteredClickableText(text: "\(index + 1)").bold()
-                                    if index == 0 && edit.strata[index].code.trim() == "" {
+                                    CenteredClickableText(text: "\(strata.index + 1)").bold()
+                                    if strata.index == 0 && strata.code.trim() == "" {
                                         CenteredClickableText(text: "Blank")
                                             .foregroundColor(Palette.background.faintText)
                                     } else {
-                                        CenteredClickableText(text: "\(edit.strata[index].code)")
+                                        CenteredClickableText(text: "\(strata.code)")
                                     }
                                     
-                                    if index == 0 {
+                                    if strata.index == 0 {
                                         LeadingClickableText(text: "Any rank")
                                             .foregroundColor(Palette.background.faintText)
-                                    } else if edit.strata[index].code.trim() == "" {
+                                    } else if strata.code.trim() == "" {
                                         LeadingClickableText(text: "")
                                     } else {
-                                        let rank = RankViewModel.rank(rankCode: edit.strata[index].rank)
+                                        let rank = RankViewModel.rank(rankCode: strata.rank)
                                         LeadingClickableText(text: "\(rank?.rankName ?? "")")
                                     }
                                     
-                                    if index == 0 || edit.strata[index].code.trim() != "" {
-                                        CenteredClickableText(text: "\(edit.strata[index].percent.toString(places: 2)) %")
+                                    if strata.index == 0 || strata.code.trim() != "" {
+                                        CenteredClickableText(text: "\(strata.percent.toString(places: 2)) %")
                                     } else {
                                         CenteredClickableText(text: "")
                                     }
                                 }
                                 .onTapGesture {
-                                    if index <= 1 || edit.strata[index - 1].code != "" {
-                                        strataIndex = index
-                                        editStrata = edit.strata[index]
-                                        maxRank = (index == 0 ? 999 : edit.strata[index - 1].rank)
-                                        maxPercent = (index == 0 ? 100 : edit.strata[index - 1].percent)
-                                        strataEditMode = (editStrata.code.trim() == "" ? .add : .amend)
+                                    if strata.index <= 1 || edit.strata[strata.index - 1].code != "" {
+                                        strataIndex = strata.index
+                                        editStrata = strata
+                                        maxRank = (strata.index == 0 ? 999 : edit.strata[strata.index - 1].rank)
+                                        maxPercent = (strata.index == 0 ? 100 : edit.strata[strata.index - 1].percent)
+                                        strataEditMode = (strata.code.trim() == "" ? .add : .amend)
                                         showStrataView = true
                                     }
                                 }
@@ -266,11 +273,8 @@ struct StratificationsDetailView: View {
                 }
             }
         }
-        .frame(width: 600, height: 360)
+        .frame(width: 600, height: 440)
         .palette(.background)
-        .onAppear {
-            
-        }
     }
 }
 
@@ -417,7 +421,7 @@ struct StratificationDetailStrataView: View {
                 VStack {
                     switch focusedField {
                     case .rank:
-                        AutoComplete.view(autoComplete: autoComplete, field: ViewField.rank, selected: $selected, codeWidth: 80, data: $rankData, valid: rank != nil) { (newValue) in
+                        AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $rankData, valid: rank != nil) { (newValue) in
                             rankText = newValue
                         }
                     default:
@@ -492,31 +496,5 @@ struct StratificationDetailStrataView: View {
         } else {
             ""
         }
-    }
-}
-    
-
-struct LeadingClickableText : View {
-    var text: String
-    
-    var body : some View {
-        HStack {
-            Text(text)
-            Spacer()
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-struct CenteredClickableText : View {
-    var text: String
-    
-    var body : some View {
-        HStack {
-            Spacer()
-            Text(text)
-            Spacer()
-        }
-        .contentShape(Rectangle())
     }
 }

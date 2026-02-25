@@ -102,7 +102,7 @@ class MasterData: ObservableObject {
 
         self.strataDefs.array = []
         for strataDefMO in strataDefMOs {
-            strataDefs.array.append(StrataDefViewModel(strataDefMO: strataDefMO))
+             strataDefs.array.append(StrataDefViewModel(strataDefMO: strataDefMO))
         }
         
         if strataDefs.array.count == 0 && createDefaultData {

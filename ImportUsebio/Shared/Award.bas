@@ -22,11 +22,54 @@ Function Stratum(RankArray() As Variant, StrataBoundsArray() As Variant) As Inte
         Stratum = Result
 End Function
 
+Function StratumPosition(Position As Integer, ParamArray AllPositionsArray() As Variant) As Double
+    ' Compute the position for a particular overall positions given an array of overall positions for the stratum - this will have gaps in it (from other stratum)
+    Dim Indices() As Variant
+    Dim allPositions() As Variant
+    Dim NewPosition As Integer
+    Dim Interim() As Variant
+    Dim totalAwards As Integer
+    Dim fieldSize As Integer
+        
+    ' Set up array of all positions
+    Interim = AllPositionsArray(0)
+    ReDim allPositions(LBound(Interim) To UBound(Interim))
+    ReDim Indices(LBound(Interim) To UBound(Interim))
+    Result = 0
+    
+    fieldSize = UBound(allPositions) - LBound(allPositions) + 1
+    If fieldSize <= 1 Then
+        ' Not in stratum - position 0
+        StratumPosition = 0
+        Exit Function
+    End If
+
+    For Index = LBound(allPositions) To UBound(allPositions)
+        allPositions(Index) = Interim(Index, 1)
+        Indices(Index) = Index
+    Next Index
+    
+    ' Sort it
+    Quicksort allPositions, Indices
+    
+    ' Remove gaps in positions
+    NewPosition = 0
+    For Index = LBound(allPositions) To UBound(allPositions)
+        NewPosition = NewPosition + 1
+        If allPositions(Index) = Position Then
+            ' This is the actal position
+            StratumPosition = NewPosition
+            Exit For
+        End If
+    Next Index
+End Function
+
 Function StratumAward(MaxAward As Double, Position As Integer, AwardTo As Double, roundDP As Integer, ParamArray AllPositionsArray() As Variant) As Double
     ' Compute the award for a particular positions given an array of positions for the stratum - this will have gaps in it (from other stratum)
     Dim Indices() As Variant
     Dim allPositions() As Variant
     Dim NewPosition As Integer
+    Dim LastPosition As Integer
     Dim Interim() As Variant
     Dim totalAwards As Integer
     Dim fieldSize As Integer
@@ -324,6 +367,7 @@ Sub PrintSheet(SheetName As String, FileSuffix As String, TitleSuffix As String,
     Filename = Replace(Filename, ".xlsm", FileSuffix + ".pdf")
     
     Title = TitlePrefix + Range("ImportEventDescriptionCell").Value + TitleSuffix
+    Footer = Range("ImportCustomFooterCell").Value
     RowsPerPage = Range("ImportLinesPerPageCell").Value
 
     ActiveWorkbook.Names("Printing").Value = "=True"
@@ -341,6 +385,7 @@ Sub PrintSheet(SheetName As String, FileSuffix As String, TitleSuffix As String,
         End If
     End If
     ActiveSheet.PageSetup.CenterHeader = Title
+    ActiveSheet.PageSetup.CenterFooter = Footer
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=Filename, IncludeDocProperties:=True, OpenAfterPublish:=True
     If AdjustSize Then
         ActiveSheet.ResetAllPageBreaks

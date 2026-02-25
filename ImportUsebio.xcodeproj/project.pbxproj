@@ -17,6 +17,7 @@
 		B208738E2E4CCE5A00E509C5 /* Event Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */; };
 		B20CFF382994EC8800B09269 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20CFF372994EC8800B09269 /* Validation.swift */; };
 		B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B482F473843008ACA67 /* Auto Complete.swift */; };
+		B2250B4B2F484009008ACA67 /* Clickable Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B4A2F484004008ACA67 /* Clickable Text.swift */; };
 		B228E6452F320C5700C24918 /* Member Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B228E6442F320C5200C24918 /* Member Import.swift */; };
 		B245BF1D2E4DB5B0003D74B7 /* Club Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */; };
 		B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */; };
@@ -105,6 +106,7 @@
 		B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Codes Search View.swift"; sourceTree = "<group>"; };
 		B20CFF372994EC8800B09269 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
 		B2250B482F473843008ACA67 /* Auto Complete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Auto Complete.swift"; sourceTree = "<group>"; };
+		B2250B4A2F484004008ACA67 /* Clickable Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Clickable Text.swift"; sourceTree = "<group>"; };
 		B228E6442F320C5200C24918 /* Member Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import.swift"; sourceTree = "<group>"; };
 		B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club Codes Search View.swift"; sourceTree = "<group>"; };
 		B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bridge Calculations.swift"; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 				B2FEA7F429A218E900BD43F7 /* Input Integer.swift */,
 				B2FEA7F629A636FC00BD43F7 /* Input Float.swift */,
 				B2E103792992806D00A35645 /* Input Title.swift */,
+				B2250B4A2F484004008ACA67 /* Clickable Text.swift */,
 				B2E103842992806E00A35645 /* Inset View.swift */,
 				B2E103822992806E00A35645 /* List Tile View.swift */,
 				B2E103772992806D00A35645 /* Message Box.swift */,
@@ -599,6 +602,7 @@
 				B2E1037329927EB100A35645 /* Themes.swift in Sources */,
 				B20873862E4B834800E509C5 /* Rank View Model.swift in Sources */,
 				B28E7B3C2F3DAC41005282E9 /* Custom Button.swift in Sources */,
+				B2250B4B2F484009008ACA67 /* Clickable Text.swift in Sources */,
 				B2A22CCB2F43409900FC3B0C /* Stratifications View.swift in Sources */,
 				B2D6010B2F3C9F3600015BD2 /* Blocked Managed Object.swift in Sources */,
 				B2E103932992806F00A35645 /* Toolbar View.swift in Sources */,
@@ -686,7 +690,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -740,7 +744,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;

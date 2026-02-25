@@ -11,6 +11,7 @@ let strataDefEntity = Entity( "StrataType",
                            StrataDefMO.self,
                            Attribute("strataDefId",             .UUIDAttributeType),
                            Attribute("name",                    .stringAttributeType),
+                           Attribute("customFooter",            .stringAttributeType),
                            Attribute("code1",                   .stringAttributeType,       custom: true),
                            Attribute("code2",                   .stringAttributeType,       custom: true),
                            Attribute("code3",                   .stringAttributeType,       custom: true),
@@ -26,6 +27,7 @@ let strataDefEntity = Entity( "StrataType",
     
     @NSManaged public var strataDefId: UUID     ; public var id: UUID { strataDefId }
     @NSManaged public var name: String
+    @NSManaged public var customFooter: String
     @NSManaged public var code1: String
     @NSManaged public var code2: String
     @NSManaged public var code3: String

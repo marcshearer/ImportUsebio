@@ -196,6 +196,14 @@ public enum ParticipantType: Int {
     public var players: Int { self.rawValue }
     
     public var string: String { "\(self)".capitalized }
+    
+    public var desc: String {
+        var result = self.string
+        if self != .player {
+            result += "s"
+        }
+        return result
+    }
 }
 
 public enum Direction: String {
@@ -416,6 +424,8 @@ public class ScoreData {
     internal var errors: [String] = []
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false
+    public var strata: [StrataElement] = []
+    public var customFooter: String = ""
 }
 
 public class Stratum {

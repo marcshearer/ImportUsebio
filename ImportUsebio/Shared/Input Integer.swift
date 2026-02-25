@@ -28,6 +28,8 @@ struct InputInt : View {
     var onKeyPress: ((KeyPress)->(KeyPress.Result))?
     var detectKeys: Set<KeyEquivalent>?
     var onChange: ((Int)->())?
+    @FocusState private var focus: Bool?
+
     
     @State private var wrappedText = ""
     var text: Binding<String> {
@@ -96,16 +98,18 @@ struct InputInt : View {
                     }
                     HStack {
                         UndoWrapper(text) { text in
-                            TextField("", text: text, onEditingChanged: { (editing) in
-                                valueChanged(oldText: field.toString(), newText: text.wrappedValue)
-                            })
+                            TextField("", text: text)
                             .onSubmit {
                                 valueChanged(oldText: field.toString(), newText: text.wrappedValue)
                             }
                             .onChange(of: text.wrappedValue, initial: false) { (oldValue, newValue) in
                                 valueChanged(oldText: oldValue, newText: newValue)
-
                             }
+                            .onChange(of: focus) {
+                                valueChanged(oldText: field.toString(), newText: text.wrappedValue)
+                                
+                            }
+                            .focused($focus, equals: true)
                             .textFieldStyle(PlainTextFieldStyle())
                             .disabled(!isEnabled || isReadOnly)
                             .foregroundColor(isEnabled ? Palette.input.text : Palette.input.faintText)
@@ -145,8 +149,7 @@ struct InputInt : View {
     
     func valueChanged(oldText: String, newText: String) {
         let newValue = (Int(newText) ?? 0)
-        let oldValue = field
-        if maxValue != nil && newValue > maxValue! {
+    if maxValue != nil && newValue > maxValue! {
             text.wrappedValue = field.toString()
         } else {
             if newText != "" {

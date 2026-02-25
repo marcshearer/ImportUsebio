@@ -9,21 +9,25 @@ import Combine
 import SwiftUI
 import CoreData
 
-public class StrataElement {
+public class StrataElement: Identifiable {
+    public let strataElementid: UUID = UUID() ; public var id: UUID { strataElementid }
     public var code: String
     public var rank: Int
     public var percent: Float
+    public var index: Int
     
-    init(code: String = "", rank: Int = 0, percent: Float = 0) {
+    init(code: String = "", rank: Int = 0, percent: Float = 0, index: Int = 0) {
         self.code = code
         self.rank = rank
         self.percent = percent
+        self.index = index
     }
     
     public func copy(from: StrataElement) {
         self.code = from.code
         self.rank = from.rank
         self.percent = from.percent
+        self.index = from.index
     }
 }
 
@@ -32,6 +36,7 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
     // Properties in core data model
     @Published private(set) var strataDefId: UUID = UUID() ; public override var id: UUID { strataDefId }
     @Published public var name: String = ""
+    @Published public var customFooter: String = ""
     @Published public var strata: [StrataElement] = []
     
     @Published public var nameMessage: String = ""
@@ -50,13 +55,25 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
     override public init() {
         super.init()
         self.strata = []
-        self.strata.append(StrataElement(code: "", rank: 999, percent: 100))
-        for _ in 1..<strataElements {
-            self.strata.append(StrataElement())
+        self.strata.append(StrataElement(code: "", rank: 999, percent: 100, index: 0))
+        for index in 1..<strataElements {
+            self.strata.append(StrataElement(index: index))
         }
         self.entity = strataDefEntity
         self.masterData = MasterData.shared.strataDefs
         self.setupMappings()
+    }
+    
+    func activeStrata() -> [StrataElement] {
+        var result: [StrataElement] = []
+        for (index, strata) in self.strata.enumerated() {
+            if index != 0 && strata.code.isEmpty {
+                break
+            } else {
+                result.append(strata)
+            }
+        }
+        return result
     }
     
     static func defaultSort(_ first: StrataDefViewModel, _ second: StrataDefViewModel) -> Bool {
@@ -118,7 +135,7 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
         return (strataDefId == nil ? nil : (MasterData.shared.strataDefs.array as! [StrataDefViewModel]).first(where: {$0.strataDefId == strataDefId}))
     }
     
-    public static func strata(name: String?) -> StrataDefViewModel? {
+    public static func strataDef(name: String?) -> StrataDefViewModel? {
         return (name == nil ? nil : (MasterData.shared.strataDefs.array as! [StrataDefViewModel]).first(where: {$0.name == name}))
     }
     
@@ -140,6 +157,7 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
         switch key {
             case "strataDefId": return self.strataDefId as Any
             case "name": return self.name as Any
+            case "customFooter": return self.customFooter as Any
             case "code1": return (strata[0].code) as Any?
             case "code2": return (strata[1].code) as Any?
             case "code3": return (strata[2].code) as Any?
@@ -157,6 +175,7 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
         switch key {
             case "strataDefId": self.strataDefId = value as! UUID
             case "name": self.name = value as! String
+            case "customFooter": self.customFooter = value as! String
             case "code1": self.strata[0].code = value as! String
             case "code2": self.strata[1].code = value as! String
             case "code3": self.strata[2].code = value as! String

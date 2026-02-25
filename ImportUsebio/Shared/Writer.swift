@@ -172,8 +172,6 @@ class Writer: WriterBase {
     var eventDescription: String = ""
     var missingNumbers: [String: (NationalId: String, Nbo: String)] = [:]
     var includeInRace = true
-    var strata: [Stratum] = [] /*[Stratum(maxRank: 180, maxAward: 2),
-                                  Stratum(maxRank: 160, maxAward: 1)]*/
     
     var maxPlayers: Int { min(1000, rounds.map{ $0.maxPlayers }.reduce(0, +)) }
     
@@ -572,6 +570,7 @@ class FormattedWriter: WriterBase {
     var nameColumn: Int?
     var columns: [FormattedColumn] = []
     var leftRightColumns: [String] = []
+    var leftColumns: [String] = []
     var directionColumn: Int?
     var hiddenColumns: [Int] = []
     var chooseBestColumns: [Int] = []
@@ -581,6 +580,8 @@ class FormattedWriter: WriterBase {
     var formatBottom: UnsafeMutablePointer<lxw_format>?
     var formatLeftRight: UnsafeMutablePointer<lxw_format>?
     var formatLeftRightBottom: UnsafeMutablePointer<lxw_format>?
+    var formatLeft: UnsafeMutablePointer<lxw_format>?
+    var formatLeftBottom: UnsafeMutablePointer<lxw_format>?
     
     var singleEvent: Bool {
         let rounds = writer.rounds
@@ -667,13 +668,23 @@ class FormattedWriter: WriterBase {
         }
         leftRightFormula += "))"
         
+        var leftFormula = "AND(\(nameDataAddress)<>\"\",OR("
+        for (columnNumber, column) in leftColumns.enumerated() {
+            if columnNumber != 0 {
+                leftFormula += ","
+            }
+            leftFormula += "\(titleAddress)=\"\(column)\""
+        }
+        leftFormula += "))"
+        
         let csvImport = writer.csvImport!
+        let ranksPlusMPs = writer.rounds.first!.ranksPlusMps!
         var bottomFormula = "OR(AND(\(nextNameDataAddress)=\"\",\(nameDataAddress)<>\"\"),AND(Printing,MOD(ROW(\(nameDataAddress)),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
         if singleEvent && twoWinners {
             let directionAddress = cell(dataRow, rowFixed: false, directionColumn!, columnFixed: true)
             let nextDirectionAddress = cell(dataRow + 1, rowFixed: false, directionColumn!, columnFixed: true)
             bottomFormula += ",AND(\(nameDataAddress)<>\"\",\(directionAddress)<>\(nextDirectionAddress)))"
-        } else if !self.writer.strata.isEmpty {
+        } else if singleEvent && !ranksPlusMPs.round.scoreData.strata.isEmpty {
             let stratumAddress = cell(dataRow, rowFixed: false, fromStratumColumn!, columnFixed: true)
             let nextStratumAddress = cell(dataRow + 1, rowFixed: false, fromStratumColumn!, columnFixed: true)
             bottomFormula += ",AND(\(nameDataAddress)<>\"\",\(stratumAddress)<>\(nextStratumAddress)))"
@@ -691,8 +702,11 @@ class FormattedWriter: WriterBase {
             let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columnNumber, toRow: dataRow + writer.maxPlayers - 1, toColumn: columnNumber, formula: "NOT(SumMaxIfIncluded(\(vstack)(\(formattedRange),\(vstack)(\(consolidatedRange)),\(localNationalCell),\(chooseBestCell),\(columns[columnNumber].referenceColumn + 1)))", stopIfTrue: false, format: formatFaint!)
         }
+        
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftBottom!)
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftRightFormula, stopIfTrue: true, format: formatLeftRight!)
+        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftFormula, stopIfTrue: true, format: formatLeft!)
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: bottomFormula, stopIfTrue: true, format: formatBottom!)
         for column in hiddenColumns {
             setColumn(worksheet: worksheet, column: column, hidden: true)
@@ -716,7 +730,7 @@ class FormattedWriter: WriterBase {
             let ranksPlusMPs = round.ranksPlusMps!
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(FormattedColumn(title: "National ID (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
+                columns.append(FormattedColumn(title: "National ID (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.nationalIdColumn[playerNumber])))" }, cellType: .numericFormula, width: 9))
                 nationalIdColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
@@ -727,34 +741,42 @@ class FormattedWriter: WriterBase {
                 hiddenColumns.append(columns.count - 1)
             }
             
-            columns.append(FormattedColumn(title: "Position", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.positionColumn!)))" }, cellType: .numericFormula, width: 9))
-            leftRightColumns.append(columns.last!.title)
+            var positionWidth: Float? = 9
+            if !ranksPlusMPs.scoreData.strata.isEmpty, let ranksFromStratumCodeColumn = ranksPlusMPs.fromStratumCodeColumn.first {
+                
+                positionWidth = 7
+                columns.append(FormattedColumn(title: "Strata", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksFromStratumCodeColumn)))" }, cellType: .numericFormula, format: formatBodyCenteredInt, width: positionWidth))
+                fromStratumColumn = columns.count - 1
+                leftColumns.append(columns.last!.title)
+                
+                columns.append(FormattedColumn(title: "Strata\nPosition", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.stratumPositionColumn.first!)))" }, cellType: .numericFormula, width: positionWidth))
+            }
+
+            columns.append(FormattedColumn(title: "\((ranksPlusMPs.scoreData.strata.isEmpty ? "Position" : "Overall\nPosition"))", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.positionColumn!)))" }, cellType: .numericFormula, width: positionWidth))
+            if ranksPlusMPs.scoreData.strata.isEmpty {
+                leftRightColumns.append(columns.last!.title)
+            }
             
             if twoWinners {
-                columns.append(FormattedColumn(title: "Direction", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.directionColumn!)))" }, cellType: .numericFormula, width: 9))
+                columns.append(FormattedColumn(title: "Direction", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.directionColumn!)))" }, cellType: .numericFormula, width: 9))
                 directionColumn = columns.count - 1
+                leftRightColumns.append(columns.last!.title)
             }
-            leftRightColumns.append(columns.last!.title)
-            columns.append(FormattedColumn(title: (round.maxParticipantPlayers == event.type!.participantType!.players ? "Names" : "Names           *Awards for team members will vary by boards played"), referenceDynamic: { [self] in ranksNamesRef() }, cellType: .string, width: Float(round.maxParticipantPlayers) * (18.0 - Float(round.maxParticipantPlayers))))
+            columns.append(FormattedColumn(title: (round.maxParticipantPlayers == event.type!.participantType!.players ? "Names" : "Names           *Awards for team members will vary by boards played"), referenceDynamic: { [self] in ranksNamesRef(ranksPlusMPs: ranksPlusMPs) }, cellType: .string, width: Float(round.maxParticipantPlayers) * (18.0 - Float(round.maxParticipantPlayers))))
             nameColumn = columns.count - 1
+            leftColumns.append(columns.last!.title)
             
             columns.append(FormattedColumn(title: "Category", referenceDynamic: { [self] in categoryNamesRef(rankColumn: rankColumn) }, cellType: .stringFormula, format: formatBodyCenteredString, width: 10))
             categoryColumn = columns.count - 1
             
-            columns.append(FormattedColumn(title: "Score", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.scoreColumn!)))" }, cellType: .numericFormula))
+            columns.append(FormattedColumn(title: "Score", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.scoreColumn!)))" }, cellType: .numericFormula))
             
             if winDraw {
-                columns.append(FormattedColumn(title: "Wins / Draws", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.winDrawColumn[0])))" }, cellType: .numericFormula))
+                columns.append(FormattedColumn(title: "Wins / Draws", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.winDrawColumn[0])))" }, cellType: .numericFormula))
             }
 
-            columns.append(FormattedColumn(title: "\(round.scoreData.national ? "National" : "Local") MPs", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksPlusMPs.totalMPColumn[0])))" }, cellType: .floatFormula, width: 10))
+            columns.append(FormattedColumn(title: "\(round.scoreData.national ? "National" : "Local") MPs", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksPlusMPs.totalMPColumn[0])))" }, cellType: .floatFormula, width: 10))
             leftRightColumns.append(columns.last!.title)
-            
-            if !self.writer.strata.isEmpty , let ranksFromStratumColumn = ranksPlusMPs.fromStratumColumn.first {
-                columns.append(FormattedColumn(title: "From\nStratum", referenceDynamic: { [self] in "=\(ranksArrayRef(arrayContent: sourceRef(column: ranksFromStratumColumn)))" }, cellType: .numericFormula, format: formatBodyCenteredInt, width: 10))
-                fromStratumColumn = columns.count - 1
-                leftRightColumns.append(columns.last!.title)
-            }
             
         } else {
             let chooseBest = (rounds.filter({$0.scoreData.aggreateAs != nil}).count == 0)
@@ -830,26 +852,25 @@ class FormattedWriter: WriterBase {
         return "\(arrayRef)(\(cell(writer: writer.consolidated, writer.consolidated.dataRow!, rowFixed: true, column, columnFixed: true)))"
     }
     
-    private func ranksArrayRef(arrayContent: String) -> String {
-        let ranksPlusMps = writer.rounds.first!.ranksPlusMps!
+    private func ranksArrayRef(ranksPlusMPs: RanksPlusMPsWriter, arrayContent: String) -> String {
         
         var result = "\(sortBy)(\(zeroFiltered(arrayContent: arrayContent)), "
         
         if twoWinners {
-            let direction = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.directionColumn!))
+            let direction = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMPs.directionColumn!))
             result += "\(direction), -1, "
-        } else if self.writer.strata.count > 0 {
-            let fromStratum = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.fromStratumColumn[0]))
-            result += "\(fromStratum), 1, "
+        } else if ranksPlusMPs.scoreData.strata.count > 0 {
+            let fromStratum = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMPs.fromStratumNumberColumn[0]))
+            result += "\(fromStratum), -1, "
         }
         
-        let position = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMps.positionColumn!))
+        let position = zeroFiltered(arrayContent: sourceRef(column: ranksPlusMPs.positionColumn!))
         result += "\(position), 1)"
         
         return result
     }
     
-    private func ranksNamesRef() -> String {
+    private func ranksNamesRef(ranksPlusMPs: RanksPlusMPsWriter ) -> String {
         let round = writer.rounds.first!
         let ranksPlusMps = round.ranksPlusMps!
         
@@ -864,7 +885,7 @@ class FormattedWriter: WriterBase {
         }
         arrayContent += ")"
         
-        return ranksArrayRef(arrayContent: arrayContent)
+        return ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: arrayContent)
     }
     
     private func categoryNamesRef(rankColumn: [Int]) -> String {
@@ -939,6 +960,13 @@ class FormattedWriter: WriterBase {
         
         formatBottom = workbook_add_format(workbook)
         format_set_bottom(formatBottom, UInt8(LXW_BORDER_THIN.rawValue))
+        
+        formatLeft = workbook_add_format(workbook)
+        format_set_left(formatLeft, UInt8(LXW_BORDER_THIN.rawValue))
+
+        formatLeftBottom = workbook_add_format(workbook)
+        format_set_left(formatLeftBottom, UInt8(LXW_BORDER_THIN.rawValue))
+        format_set_bottom(formatLeftBottom, UInt8(LXW_BORDER_THIN.rawValue))
     }
 }
 
@@ -955,20 +983,21 @@ class CsvImportWriter: WriterBase {
     let eventDescriptionRow = 0
     let eventCodeRow = 1
     let eventDateRow = 2
-    let linesPerPageRow = 4
-    let pageOrientationRow = 5
-    let minRankRow = 6
-    let maxRankRow = 7
-    let clubCodeRow = 8
-    let chooseBestRow = 9
-    let sortByRow = 11
-    let awardsRow = 12
-    let localMPsRow = 13
-    let nationalMPsRow = 14
-    let checksumRow = 15
+    let customFooterRow = 4
+    let linesPerPageRow = 5
+    let pageOrientationRow = 6
+    let minRankRow = 7
+    let maxRankRow = 8
+    let clubCodeRow = 9
+    let chooseBestRow = 10
+    let sortByRow = 12
+    let awardsRow = 13
+    let localMPsRow = 14
+    let nationalMPsRow = 15
+    let checksumRow = 16
     
-    let titleRow = 17
-    let dataRow = 18
+    let titleRow = 18
+    let dataRow = 19
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -999,6 +1028,7 @@ class CsvImportWriter: WriterBase {
         workbook_define_name(writer.workbook, "ImportDateArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, eventDateColumn, columnFixed: true)))")
         workbook_define_name(writer.workbook, "ImportTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, eventDateColumn, columnFixed: true)):\(cell(titleRow, rowFixed: true, nationalMPsColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportEventDescriptionCell", "=\(cell(writer: self, eventDescriptionRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportCustomFooterCell", "=\(cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportPageOrientationCell", "=\(cell(writer: self, pageOrientationRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "EventDateCell", "=\(cell(writer: self, eventDateRow, rowFixed: true, valuesColumn, columnFixed: true))")
@@ -1006,12 +1036,12 @@ class CsvImportWriter: WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
-        writer.createMacroButton(worksheet: worksheet, title: "Next Error", macro: "NextSheetErrorRow", row: 9, column: 3)
-        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 9, column: 5)
-        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 12, column: 5)
+        writer.createMacroButton(worksheet: worksheet, title: "Next Error", macro: "NextSheetErrorRow", row: 11, column: 3)
+        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 11, column: 5)
+        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 14, column: 5)
         if self.writer.includeInRace {
-            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 9, column: 7, width: 70)
-            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 12, column: 7, width: 70)
+            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 11, column: 7, width: 70)
+            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 14, column: 7, width: 70)
         }
         
         // Format rows/columns
@@ -1034,7 +1064,7 @@ class CsvImportWriter: WriterBase {
         setColumn(worksheet: worksheet, column: lookupPaymentStatusColumn, width: 25)
         
         // Create hidden group for parameters
-        for row in (linesPerPageRow - 1)...chooseBestRow {
+        for row in (customFooterRow - 1)...chooseBestRow {
             setRow(worksheet: worksheet, row: row, group: true, hidden: true, collapsed: true)
         }
         
@@ -1043,6 +1073,9 @@ class CsvImportWriter: WriterBase {
         
         write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event name:", format: formatBold)
         write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, string: writer.eventDescription)
+        
+        write(worksheet: worksheet, row: customFooterRow, column: titleColumn, string: "PDF Footer:", format: formatBold)
+        write(worksheet: worksheet, row: customFooterRow, column: valuesColumn, string: writer.rounds.first!.scoreData.customFooter) // Assumes single round
         
         write(worksheet: worksheet, row: linesPerPageRow, column: titleColumn, string: "Lines/page:", format: formatBold)
         write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32, format: formatString)
@@ -1655,7 +1688,7 @@ class ConsolidatedWriter: WriterBase {
 // MARK: - Ranks plus MPs
  
 class RanksPlusMPsWriter: WriterBase {
-    private var scoreData: ScoreData!
+    internal var scoreData: ScoreData!
     
     override var name: String { "Source" }
     private var columns: [RanksPlusMPsColumn] = []
@@ -1681,9 +1714,12 @@ class RanksPlusMPsWriter: WriterBase {
     var maxStrataMPColumn: [Int] = []
     var scoreColumn: Int?
     var totalMPColumn: [Int] = []
-    var fromStratumColumn: [Int] = []
-    var frozenRankCategoryColumn: Int?
     var stratumColumn: Int?
+    var fromStratumNumberColumn: [Int] = []
+    var fromStratumCodeColumn: [Int] = []
+    var stratumPositionColumn: [Int] = []
+    var frozenRankCategoryColumn: Int?
+
 
     var eventDescriptionCell: String?
     var entryCell: String?
@@ -1701,8 +1737,10 @@ class RanksPlusMPsWriter: WriterBase {
     var localMPsCell :String?
     var nationalMPsCell :String?
     var checksumCell :String?
+    var strataCodeCell: [String] = []
     var strataRankCell: [String] = []
-    var strataMaxAwardCell: [String] = []
+    var strataPercentCell: [String] = []
+    var columnWidth: [Int:Float] = [:]
     
     init(writer: Writer, round: Round, scoreData: ScoreData) {
         super.init(writer: writer)
@@ -1727,9 +1765,17 @@ class RanksPlusMPsWriter: WriterBase {
                 format = formatRightBoldUnderline
             }
             if let width = column.width {
-                setColumn(worksheet: worksheet, column: columnNumber, width: width)
+                columnWidth[columnNumber] = max(columnWidth[columnNumber] ?? 0, width)
             }
             write(worksheet: worksheet, row: dataTitleRow, column: columnNumber, string: round.replace(column.title), format: format)
+        }
+        
+        for columnNumber in 0..<max(headerColumns, columns.count) {
+            if let width = columnWidth[columnNumber] {
+                setColumn(worksheet: worksheet, column: columnNumber, width: width)
+            } else {
+                setColumn(worksheet: worksheet, column: columnNumber, width: 6.5)
+            }
         }
         
         for playerNumber in 0..<round.maxParticipantPlayers {
@@ -1781,8 +1827,6 @@ class RanksPlusMPsWriter: WriterBase {
                 }
             }
         }
-        
-        setColumn(worksheet: worksheet, column: 0, toColumn: headerColumns - 1, width: 12.0)
     }
     
     private func sortCriteria(_ a: Participant, _ b: Participant) -> Bool {
@@ -1832,25 +1876,25 @@ class RanksPlusMPsWriter: WriterBase {
         
         columns.append(RanksPlusMPsColumn(title: "Score", content: { (participant, _) in "\(participant.score!)" }, cellType: .float)); scoreColumn = columns.count - 1
         
-        if !self.writer.strata.isEmpty {
+        if !self.scoreData.strata.isEmpty {
             // Pre-allocate stratum column so that we can reference it
             // so that we can reference it before we calculate it
             columns.append(RanksPlusMPsColumn(title: "")); stratumColumn = columns.count - 1
         }
         
         if winDraw && playerCount <= event.type?.participantType?.players ?? playerCount {
-            columns.append(RanksPlusMPsColumn(title: "Win/Draw", content: { (participant, _) in "\(participant.winDraw ?? 0)" }, cellType: .float))
+            columns.append(RanksPlusMPsColumn(title: "Win / Draw", content: { (participant, _) in "\(participant.winDraw ?? 0)" }, cellType: .float))
             winDrawColumn.append(columns.count - 1)
         }
         
         for playerNumber in 0..<playerCount {
-            columns.append(RanksPlusMPsColumn(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 0) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(RanksPlusMPsColumn(title: "First Name (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 0) }, playerNumber: playerNumber, cellType: .string, width: 12))
             firstNameColumn.append(columns.count - 1)
             
-            columns.append(RanksPlusMPsColumn(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 1) }, playerNumber: playerNumber, cellType: .string))
+            columns.append(RanksPlusMPsColumn(title: "Other Names (\(playerNumber+1))", playerContent: { (_, player, _, _) in self.nameColumn(name: player.name ?? "Unknown Unknown", element: 1) }, playerNumber: playerNumber, cellType: .string, width: 12))
             otherNamesColumn.append(columns.count - 1)
             
-            columns.append(RanksPlusMPsColumn(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer))
+            columns.append(RanksPlusMPsColumn(title: "SBU No (\(playerNumber+1))", playerContent: playerNationalId, playerNumber: playerNumber, cellType: .integer, width: 8))
             nationalIdColumn.append(columns.count - 1)
             
             if self.writer.includeInRace {
@@ -1858,7 +1902,7 @@ class RanksPlusMPsWriter: WriterBase {
                 frozenRankColumn.append(columns.count - 1)
             }
             
-            if !self.writer.strata.isEmpty {
+            if !self.scoreData.strata.isEmpty {
                 columns.append(RanksPlusMPsColumn(title: "Current Rank (\(playerNumber+1))", playerContent: playerCurrentRank, playerNumber: playerNumber, cellType: .integerFormula))
                 strataRankColumn.append(columns.count - 1)
                 
@@ -1875,7 +1919,7 @@ class RanksPlusMPsWriter: WriterBase {
                     }
                     
                     if winDraw {
-                        columns.append(RanksPlusMPsColumn(title: "Win/Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
+                        columns.append(RanksPlusMPsColumn(title: "Win / Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))
                         winDrawColumn.append(columns.count - 1)
                     }
                     
@@ -1889,7 +1933,7 @@ class RanksPlusMPsWriter: WriterBase {
                         if event.type != .head_to_head {
                             bonusMPColumn.append(columns.count - 1)
                         }
-                        columns.append(RanksPlusMPsColumn(title: "Win/Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
+                        columns.append(RanksPlusMPsColumn(title: "Win / Draw MP (\(playerNumber+1))", calculatedContent: playerWinDrawAward, playerNumber: playerNumber, cellType: .floatFormula))
                         winDrawMPColumn.append(columns.count - 1)
                         
                         if event.type != .head_to_head {
@@ -1906,11 +1950,6 @@ class RanksPlusMPsWriter: WriterBase {
             frozenRankCategoryColumn = columns.count - 1
         }
         
-        if !self.writer.strata.isEmpty {
-            // Note column already allocated
-            columns[stratumColumn!] = (RanksPlusMPsColumn(title: "\(event.type?.participantType?.string ?? "Team") Stratum", calculatedContent: stratum, cellType: .integerFormula, format: formatZeroInt))
-        }
-        
         if scoreData.manualMPs {
             
             columns.append(RanksPlusMPsColumn(title: "Total MPs", content: { (participant, _) in "\(participant.manualMps ?? 0)" }, cellType: .floatFormula))
@@ -1919,6 +1958,11 @@ class RanksPlusMPsWriter: WriterBase {
             }
             
         } else {
+            
+            if !self.scoreData.strata.isEmpty {
+                // Note column already allocated
+                columns[stratumColumn!] = (RanksPlusMPsColumn(title: "\(event.type?.participantType?.string ?? "Team") Stratum", calculatedContent: stratum, cellType: .integerFormula, format: formatZeroInt))
+            }
             
             if playerCount <= event.type?.participantType?.players ?? playerCount {
                 
@@ -1931,7 +1975,7 @@ class RanksPlusMPsWriter: WriterBase {
                 } else {
                     bonusMPColumn.append(columns.count - 1)
                     
-                    columns.append(RanksPlusMPsColumn(title: "Win/Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
+                    columns.append(RanksPlusMPsColumn(title: "Win / Draw MP", calculatedContent: winDrawAward, cellType: .floatFormula))
                     winDrawMPColumn.append(columns.count - 1)
                     
                     columns.append(RanksPlusMPsColumn(title: "Total MP", calculatedContent: totalAward, cellType: .floatFormula))
@@ -1950,22 +1994,29 @@ class RanksPlusMPsWriter: WriterBase {
         let winDraw = event.type?.requiresWinDraw ?? false
         let playerSuffix = (playerNumber == nil ? "" : " (\(playerNumber! + 1))")
         
-        columns.append(RanksPlusMPsColumn(title: "\((!self.writer.strata.isEmpty ? "Whole Field" : (winDraw ? "Bonus" : "Total"))) MP\(playerSuffix)", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
-        
-        if !self.writer.strata.isEmpty {
-            var playerStrataMPColumn: [Int] = [columns.count - 1]
+        if !self.scoreData.strata.isEmpty {
+            var playerStrataMPColumn: [Int] = []
             
-            for (index, _) in self.writer.strata.enumerated() {
+            for (index, _) in self.scoreData.strata.enumerated() {
                 columns.append(RanksPlusMPsColumn(title: "Strata \(index + 1) MP\(playerSuffix)", strataContent: playerStrataBonusAward, playerNumber: playerNumber, strataNumber: index, cellType: .floatFormula))
                 playerStrataMPColumn.append(columns.count - 1)
             }
             strataMPColumn.append(playerStrataMPColumn)
             
-            columns.append(RanksPlusMPsColumn(title: "From\nStratum", calculatedContent: playerFromStratum, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
-            fromStratumColumn.append(columns.count - 1)
+            columns.append(RanksPlusMPsColumn(title: "Use\nStrata\nNumber", calculatedContent: playerFromStratumNumber, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
+            fromStratumNumberColumn.append(columns.count - 1)
             
-            columns.append(RanksPlusMPsColumn(title: "Max Strata", calculatedContent: playerBestStratumAward, playerNumber: playerNumber, cellType: .floatFormula))
+            columns.append(RanksPlusMPsColumn(title: "Use\nStrata\nCode", calculatedContent: playerFromStratumCode, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
+            fromStratumCodeColumn.append(columns.count - 1)
+            
+            columns.append(RanksPlusMPsColumn(title: "Stratum\nPosition", calculatedContent: playerStratumPosition, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
+            stratumPositionColumn.append(columns.count - 1)
+            
+            columns.append(RanksPlusMPsColumn(title: (winDraw ? "Bonus" : "Total"), calculatedContent: playerBestStratumAward, playerNumber: playerNumber, cellType: .floatFormula))
             maxStrataMPColumn.append(columns.count - 1)
+            
+        } else {
+            columns.append(RanksPlusMPsColumn(title: "\((winDraw ? "Bonus" : "Total")) MP\(playerSuffix)", calculatedContent: playerBonusAward, playerNumber: playerNumber, cellType: .floatFormula))
         }
     }
     
@@ -1999,18 +2050,39 @@ class RanksPlusMPsWriter: WriterBase {
         result += ")"
         return result
     }
-    
-    private func playerFromStratum(playerNumber: Int? = nil, rowNumber: Int) -> String {
-        var result = "=\(fnPrefix)XMATCH("
+        
+    private func playerFromStratumNumber(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = "=IF(\(cell(rowNumber, positionColumn!, columnFixed: true))=0,0,MIN(\(cell(rowNumber, stratumColumn!, columnFixed: true)),\(self.scoreData.strata.count + 1)-\(fnPrefix)XMATCH("
         let playerNumber = playerNumber ?? 0
         result += cell(rowNumber, maxStrataMPColumn[playerNumber], columnFixed: true) + ",\(hstack)("
-        for (index, strataMPColumn) in strataMPColumn[playerNumber].enumerated() {
+        for (index, strataMPColumn) in strataMPColumn[playerNumber].reversed().enumerated() {
             if index != 0 {
                 result += ","
             }
             result += cell(rowNumber, strataMPColumn, columnFixed: true)
         }
-        result += "))-1"
+        result += "))))"
+        return result
+    }
+    
+    private func playerFromStratumCode(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        var result = "=IF(\(cell(rowNumber, positionColumn!, columnFixed: true))=0,\"\",\(fnPrefix)CHOOSECOLS(\(hstack)("
+        let playerNumber = playerNumber ?? 0
+        for (index, strataCodeCell) in strataCodeCell.enumerated() {
+            if index != 0 {
+                result += ","
+            }
+            result += strataCodeCell
+        }
+        result += "),\(cell(rowNumber, fromStratumNumberColumn[playerNumber], columnFixed: true))))"
+        return result
+    }
+    
+    private func playerStratumPosition(playerNumber: Int? = nil, rowNumber: Int) -> String {
+        let playerNumber = playerNumber ?? 0
+        let fromStratumCell = cell(rowNumber, fromStratumNumberColumn[playerNumber], columnFixed: true)
+        let allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: stratumColumn!, comparison: "=\(fromStratumCell)")
+        let result = "=IF(\(cell(rowNumber, stratumColumn!, columnFixed: true))=0,0,StratumPosition(\(cell(rowNumber, positionColumn!, columnFixed: true)),\(allPositionsRange)))"
         return result
     }
     
@@ -2044,7 +2116,7 @@ class RanksPlusMPsWriter: WriterBase {
         if let strataNumber = strataNumber {
             let stratumCell = cell(rowNumber, stratumColumn!, columnFixed: true)
             let allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: stratumColumn!, comparison: ">=\(strataNumber + 1)")
-            result += "IF(\(stratumCell)<\(strataNumber + 1),0,StratumAward(\(strataMaxAwardCell[strataNumber]),\(positionCell), \(awardPercentCell!), 2, \(allPositionsRange)))"
+            result += "IF(\(stratumCell)<\(strataNumber + 1),0,StratumAward(ROUNDUP(\(maxAwardCell!)*\(strataPercentCell[strataNumber]),2),\(positionCell), \(awardPercentCell!), 2, \(allPositionsRange)))"
         } else {
             var useAwardCell: String
             var useAwardToCell: String
@@ -2155,7 +2227,7 @@ class RanksPlusMPsWriter: WriterBase {
             result += cell(rowNumber, strataRankColumn[playerNumber], columnFixed: true)
         }
         result += "),\(hstack)("
-        for (index, _) in self.writer.strata.enumerated() {
+        for (index, _) in self.scoreData.strata.enumerated() {
             if index != 0 {
                 result += ","
             }
@@ -2171,166 +2243,132 @@ class RanksPlusMPsWriter: WriterBase {
     func writeheader() {
         let event = scoreData.events.first!
         var column = -1
-        var row = headerTitleRow
         var prefix = ""
         let twoWinners = (event.winnerType == 2 && event.type?.participantType == .pair)
         if twoWinners {
             prefix = "NS "
         }
         
-        func writeCell(string: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, string: String, format: UnsafeMutablePointer<lxw_format>? = nil, width: Float? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, string: string, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, string: string, format: format)
         }
         
-        func writeCell(integer: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, integer: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, integer: integer, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, integer: integer, format: format)
         }
         
-        func writeCell(float: Float, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, float: Float, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, float: float, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, float: float, format: format)
         }
         
-        func writeCell(date: Date, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, date: Date, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, date: date, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, date: date, format: format)
         }
         
-        func writeCell(formula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, formula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, floatFormula: formula, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, floatFormula: formula, format: format)
         }
         
-        func writeCell(integerFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, integerFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, integerFormula: integerFormula, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, integerFormula: integerFormula, format: format)
         }
         
-        func writeCell(floatFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        func writeCell(title: String, titleFormat: UnsafeMutablePointer<lxw_format>? = formatRightBold, floatFormula: String, format: UnsafeMutablePointer<lxw_format>? = nil) {
             column += 1
-            write(worksheet: worksheet, row: row, column: column, floatFormula: floatFormula, format: format)
+            write(worksheet: worksheet, row: headerTitleRow, column: column, string: title, format: titleFormat)
+            write(worksheet: worksheet, row: headerDataRow, column: column, floatFormula: floatFormula, format: format)
         }
         
-        writeCell(string: "Description", format: formatBold)
-        if round.toe != nil {
-            writeCell(string: "TOE", format: formatRightBold)
-        }
-        writeCell(string: "\(prefix)Entry", format: formatRightBold)
-        if twoWinners {
-            writeCell(string: "EW Entry", format: formatRightBold)
-        }
-        writeCell(string: "Tables", format: formatRightBold)
-        writeCell(string: "Boards", format: formatRightBold)
-        writeCell(string: "\(prefix)Full Award", format: formatRightBold)
-        if twoWinners {
-            writeCell(string: "EW Full Award", format: formatRightBold)
-        }
-        writeCell(string: "Min Entry", format: formatRightBold)
-        writeCell(string: "Entry %", format: formatRightBold)
-        writeCell(string: "Factor %", format: formatRightBold)
-        writeCell(string: "\(prefix)Max Award", format: formatRightBold)
-        if twoWinners {
-            writeCell(string: "EW Max Award", format: formatRightBold)
-        }
-        writeCell(string: "Award %", format: formatRightBold)
-        writeCell(string: "\(prefix)Award to", format: formatRightBold)
-        if twoWinners {
-            writeCell(string: "EW Award to", format: formatRightBold)
-        }
-        writeCell(string: "Per Win", format: formatRightBold)
-        
-        writeCell(string: "Event Date", format: formatBold)
-        
-        writeCell(string: "Event ID", format: formatBold)
-        
-        writeCell(string: "Local/Nat", format: formatBold)
-        
-        writeCell(string: "Local MPs", format: formatRightBold)
-        writeCell(string: "National MPs", format: formatRightBold)
-        writeCell(string: "Checksum", format: formatRightBold)
-        for (index, _) in self.writer.strata.enumerated() {
-            writeCell(string: "Strata \(index + 1) Rank", format: formatRightBold)
-        }
-        for (index, _) in self.writer.strata.enumerated() {
-            writeCell(string: "Strata \(index + 1) Max Award", format: formatRightBold)
-        }
+        // Occasionally leave a blank cell to allow column to overflow
 
-        headerColumns = column + 1
-
-        column = -1
-        row = headerDataRow
+        writeCell(title: "Description", titleFormat: formatBold, string: event.description ?? "") ; eventDescriptionCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
+        columnWidth[column] = 10
         
-        writeCell(string: event.description ?? "") ; eventDescriptionCell = cell(row, rowFixed: true, column, columnFixed: true)
         if let toe = round.toe {
-            writeCell(integer: toe, format: formatInt)
+            writeCell(title: "TOE", integer: toe, format: formatInt)
         }
         
         var entryCells = ""
         var ewEntryRef = ""
         if twoWinners {
             let nsCell = "COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ns.string)\")"
-            writeCell(integerFormula: "=\(nsCell)")
-            entryCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "\(prefix)Entry", integerFormula: "=\(nsCell)")
+            entryCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
+            column += 1
                         
             let ewCell = "COUNTIF(\(cell(dataRow, rowFixed: true, directionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, directionColumn!, columnFixed: true)),\"\(Direction.ew.string)\")"
-            writeCell(integerFormula: "=\(ewCell)")
-            ewEntryRef = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "EW Entry", integerFormula: "=\(ewCell)")
+            ewEntryRef = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
 
             entryCells = "(\(nsCell)+\(ewCell))"
         } else {
             entryCells = "COUNTIF(\(cell(dataRow, rowFixed: true, positionColumn!, columnFixed: true)):\(cell(dataRow + round.fieldSize - 1, rowFixed: true, positionColumn!, columnFixed: true)),\">0\")"
-            writeCell(integerFormula: "=\(entryCells)") ; entryCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "\(prefix)Entry", integerFormula: "=\(entryCells)") ; entryCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         }
-        writeCell(integerFormula: "=ROUNDUP(\(entryCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Tables", integerFormula: "=ROUNDUP(\(entryCells)*(\(event.type?.participantType?.players ?? 4)/4),0)") ; tablesCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(integer: event.boards ?? 0)
+        writeCell(title: "Boards", integer: event.boards ?? 0)
         
         var baseEwMaxAwardCell: String?
-        writeCell(floatFormula: "=ROUND(\(scoreData.maxAward),2)") ; let baseMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "\(prefix)Full Award", floatFormula: "=ROUND(\(scoreData.maxAward),2)") ; let baseMaxAwardCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "=ROUND(\(scoreData.ewMaxAward ?? scoreData.maxAward),2)") ; baseEwMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "EW Full Award", floatFormula: "=ROUND(\(scoreData.ewMaxAward ?? scoreData.maxAward),2)") ; baseEwMaxAwardCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true) ; minEntryCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Min Entry", integer: round.scoreData.minEntry, format: formatInt) ; minEntryCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true) ; minEntryCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(minEntryCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minEntryCell!), 4)))", format: formatPercent) ; let entryFactorCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Entry %", floatFormula: "=IF(\(minEntryCell!)=0,1,MIN(1, ROUNDUP((\(entryCells))/\(minEntryCell!), 4)))", format: formatPercent) ; let entryFactorCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(float: round.scoreData.reducedTo, format: formatPercent) ; let reduceToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Factor %", float: round.scoreData.reducedTo, format: formatPercent) ; let reduceToCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
 
-        writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "\(prefix)Max Award", floatFormula: "=ROUNDUP(ROUNDUP(\(baseMaxAwardCell)*\(entryFactorCell),2)*\(reduceToCell),2)") ; maxAwardCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(floatFormula: "=ROUNDUP(ROUNDUP(\(baseEwMaxAwardCell!)*\(entryFactorCell),2)*\(reduceToCell),2)") ; ewMaxAwardCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "EW Max Award", floatFormula: "=ROUNDUP(ROUNDUP(\(baseEwMaxAwardCell!)*\(entryFactorCell),2)*\(reduceToCell),2)") ; ewMaxAwardCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(floatFormula: "=ROUND(\(scoreData.awardTo)/100,4)", format: formatPercent) ;  awardPercentCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Award %", floatFormula: "=ROUND(\(scoreData.awardTo)/100,4)", format: formatPercent) ;  awardPercentCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell!),0)") ; awardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "\(prefix)Award to", formula: "=ROUNDUP(\(entryCell!)*\(awardPercentCell!),0)") ; awardToCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         if twoWinners {
-            writeCell(formula: "=ROUNDUP(\(ewEntryRef)*\(awardPercentCell!),0)") ; ewAwardToCell = cell(row, rowFixed: true, column, columnFixed: true)
+            writeCell(title: "EW Award to", formula: "=ROUNDUP(\(ewEntryRef)*\(awardPercentCell!),0)") ; ewAwardToCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         }
         
-        writeCell(floatFormula: "=ROUND(\(scoreData.perWin),2)") ; perWinCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Per Win", floatFormula: "=ROUND(\(scoreData.perWin),2)") ; perWinCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(date: event.date ?? Date.today) ; eventDateCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Event Date", titleFormat: formatBold, date: event.date ?? Date.today) ; eventDateCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
+        columnWidth[column] = 9
+
         
-        writeCell(string: event.eventCode ?? "") ; eventIdCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Event Code", string: event.eventCode ?? "") ; eventIdCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(string: scoreData.national ? "National" : "Local") ; localCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Local/Nat", string: scoreData.national ? "National" : "Local") ; localCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(localCell!)=\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; localMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Local MPs", floatFormula: "=IF(\(localCell!)=\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; localMPsCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=IF(\(localCell!)<>\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; nationalMPsCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Nat MPs", floatFormula: "=IF(\(localCell!)<>\"National\",0,ROUND(SUM(\(range(column: totalMPColumn))),2))") ; nationalMPsCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
         
-        writeCell(floatFormula: "=CheckSum(\(vstack)(\(range(column: totalMPColumn))),\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(row, rowFixed: true, column, columnFixed: true)
+        writeCell(title: "Checksum", floatFormula: "=CheckSum(\(vstack)(\(range(column: totalMPColumn))),\(vstack)(\(range(column: nationalIdColumn))))") ; checksumCell = cell(headerDataRow, rowFixed: true, column, columnFixed: true)
+        columnWidth[column] = 9
         
-        for stratum in self.writer.strata {
-            writeCell(integer: stratum.maxRank) ; strataRankCell.append(cell(row, rowFixed: true, column, columnFixed: true))
+        for (index, stratum) in self.scoreData.strata.enumerated() {
+            writeCell(title: "Strata \(index + 1) Code", titleFormat: formatCenteredBold, string: stratum.code, format: formatCenteredString) ; strataCodeCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
+            writeCell(title: "Strata \(index + 1) Rank", integer: stratum.rank) ; strataRankCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
+            writeCell(title: "Strata \(index + 1) Award%", float: stratum.percent / 100, format: formatPercent) ; strataPercentCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
         }
-        for stratum in self.writer.strata {
-            writeCell(float: stratum.maxAward) ; strataMaxAwardCell.append(cell(row, rowFixed: true, column, columnFixed: true))
-        }
+        
+        headerColumns = column + 1
     }
     
     private func range(column: [Int])->String {
@@ -2395,7 +2433,7 @@ class IndividualMPsWriter: WriterBase {
             setColumn(worksheet: worksheet, column: columnNumber, width: column.width)
             write(worksheet: worksheet, row: titleRow, column: columnNumber, string: round.replace(column.title), format: format)
         }
-        
+            
         for (columnNumber, column) in columns.enumerated() {
             
             if let referenceContent = column.referenceContent {
@@ -2623,6 +2661,7 @@ class WriterBase {
     var workbook: UnsafeMutablePointer<lxw_workbook>?
     var worksheet: UnsafeMutablePointer<lxw_worksheet>?
     var formatString: UnsafeMutablePointer<lxw_format>?
+    var formatCenteredString: UnsafeMutablePointer<lxw_format>?
     var formatZeroBlank: UnsafeMutablePointer<lxw_format>?
     var formatInt: UnsafeMutablePointer<lxw_format>?
     var formatFloat: UnsafeMutablePointer<lxw_format>?
@@ -2632,6 +2671,7 @@ class WriterBase {
     var formatZeroFloatBold: UnsafeMutablePointer<lxw_format>?
     var formatBold: UnsafeMutablePointer<lxw_format>?
     var formatRightBold: UnsafeMutablePointer<lxw_format>?
+    var formatCenteredBold: UnsafeMutablePointer<lxw_format>?
     var formatBoldUnderline: UnsafeMutablePointer<lxw_format>?
     var formatRightBoldUnderline: UnsafeMutablePointer<lxw_format>?
     var formatFloatBoldUnderline: UnsafeMutablePointer<lxw_format>?
@@ -2682,6 +2722,7 @@ class WriterBase {
         if let writer = writer {
             // Copy from writer
             self.formatString = writer.formatString
+            self.formatCenteredString = writer.formatCenteredString
             self.formatZeroBlank = writer.formatZeroBlank
             self.formatInt = writer.formatInt
             self.formatFloat = writer.formatFloat
@@ -2690,6 +2731,7 @@ class WriterBase {
             self.formatZeroFloat = writer.formatZeroFloat
             self.formatZeroFloatBold = writer.formatZeroFloatBold
             self.formatBold = writer.formatBold
+            self.formatCenteredBold = writer.formatCenteredBold
             self.formatRightBold = writer.formatRightBold
             self.formatBoldUnderline = writer.formatBoldUnderline
             self.formatRightBoldUnderline = writer.formatRightBoldUnderline
@@ -2814,6 +2856,8 @@ class WriterBase {
     func setupFormats() {
         formatString = workbook_add_format(workbook)
         format_set_align(formatString, UInt8(LXW_ALIGN_LEFT.rawValue))
+        formatCenteredString = workbook_add_format(workbook)
+        format_set_align(formatCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
         formatZeroBlank = workbook_add_format(workbook)
         format_set_num_format(formatZeroBlank, "0;-0;")
         format_set_align(formatZeroBlank, UInt8(LXW_ALIGN_LEFT.rawValue))
@@ -2846,6 +2890,10 @@ class WriterBase {
         formatBold = workbook_add_format(workbook)
         format_set_bold(formatBold)
         format_set_text_wrap(formatBold)
+        formatCenteredBold = workbook_add_format(workbook)
+        format_set_bold(formatCenteredBold)
+        format_set_text_wrap(formatCenteredBold)
+        format_set_align(formatCenteredBold, UInt8(LXW_ALIGN_CENTER.rawValue))
         formatRightBold = workbook_add_format(workbook)
         format_set_bold(formatRightBold)
         format_set_align(formatRightBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
