@@ -32,10 +32,10 @@ struct SelectInputView: View {
     @State private var inputFilename: String = ""
     @State private var roundName: String = ""
     @State private var event: EventViewModel? = nil
-    @State private var eventCode: String = ""
-    @State private var eventDesc: String = ""
+    @State private var eventCode: String = " " // Intentionally set to space to avoid cursor probs
+    @State private var eventCodeDesc: String = ""
     @State private var club: ClubViewModel? = nil
-    @State private var clubCode: String = ""
+    @State private var clubCodeDesc: String = ""
     @State private var chooseBest: Int = 0
     @State private var clubDesc: String = ""
     @State private var minRank: RankViewModel? = nil
@@ -270,7 +270,7 @@ struct SelectInputView: View {
     }
     
     private func setupFields() {
-        set(eventCode: "")
+        set(eventCode: " ")
         set(clubCode: "")
         set(minRankText: "0")
         set(maxRankText: "999")
@@ -320,7 +320,7 @@ struct SelectInputView: View {
                 }
             case .clubCode:
                 AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $clubCodeData, valid: club != nil) { (newValue) in
-                    clubCode = newValue
+                    clubCodeDesc = newValue
                 }
             case .minRankText:
                 AutoCompleteView(autoComplete: autoComplete, field: focusedField!, selected: $selected, codeWidth: 80, data: $minRankCodeData, valid: minRank != nil) { (newValue) in
@@ -388,10 +388,6 @@ struct SelectInputView: View {
                 // Clear 2-winner pairs award
                 ewMaxAward = 0
             }
-        case .eventDescription:
-            if entering == nil {
-                focusedField = .eventCode
-            }
         default:
             break
         }
@@ -400,7 +396,7 @@ struct SelectInputView: View {
     private func set(eventCode newValue: String) {
         event = EventViewModel.event(eventCode: newValue)
         eventCode = newValue
-        eventDesc = event?.eventName ?? "Invalid event code"
+        eventCodeDesc = event?.eventName ?? "Invalid event code"
         if let event = event {
             if event.localAllowed && !event.nationalAllowed {
                 localNational = .local
@@ -421,8 +417,8 @@ struct SelectInputView: View {
     
     private func set(clubCode newValue: String) {
         club = ClubViewModel.club(clubCode: newValue)
-        clubCode = newValue
-        clubDesc = club?.clubName ?? (clubCode == "" ? "No club code specified" : "Invalid club code")
+        clubCodeDesc = newValue
+        clubDesc = club?.clubName ?? (clubCodeDesc == "" ? "No club code specified" : "Invalid club code")
     }
     
     private func set(minRankText newValue: String) {
@@ -471,7 +467,7 @@ struct SelectInputView: View {
         VStack(spacing: 0) {
             HStack {
                 Input(title: "Import filename", field: $inputFilename, placeHolder: "No import file specified", topSpace: 16, leadingSpace: 14, width: 365, keyboardType: .URL, autoCapitalize: .none, autoCorrect: false, isEnabled: true, isReadOnly: true, pickerAction: chooseFile, onChange: { newValue in
-                    focusedField = .eventDescription
+                    // focusedField = .eventDescription
                 })
                 .help("Select input XML file for a single round event.\nFor a multi-round event use the Paste Config button below to import the details.")
                     
@@ -515,7 +511,7 @@ struct SelectInputView: View {
         HStack {
             Spacer().frame(width: 42)
             
-            Input(title: "Event code:", field: $eventCode, desc: $eventDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, onKeyPress: eventKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Event code:", field: $eventCode, desc: $eventCodeDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, onKeyPress: eventKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
                 set(eventCode: newValue)
                 eventCodeData = getEventList()
             }
@@ -549,7 +545,7 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            Input(title: "Club code:", field: $clubCode, desc: $clubDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, onKeyPress: clubKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Club code:", field: $clubCodeDesc, desc: $clubDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, onKeyPress: clubKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
                 set(clubCode: newValue)
                 clubCodeData = getClubList()
             }
@@ -567,9 +563,9 @@ struct SelectInputView: View {
     
     private func getClubList() -> [AutoCompleteData] {
         selected = nil
-        if clubCode != "" {
+        if clubCodeDesc != "" {
             return (MasterData.shared.clubs.array as! [ClubViewModel])
-                .filter({Utility.wordSearch(for: clubCode, in: "\($0.clubCode) \($0.clubName)") && !$0.clubName.uppercased().contains("CLOSED")})
+                .filter({Utility.wordSearch(for: clubCodeDesc, in: "\($0.clubCode) \($0.clubName)") && !$0.clubName.uppercased().contains("CLOSED")})
                 .sorted(by: {$0.clubCode < $1.clubCode}).enumerated()
                 .map({ (index, element) in
                     AutoCompleteData(index: index, code: element.clubCode, desc: element.clubName)})
@@ -932,7 +928,7 @@ struct SelectInputView: View {
                     writer = Writer()
                     writer?.eventDescription = eventDescription
                     writer?.eventCode = eventCode
-                    writer?.clubCode = clubCode
+                    writer?.clubCode = clubCodeDesc
                     writer?.chooseBest = chooseBest
                     writer?.minRank = minRankCode
                     writer?.maxRank = maxRankCode
@@ -979,7 +975,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCode != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCodeDesc != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
     
@@ -1150,7 +1146,7 @@ struct SelectInputView: View {
         } else {
             eventDescription = importInProgress!.event!.description!
             eventCode = importInProgress!.event!.code!
-            clubCode = importInProgress!.event!.clubCode ?? ""
+            clubCodeDesc = importInProgress!.event!.clubCode ?? ""
             chooseBest = importInProgress!.event!.chooseBest ?? 0
             minRankCode = importInProgress!.event!.minRank ?? 0
             maxRankCode = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
@@ -1159,7 +1155,7 @@ struct SelectInputView: View {
             writer!.eventDescription = eventDescription
             writer!.eventCode = eventCode
             writer!.chooseBest = chooseBest
-            writer!.clubCode = clubCode
+            writer!.clubCode = clubCodeDesc
             writer!.chooseBest = chooseBest
             writer!.minRank = minRankCode
             writer!.maxRank = maxRankCode

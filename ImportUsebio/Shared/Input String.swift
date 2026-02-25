@@ -35,6 +35,7 @@ struct Input : View {
     var detectKeys: Set<KeyEquivalent>?
     var onChange: ((String)->())?
     @FocusState private var focus: Bool?
+    @State private var selection: TextSelection?
 
     var body: some View {
         let pickerWidth: CGFloat = (pickerAction == nil ? 0 : inputDefaultHeight * 0.95)
@@ -180,21 +181,17 @@ struct Input : View {
                             .font(inputFont)
                             .frame(height: height)
                         } else {
-                            TextField("", text: $field)
+                            TextField("", text: $field, selection: $selection)
                                 .font(inputFont)
                                 .onChange(of: field, initial: false) { (oldValue, value) in
                                     if let limitText = limitText, value.count > limitText {
                                         field = String(value.prefix(limitText))
                                     }
-                                    onChange?(value)
+                                    onChange?(field)
                                 }
                                 .onChange(of: focus) {
                                     if focus ?? false {
-                                        if field == "" {
-                                            
-                                        } else {
-                                            
-                                        }
+                                
                                     }
                                 }
                                 .focused($focus, equals: true)
@@ -317,4 +314,5 @@ extension NSSecureTextField {
   }
 }
 #endif
+
 
