@@ -421,13 +421,13 @@ struct SelectInputView: View {
         clubDesc = club?.clubName ?? (clubCodeDesc == "" ? "No club code specified" : "Invalid club code")
     }
     
-    private func set(minRankText newValue: String) {
-        if let newRankCode = Int(newValue.trim() == "" ? "0" : newValue) {
+    private func set(minRankText newValue: String, finished: Bool = true) {
+        if let newRankCode = Int(newValue.trim() == "" && finished ? "0" : newValue) {
             minRank = minRankList.first(where: { $0.rankCode == newRankCode })
         } else {
             minRank = minRankList.first(where: { $0.rankName == newValue })
         }
-        minRankText = (newValue.trim() == "" ? "0" : newValue)
+        minRankText = (newValue.trim() == "" && finished ? "0" : newValue)
         minRankCode = minRank?.rankCode ?? -1
         minRankMessage = (minRank?.rankName ?? "Invalid rank code")
         if minRank != nil && maxRankCode < minRankCode {
@@ -435,13 +435,13 @@ struct SelectInputView: View {
         }
     }
     
-    private func set(maxRankText newValue: String) {
-        if let newRankCode = Int(newValue.trim() == "" ? "999" : newValue) {
+    private func set(maxRankText newValue: String, finished: Bool = true) {
+        if let newRankCode = Int(newValue.trim() == "" && finished ? "999" : newValue) {
             maxRank = maxRankList.first(where: { $0.rankCode == newRankCode })
         } else {
             maxRank = maxRankList.first(where: { $0.rankName == newValue })
         }
-        maxRankText = (newValue.trim() == "" ? "999" : newValue)
+        maxRankText = (newValue.trim() == "" && finished ? "999" : newValue)
         maxRankCode = maxRank?.rankCode ?? 0
         if maxRank != nil && maxRankCode < minRankCode {
             maxRankDesc = "Below minimum rank"
@@ -516,6 +516,7 @@ struct SelectInputView: View {
                 eventCodeData = getEventList()
             }
             .help("Enter an event code to be used to post the MPs")
+            .focused($focusedField, equals: .eventCode)
             .matchedGeometryEffect(id: ViewField.eventCode, in: autoComplete, anchor: .bottomTrailing)
         }
     }
@@ -530,7 +531,7 @@ struct SelectInputView: View {
         selected = nil
         if eventCode != "" {
             return (MasterData.shared.events.array as! [EventViewModel])
-                .filter({Utility.wordSearch(for: eventCode, in: "\($0.eventCode) \($0.eventName)")
+                .filter({Utility.wordSearch(for: eventCode.trim(), in: "\($0.eventCode) \($0.eventName)")
                      && $0.active && ($0.startDate ?? Date()) <= Date() && ($0.endDate ?? Date()) >= Date()})
                 .sorted(by: {$0.eventCode < $1.eventCode}).enumerated()
                 .map({ (index, element) in
@@ -565,7 +566,7 @@ struct SelectInputView: View {
         selected = nil
         if clubCodeDesc != "" {
             return (MasterData.shared.clubs.array as! [ClubViewModel])
-                .filter({Utility.wordSearch(for: clubCodeDesc, in: "\($0.clubCode) \($0.clubName)") && !$0.clubName.uppercased().contains("CLOSED")})
+                .filter({Utility.wordSearch(for: clubCodeDesc.trim(), in: "\($0.clubCode) \($0.clubName)") && !$0.clubName.uppercased().contains("CLOSED")})
                 .sorted(by: {$0.clubCode < $1.clubCode}).enumerated()
                 .map({ (index, element) in
                     AutoCompleteData(index: index, code: element.clubCode, desc: element.clubName)})
@@ -580,8 +581,8 @@ struct SelectInputView: View {
             Spacer().frame(width: 42)
             
             Input(title: "Minimum:", field: $minRankText, desc: $minRankMessage, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMinRank == 0, onKeyPress: minRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
-                set(minRankText: newValue)
-                minRankCodeData = (newValue == "" ? [] : getMinRankList(text: newValue))
+                    set(minRankText: newValue, finished: false)
+                    minRankCodeData = (newValue == "" ? [] : getMinRankList(text: newValue))
             }
             .help("Enter a minimum rank code for this event or leave blank if you do not want to filter by rank")
             .focused($focusedField, equals: .minRankText)
@@ -590,8 +591,8 @@ struct SelectInputView: View {
             Spacer().frame(width: 30)
             
             Input(title: "Maximum:", field: $maxRankText, desc: $maxRankDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMaxRank == 999, onKeyPress: maxRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
-                set(maxRankText: newValue)
-                maxRankCodeData = (newValue == "" ? [] : getMaxRankList(text: newValue))
+                    set(maxRankText: newValue, finished: false)
+                    maxRankCodeData = (newValue == "" ? [] : getMaxRankList(text: newValue))
             }
             .help("Enter a maximum rank code for this event or leave blank if you do not want to filter by rank")
             .focused($focusedField, equals: .maxRankText)
@@ -611,7 +612,7 @@ struct SelectInputView: View {
     
     private func getRankList(text: String, minimum: Bool) -> [AutoCompleteData] {
         selected = nil
-        return (minimum ? minRankList : maxRankList).filter({Utility.wordSearch(for: text, in: "\($0.rankCode) \($0.rankName)")})
+        return (minimum ? minRankList : maxRankList).filter({Utility.wordSearch(for: text.trim(), in: "\($0.rankCode) \($0.rankName)")})
                 .sorted(by: {$0.rankCode < $1.rankCode}).enumerated()
                 .map({ (index, element) in
                     AutoCompleteData(index: index, code: "\(element.rankCode)", desc: element.rankName)})
@@ -662,7 +663,7 @@ struct SelectInputView: View {
         selected = nil
         if strataDefName != "" {
             return (MasterData.shared.strataDefs.array as! [StrataDefViewModel])
-                .filter({Utility.wordSearch(for: strataDefName, in: $0.name)})
+                .filter({Utility.wordSearch(for: strataDefName.trim(), in: $0.name)})
                 .sorted(by: {StrataDefViewModel.defaultSort($0, $1)}).enumerated()
                 .map({ (index, element) in
                     AutoCompleteData(index: index, code: element.name, desc: "")})

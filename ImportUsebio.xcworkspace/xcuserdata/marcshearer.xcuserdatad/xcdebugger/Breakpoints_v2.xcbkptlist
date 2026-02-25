@@ -158,8 +158,8 @@
             filePath = "ImportUsebio/Shared/Writer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1755"
-            endingLineNumber = "1755"
+            startingLineNumber = "1802"
+            endingLineNumber = "1802"
             landmarkName = "write()"
             landmarkType = "7">
          </BreakpointContent>

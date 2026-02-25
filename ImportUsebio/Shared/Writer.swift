@@ -155,6 +155,7 @@ class Round {
 
 class Writer: WriterBase {
     var parameters: ParametersWriter!
+    var settings: SettingsWriter!
     var summary: SummaryWriter!
     var csvImport:CsvImportWriter!
     var consolidated: ConsolidatedWriter!
@@ -178,6 +179,7 @@ class Writer: WriterBase {
     init() {
         super.init()
         parameters = ParametersWriter(writer: self)
+        settings = SettingsWriter(writer: self)
         summary = SummaryWriter(writer: self)
         csvImport = CsvImportWriter(writer: self)
         consolidated = ConsolidatedWriter(writer: self)
@@ -219,6 +221,7 @@ class Writer: WriterBase {
         for round in rounds {
             round.individualMPs.prepare(workbook: workbook)
         }
+        settings.prepare(workbook: workbook)
         parameters.prepare(workbook: workbook)
         
         workbook_add_vba_project(workbook, "./Award.bin")
@@ -228,6 +231,7 @@ class Writer: WriterBase {
             round.ranksPlusMps.write()
             round.individualMPs.write()
         }
+        settings.write()
         consolidated.write()
         parameters.writeSortBy()
         parameters.writeRanks()
@@ -508,8 +512,8 @@ class SummaryWriter : WriterBase {
         
         // Write discarded results discrepancy (choose best)
         let consolidated = writer.consolidated!
-        let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
-        write(worksheet: worksheet, row : chooseBestRow!, column: descriptionColumn!, dynamicFormula: "=IF(\(chooseBestCell)<>0,\"Discarded results\",\"\")", format: formatBold)
+        let settings = writer.settings!
+        write(worksheet: worksheet, row : chooseBestRow!, column: descriptionColumn!, dynamicFormula: "=IF(\(settings.chooseBestCell!)<>0,\"Discarded results\",\"\")", format: formatBold)
         for (column, label) in [(localMPsColumn!,    "Local"),
                                 (nationalMPsColumn!, "National")] {
             var formula = "=ROUND("
@@ -677,9 +681,9 @@ class FormattedWriter: WriterBase {
         }
         leftFormula += "))"
         
-        let csvImport = writer.csvImport!
+        let settings = writer.settings!
         let ranksPlusMPs = writer.rounds.first!.ranksPlusMps!
-        var bottomFormula = "OR(AND(\(nextNameDataAddress)=\"\",\(nameDataAddress)<>\"\"),AND(Printing,MOD(ROW(\(nameDataAddress)),\(cell(writer: csvImport, csvImport.linesPerPageCell!)))=1)"
+        var bottomFormula = "OR(AND(\(nextNameDataAddress)=\"\",\(nameDataAddress)<>\"\"),AND(Printing,MOD(ROW(\(nameDataAddress)),\(settings.linesPerPageCell!))=1)"
         if singleEvent && twoWinners {
             let directionAddress = cell(dataRow, rowFixed: false, directionColumn!, columnFixed: true)
             let nextDirectionAddress = cell(dataRow + 1, rowFixed: false, directionColumn!, columnFixed: true)
@@ -698,9 +702,9 @@ class FormattedWriter: WriterBase {
             let consolidated = writer.consolidated!
             let localNationalCell = cell(writer: consolidated, consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn! + columns[columnNumber].referenceColumn)
             let consolidatedRange = "\(cell(writer: consolidated, consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn!, columnFixed: true)):\(cell(consolidated.localNationalRow!, rowFixed: true, consolidated.dataColumn! + rounds - 1, columnFixed: true))"
-            let csvImport = writer.csvImport!
-            let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
-            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columnNumber, toRow: dataRow + writer.maxPlayers - 1, toColumn: columnNumber, formula: "NOT(SumMaxIfIncluded(\(vstack)(\(formattedRange),\(vstack)(\(consolidatedRange)),\(localNationalCell),\(chooseBestCell),\(columns[columnNumber].referenceColumn + 1)))", stopIfTrue: false, format: formatFaint!)
+            let settings = writer.settings!
+            let chooseBestCell = settings.chooseBestCell
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columnNumber, toRow: dataRow + writer.maxPlayers - 1, toColumn: columnNumber, formula: "NOT(SumMaxIfIncluded(\(vstack)(\(formattedRange),\(vstack)(\(consolidatedRange)),\(localNationalCell),\(chooseBestCell!),\(columns[columnNumber].referenceColumn + 1)))", stopIfTrue: false, format: formatFaint!)
         }
         
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
@@ -976,28 +980,19 @@ class CsvImportWriter: WriterBase {
     override var name: String { "Import" }
     var localMpsCell: String?
     var nationalMpsCell: String?
-    var linesPerPageCell: String?
-    var pageOrientationCell: String?
     var checksumCell: String?
     
     let eventDescriptionRow = 0
     let eventCodeRow = 1
     let eventDateRow = 2
-    let customFooterRow = 4
-    let linesPerPageRow = 5
-    let pageOrientationRow = 6
-    let minRankRow = 7
-    let maxRankRow = 8
-    let clubCodeRow = 9
-    let chooseBestRow = 10
-    let sortByRow = 12
-    let awardsRow = 13
-    let localMPsRow = 14
-    let nationalMPsRow = 15
-    let checksumRow = 16
+    let sortByRow = 4
+    let awardsRow = 5
+    let localMPsRow = 6
+    let nationalMPsRow = 7
+    let checksumRow = 8
     
-    let titleRow = 18
-    let dataRow = 19
+    let titleRow = 10
+    let dataRow = 11
     
     let titleColumn = 0
     let valuesColumn = 1
@@ -1028,20 +1023,17 @@ class CsvImportWriter: WriterBase {
         workbook_define_name(writer.workbook, "ImportDateArray", "=\(arrayRef)(\(cell(writer: self, dataRow, rowFixed: true, eventDateColumn, columnFixed: true)))")
         workbook_define_name(writer.workbook, "ImportTitleRow", "=\(cell(writer: self, titleRow, rowFixed: true, eventDateColumn, columnFixed: true)):\(cell(titleRow, rowFixed: true, nationalMPsColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "ImportEventDescriptionCell", "=\(cell(writer: self, eventDescriptionRow, rowFixed: true, valuesColumn, columnFixed: true))")
-        workbook_define_name(writer.workbook, "ImportCustomFooterCell", "=\(cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true))")
-        workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
-        workbook_define_name(writer.workbook, "ImportPageOrientationCell", "=\(cell(writer: self, pageOrientationRow, rowFixed: true, valuesColumn, columnFixed: true))")
         workbook_define_name(writer.workbook, "EventDateCell", "=\(cell(writer: self, eventDateRow, rowFixed: true, valuesColumn, columnFixed: true))")
 
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
 
         // Add macro buttons
-        writer.createMacroButton(worksheet: worksheet, title: "Next Error", macro: "NextSheetErrorRow", row: 11, column: 3)
-        writer.createMacroButton(worksheet: worksheet, title: "Create CSV", macro: "CreateCSV", row: 11, column: 5)
-        writer.createMacroButton(worksheet: worksheet, title: "Create PDF", macro: "PrintFormatted", row: 14, column: 5)
+        writer.createMacroButton(worksheet: worksheet, title: "Next\nError", macro: "NextSheetErrorRow", row: 0, column: 3, height: 30, width: 50)
+        writer.createMacroButton(worksheet: worksheet, title: "Create\nCSV", macro: "CreateCSV", row: 0, column: 5, height: 30, width: 50)
+        writer.createMacroButton(worksheet: worksheet, title: "Create\nPDF", macro: "PrintFormatted", row: 3, column: 5, height: 30, width: 50)
         if self.writer.includeInRace {
-            writer.createMacroButton(worksheet: worksheet, title: "Create Race PDF", macro: "PrintRaceFormatted", row: 11, column: 7, width: 70)
-            writer.createMacroButton(worksheet: worksheet, title: "Copy Race Data", macro: "CopyRaceExport", row: 14, column: 7, width: 70)
+            writer.createMacroButton(worksheet: worksheet, title: "Create\nRace PDF", macro: "PrintRaceFormatted", row: 0, column: 7, height: 30, width: 50)
+            writer.createMacroButton(worksheet: worksheet, title: "Copy\nRace Data", macro: "CopyRaceExport", row: 3, column: 7, height: 30, width: 50)
         }
         
         // Format rows/columns
@@ -1063,47 +1055,18 @@ class CsvImportWriter: WriterBase {
         setColumn(worksheet: worksheet, column: lookupStatusColumn, width: 8)
         setColumn(worksheet: worksheet, column: lookupPaymentStatusColumn, width: 25)
         
-        // Create hidden group for parameters
-        for row in (customFooterRow - 1)...chooseBestRow {
-            setRow(worksheet: worksheet, row: row, group: true, hidden: true, collapsed: true)
-        }
-        
         // Parameters etc
         let parameters = writer.parameters!
+        let settings = writer.settings!
         
         write(worksheet: worksheet, row: eventDescriptionRow, column: titleColumn, string: "Event name:", format: formatBold)
         write(worksheet: worksheet, row: eventDescriptionRow, column: valuesColumn, string: writer.eventDescription)
         
-        write(worksheet: worksheet, row: customFooterRow, column: titleColumn, string: "PDF Footer:", format: formatBold)
-        write(worksheet: worksheet, row: customFooterRow, column: valuesColumn, string: writer.rounds.first!.scoreData.customFooter) // Assumes single round
-        
-        write(worksheet: worksheet, row: linesPerPageRow, column: titleColumn, string: "Lines/page:", format: formatBold)
-        write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32, format: formatString)
-        linesPerPageCell = cell(linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
-        
-        write(worksheet: worksheet, row: pageOrientationRow, column: titleColumn, string: "Orientation:", format: formatBold)
-        write(worksheet: worksheet, row: pageOrientationRow, column: valuesColumn, string: "Portrait")
-        pageOrientationCell = cell(linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
-        let orientationValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true)):\(cell(parameters.dataRow + 1, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true))"
-        setDataValidation(row: pageOrientationRow, column: valuesColumn, formula: orientationValidationRange)
-        
         write(worksheet: worksheet, row: eventCodeRow, column: titleColumn, string: "Event Code:", format: formatBold)
         write(worksheet: worksheet, row: eventCodeRow, column: valuesColumn, string: writer.eventCode)
         
-        write(worksheet: worksheet, row: minRankRow, column: titleColumn, string: "Minimum Rank:", format: formatBold)
-        write(worksheet: worksheet, row: minRankRow, column: valuesColumn, formula: "=\(writer.minRank)", format: formatString)
-        
-        write(worksheet: worksheet, row: maxRankRow, column: titleColumn, string: "Maximum Rank:", format: formatBold)
-        write(worksheet: worksheet, row: maxRankRow, column: valuesColumn, formula: "=\(writer.maxRank)", format: formatString)
-        
         write(worksheet: worksheet, row: eventDateRow, column: titleColumn, string: "Event Date:", format: formatBold)
         write(worksheet: worksheet, row: eventDateRow, column: valuesColumn, floatFormula: "=\(writer.maxEventDate)", format: formatDate)
-        
-        write(worksheet: worksheet, row: clubCodeRow, column: titleColumn, string: "Club Code:", format: formatBold)
-        write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: writer.clubCode, format: formatString)
-        
-        write(worksheet: worksheet, row: chooseBestRow, column: titleColumn, string: "Choose best:", format: formatBold)
-        write(worksheet: worksheet, row: chooseBestRow, column: valuesColumn, integer: writer.chooseBest, format: formatString)
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
         let sortData = parameters.sortData
@@ -1149,8 +1112,7 @@ class CsvImportWriter: WriterBase {
         write(worksheet: worksheet, row: dataRow, column: eventCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(cell(dataRow, rowFixed: true, firstNameColumn, columnFixed: true))), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\", \"\", IF(\(eventCell)=0,\"\",\(eventCell)))))")
         
         write(worksheet: worksheet, row: titleRow, column: clubCodeColumn, string: "Club Code", format: formatBoldUnderline)
-        let clubCell = cell(clubCodeRow, rowFixed: true, valuesColumn, columnFixed: true)
-        write(worksheet: worksheet, row: dataRow, column: clubCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(firstNameCell)), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\",\"\", IF(\(clubCell)=0,\"\",\(clubCell)))))")
+        write(worksheet: worksheet, row: dataRow, column: clubCodeColumn, dynamicFormula: "=\(byRow)(\(arrayRef)(\(firstNameCell)), \(lambda)(\(lambdaParam), IF(\(lambdaParam)=\"\",\"\", IF(\(settings.clubCodeCell!)=0,\"\",\(settings.clubCodeCell!)))))")
         
         write(worksheet: worksheet, row: titleRow, column: localMPsColumn, string: "Local Points", format: formatRightBoldUnderline)
         write(worksheet: worksheet, row: dataRow, column: localMPsColumn, dynamicFormula: "=\(sortBy)(\(sourceArray(consolidated.localMPsColumn!))\(sortByLogic))", format: formatFloat)
@@ -1257,12 +1219,98 @@ class CsvImportWriter: WriterBase {
     }
     
     private func highlightBadRank(column: Int, format: UnsafeMutablePointer<lxw_format>? = nil) {
+        let settings = writer.settings!
         let rankCell = cell(dataRow, column, columnFixed: true)
-        let formula = "=AND(\(rankCell)<>\"\", OR(\(rankCell)<\(cell(minRankRow, rowFixed: true, valuesColumn, columnFixed: true)), \(rankCell)>\(cell(maxRankRow, rowFixed: true, valuesColumn, columnFixed: true))))"
+        let formula = "=AND(\(rankCell)<>\"\", OR(\(rankCell)<\(settings.minRankCell!), \(rankCell)>\(settings.maxRankCell!)))"
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: column, toRow: dataRow + writer.maxPlayers - 1, toColumn: column, formula: formula, format: format ?? formatRed!)
     }
 }
     
+// MARK: - Settings CSV
+
+class SettingsWriter: WriterBase {
+    override var name: String { "Settings" }
+    
+    var linesPerPageCell: String?
+    var pageOrientationCell: String?
+    var customFooterCell: String?
+    var otherSectionCell: String?
+    var minRankCell: String?
+    var maxRankCell: String?
+    var clubCodeCell: String?
+    var chooseBestCell: String?
+    
+    private let formattedSectionRow = 0
+    private let linesPerPageRow = 1
+    private let pageOrientationRow = 2
+    private let customFooterRow = 3
+    
+    private let otherSectionRow = 5
+    private let minRankRow = 6
+    private let maxRankRow = 7
+    private let clubCodeRow = 8
+    private let chooseBestRow = 9
+    
+    let titleColumn = 0
+    let valuesColumn = 1
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+    }
+    
+    func write() {
+        // Set column widths
+        setColumn(worksheet: worksheet, column: titleColumn, width: 14)
+        setColumn(worksheet: worksheet, column: valuesColumn, width: 125)
+
+        // Define ranges
+        workbook_define_name(writer.workbook, "ImportCustomFooterCell", "=\(cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportLinesPerPageCell", "=\(cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "ImportPageOrientationCell", "=\(cell(writer: self, pageOrientationRow, rowFixed: true, valuesColumn, columnFixed: true))")
+
+        let parameters = writer.parameters!
+        
+        write(worksheet: worksheet, row: formattedSectionRow, column: titleColumn, string: "", format: formatBoldUnderline)
+        write(worksheet: worksheet, row: formattedSectionRow, column: valuesColumn, string: "Formatted Document Settings", format: formatBoldUnderline)
+        
+        write(worksheet: worksheet, row: linesPerPageRow, column: titleColumn, string: "Lines/page:", format: formatBold)
+        write(worksheet: worksheet, row: linesPerPageRow, column: valuesColumn, integer: Settings.current.linesPerFormattedPage ?? 32, format: formatString)
+        linesPerPageCell = cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: pageOrientationRow, column: titleColumn, string: "Orientation:", format: formatBold)
+        write(worksheet: worksheet, row: pageOrientationRow, column: valuesColumn, string: "Portrait")
+        pageOrientationCell = cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        let orientationValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true)):\(cell(parameters.dataRow + 1, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true))"
+        setDataValidation(row: pageOrientationRow, column: valuesColumn, formula: orientationValidationRange)
+        
+        write(worksheet: worksheet, row: customFooterRow, column: titleColumn, string: "Custom Footer:", format: formatBold)
+        write(worksheet: worksheet, row: customFooterRow, column: valuesColumn, string: writer.rounds.first!.scoreData.customFooter) // Assumes single round
+        customFooterCell = cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: otherSectionRow, column: titleColumn, string: "", format: formatBoldUnderline)
+        write(worksheet: worksheet, row: otherSectionRow, column: valuesColumn, string: "Other Settings", format: formatBoldUnderline)
+        
+        write(worksheet: worksheet, row: minRankRow, column: titleColumn, string: "Minimum Rank:", format: formatBold)
+        write(worksheet: worksheet, row: minRankRow, column: valuesColumn, formula: "=\(writer.minRank)", format: formatString)
+        minRankCell = cell(writer: self, minRankRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: maxRankRow, column: titleColumn, string: "Maximum Rank:", format: formatBold)
+        write(worksheet: worksheet, row: maxRankRow, column: valuesColumn, formula: "=\(writer.maxRank)", format: formatString)
+        maxRankCell = cell(writer: self, maxRankRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: clubCodeRow, column: titleColumn, string: "Club Code:", format: formatBold)
+        write(worksheet: worksheet, row: clubCodeRow, column: valuesColumn, string: writer.clubCode, format: formatString)
+        clubCodeCell = cell(writer: self, clubCodeRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: chooseBestRow, column: titleColumn, string: "Choose best:", format: formatBold)
+        write(worksheet: worksheet, row: chooseBestRow, column: valuesColumn, integer: writer.chooseBest, format: formatString)
+        chooseBestCell = cell(writer: self, chooseBestRow, rowFixed: true, valuesColumn, columnFixed: true)
+    }
+    
+}
+        
 // MARK: - RaceExportWriter
 
 class RaceDetailWriter: WriterBase {
@@ -1670,10 +1718,9 @@ class ConsolidatedWriter: WriterBase {
         // Total local/national columns
         let dataRange = "\(arrayRef)(\(cell(dataRow!, dataColumn!, columnFixed: true))):\(arrayRef)(\(cell(dataRow!, rowFixed: true, dataColumn! + writer.rounds.count - 1, columnFixed: true)))"
         
-        let csvImport = writer.csvImport!
-        let chooseBestCell = cell(writer: csvImport, csvImport.chooseBestRow, rowFixed: true, csvImport.valuesColumn, columnFixed: true)
-        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"Local\", \(chooseBestCell))))")
-        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"National\", \(chooseBestCell))))")
+        let settings = writer.settings!
+        write(worksheet: worksheet, row: dataRow!, column: localMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"Local\", \(settings.chooseBestCell!))))")
+        write(worksheet: worksheet, row: dataRow!, column: nationalMPsColumn!, dynamicFloatFormula: "\(byRow)(\(dataRange),\(lambda)(\(lambdaParam),SumMaxIf(\(vstack)(\(lambdaParam)),\(vstack)(\(localNationalRange)), \"National\", \(settings.chooseBestCell!))))")
         
         // Lookup data columns
         for (column, round) in writer.rounds.enumerated() {
