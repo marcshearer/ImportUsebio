@@ -1236,7 +1236,7 @@ struct SelectInputView: View {
     
     private func addMissingNationalIdWarning() {
         if missingNationalIds {
-            roundErrors.append(RoundErrorList(name: "General", errors: [], warnings: ["Some players have missing National Ids"]))
+            roundErrors.append(RoundErrorList(name: "General", errors: [], warnings: ["Some players have missing or invalid National Ids"]))
         }
     }
 }

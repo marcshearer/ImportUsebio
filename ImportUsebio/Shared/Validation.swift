@@ -181,7 +181,9 @@ extension ScoreData {
     
     private func validate(player: Player, errorSuffix: String = "") {
         
-        if (player.nationalId ?? "") == "" || player.nationalId == "0" {
+        if (player.nationalId ?? "") == "" || player.nationalId == "0" || MemberViewModel.member(nationalId: player.nationalId!) == nil {
+            validateMissingNationalIds = true
+        } else if let nationalIdNo = Int(player.nationalId!), nationalIdNo > Settings.current.maxNationalIdNumber! {
             validateMissingNationalIds = true
         } else if let blocked = (MasterData.shared.blocked.array as! [BlockedViewModel]).filter({$0.nationalId == player.nationalId!}).first {
             let message = "Blocked member \(blocked.nationalId) - \(blocked.reason)"

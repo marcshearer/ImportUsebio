@@ -227,17 +227,14 @@ class Writer: WriterBase {
         workbook_add_vba_project(workbook, "./Award.bin")
         
         // Process data
+        parameters.prewrite1()
+        settings.write()
         for round in rounds {
             round.ranksPlusMps.write()
             round.individualMPs.write()
         }
-        settings.write()
         consolidated.write()
-        parameters.writeSortBy()
-        parameters.writeRanks()
-        parameters.writeOrientation()
-        parameters.writeErrorTypes()
-        parameters.writeLastErrorState()
+        parameters.prewrite2()
         csvImport.write()
         summary.write()
         missing.write()
@@ -285,16 +282,23 @@ class ParametersWriter : WriterBase {
     let ranksCategoryColumn = 5
     
     let pageOrientationColumn = 7
+    let orientationValidationRange = "PageOrientationValidation"
     
-    let errorTypeColumn = 9
-    let errorColorColumn = 10
+    let lookupFileColumn = 9
+    let lookupFileValidationRange = "LookupFileValidation"
+    let lookupRankValidationRange = "LookupRankValidation"
+    let latestRanksData = "Latest Ranks"
     
-    let lastErrorNameColumn = 12
-    let lastErrorValueColumn = 13
+    let errorTypeColumn = 11
+    let errorColorColumn = 12
+    
+    let lastErrorNameColumn = 14
+    let lastErrorValueColumn = 16
    
     let headerRow = 0
     let dataRow = 1
     
+    let sortValidationRange = "SortValidation"
     var sortByNameRange: String!
     var sortByAddressRange: String!
     var sortByDirectionRange: String!
@@ -302,10 +306,11 @@ class ParametersWriter : WriterBase {
     var ranksFromRange: String!
     var ranksCategoryRange: String!
     
-    var sortData: [(name: String, column: Int, direction: Int)] = []
+    var sortData:  [(name: String, column: Int, direction: Int)] = []
     var ranksData: [(from: Int, category: String)] = []
     var errorData: [(type: String, color: Color)] = []
     var lastErrorData: [(name: String, value: Int)] = []
+    var lookupFileData: [String] = []
     
     init(writer: Writer) {
         super.init(writer: writer)
@@ -316,6 +321,17 @@ class ParametersWriter : WriterBase {
         freezePanes(worksheet: worksheet, row: dataRow, column: 0)
     }
     
+    func prewrite1() {
+        writeLookupFiles()
+    }
+    
+    func prewrite2() {
+        writeSortBy()
+        writeRanks()
+        writeOrientation()
+        writeErrorTypes()
+        writeLastErrorState()
+    }
     func writeSortBy() {
         let consolidated = writer.consolidated!
         
@@ -344,6 +360,8 @@ class ParametersWriter : WriterBase {
         sortByNameRange = "\(cell(writer: self, dataRow, rowFixed: true, sortNameColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortNameColumn, columnFixed: true))"
         sortByAddressRange = "\(cell(writer: self, dataRow, rowFixed: true, sortAddressColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortAddressColumn, columnFixed: true))"
         sortByDirectionRange = "\(cell(writer: self, dataRow, rowFixed: true, sortDirectionColumn, columnFixed: true)):\(cell(dataRow + sortData.count - 1, rowFixed: true, sortDirectionColumn, columnFixed: true))"
+        
+        workbook_define_name(writer.workbook, sortValidationRange, "=\(sortByNameRange!)")
     }
     
     func writeRanks() {
@@ -376,7 +394,7 @@ class ParametersWriter : WriterBase {
         
         setColumn(worksheet: worksheet, column: pageOrientationColumn, width: 17)
         
-        workbook_define_name(writer.workbook, "PageOrientation", "=\(cell(writer: self, dataRow, rowFixed: true, pageOrientationColumn, columnFixed: true)):\(cell(writer: self, dataRow + 1, rowFixed: true, pageOrientationColumn, columnFixed: true))")
+        workbook_define_name(writer.workbook, "PageOrientationValidation", "=\(cell(writer: self, dataRow, rowFixed: true, pageOrientationColumn, columnFixed: true)):\(cell(writer: self, dataRow + 1, rowFixed: true, pageOrientationColumn, columnFixed: true))")
     }
     
     func writeErrorTypes() {
@@ -400,6 +418,27 @@ class ParametersWriter : WriterBase {
         
         workbook_define_name(writer.workbook, "ErrorTypes", "=\(cell(writer: self, dataRow, rowFixed: true, errorTypeColumn, columnFixed: true)):\(cell(writer: self, dataRow + errorData.count - 1, rowFixed: true, errorColorColumn, columnFixed: true))")
         
+    }
+    
+    func writeLookupFiles() {
+        let parameters = writer.parameters!
+        lookupFileData = [ Settings.current.userDownloadData!,
+                               Settings.current.userDownloadFrozenData!,
+                               parameters.latestRanksData]
+        
+        func dataRange(omitting: Int) -> String {
+            "\(cell(writer: self, dataRow, rowFixed: true, lookupFileColumn, columnFixed: true)):\(cell(dataRow + lookupFileData.count - 1 - omitting, rowFixed: true, lookupFileColumn, columnFixed: true))"
+        }
+        
+        write(worksheet: worksheet, row: headerRow, column: lookupFileColumn, string: "Lookup Data", format: formatBold)
+        for (index, fileName) in lookupFileData.enumerated() {
+            write(worksheet: worksheet, row: dataRow + index, column: lookupFileColumn, string: fileName)
+        }
+        
+        setColumn(worksheet: worksheet, column: lookupFileColumn, width: 17)
+        
+        workbook_define_name(writer.workbook, lookupFileValidationRange, "=\(dataRange(omitting: 1))")
+        workbook_define_name(writer.workbook, lookupRankValidationRange, "=\(dataRange(omitting: 0))")
     }
     
     func writeLastErrorState() {
@@ -663,23 +702,29 @@ class FormattedWriter: WriterBase {
         let nameDataAddress = cell(dataRow, rowFixed: false, nameColumn!, columnFixed: true)
         let nextNameDataAddress = cell(dataRow + 1, rowFixed: false, nameColumn!, columnFixed: true)
         
-        var leftRightFormula = "AND(\(nameDataAddress)<>\"\",OR("
-        for (columnNumber, column) in leftRightColumns.enumerated() {
-            if columnNumber != 0 {
-                leftRightFormula += ","
+        var leftRightFormula = ""
+        if !leftRightColumns.isEmpty {
+            leftRightFormula = "AND(\(nameDataAddress)<>\"\",OR("
+            for (columnNumber, column) in leftRightColumns.enumerated() {
+                if columnNumber != 0 {
+                    leftRightFormula += ","
+                }
+                leftRightFormula += "\(titleAddress)=\"\(column)\""
             }
-            leftRightFormula += "\(titleAddress)=\"\(column)\""
+            leftRightFormula += "))"
         }
-        leftRightFormula += "))"
         
-        var leftFormula = "AND(\(nameDataAddress)<>\"\",OR("
-        for (columnNumber, column) in leftColumns.enumerated() {
-            if columnNumber != 0 {
-                leftFormula += ","
+        var leftFormula = ""
+        if !leftColumns.isEmpty {
+            leftFormula = "AND(\(nameDataAddress)<>\"\",OR("
+            for (columnNumber, column) in leftColumns.enumerated() {
+                if columnNumber != 0 {
+                    leftFormula += ","
+                }
+                leftFormula += "\(titleAddress)=\"\(column)\""
             }
-            leftFormula += "\(titleAddress)=\"\(column)\""
+            leftFormula += "))"
         }
-        leftFormula += "))"
         
         let settings = writer.settings!
         let ranksPlusMPs = writer.rounds.first!.ranksPlusMps!
@@ -707,10 +752,14 @@ class FormattedWriter: WriterBase {
             setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: columnNumber, toRow: dataRow + writer.maxPlayers - 1, toColumn: columnNumber, formula: "NOT(SumMaxIfIncluded(\(vstack)(\(formattedRange),\(vstack)(\(consolidatedRange)),\(localNationalCell),\(chooseBestCell!),\(columns[columnNumber].referenceColumn + 1)))", stopIfTrue: false, format: formatFaint!)
         }
         
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftBottom!)
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftRightFormula, stopIfTrue: true, format: formatLeftRight!)
-        setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftFormula, stopIfTrue: true, format: formatLeft!)
+        if leftRightFormula != "" {
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftRightFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftRightBottom!)
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftRightFormula, stopIfTrue: true, format: formatLeftRight!)
+        }
+        if leftFormula != "" {
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: "AND(\(leftFormula),\(bottomFormula))", stopIfTrue: true, format: formatLeftBottom!)
+            setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: leftFormula, stopIfTrue: true, format: formatLeft!)
+        }
         setConditionalFormat(worksheet: worksheet, fromRow: dataRow, fromColumn: 0, toRow: dataRow + writer.maxPlayers - 1, toColumn: columns.count - 1, formula: bottomFormula, stopIfTrue: true, format: formatBottom!)
         for column in hiddenColumns {
             setColumn(worksheet: worksheet, column: column, hidden: true)
@@ -740,7 +789,8 @@ class FormattedWriter: WriterBase {
             }
             
             for playerNumber in 0..<round.maxParticipantPlayers {
-                columns.append(FormattedColumn(title: "Rank (\(playerNumber + 1))", referenceDynamic: { [self] in "=\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true))),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1)" }, cellType: .numericFormula, width: 9))
+                let nationalIdCell = cell(dataRow, rowFixed: true, nationalIdColumn[playerNumber], columnFixed: true)
+                columns.append(FormattedColumn(title: "Rank (\(playerNumber + 1))", referenceDynamic: { [self] in "=IF(\(arrayRef)(\(nationalIdCell))=\"\",0,\(fnPrefix)IFNA(\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(arrayRef)(\(nationalIdCell)),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),,0)),1))" }, cellType: .numericFormula, width: 9))
                 rankColumn.append(columns.count - 1)
                 hiddenColumns.append(columns.count - 1)
             }
@@ -1070,8 +1120,7 @@ class CsvImportWriter: WriterBase {
         
         write(worksheet: worksheet, row: sortByRow, column: titleColumn, string: "Sort by:", format: formatBold)
         let sortData = parameters.sortData
-        let sortValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.sortNameColumn, columnFixed: true)):\(cell(parameters.dataRow + sortData.count - 1, rowFixed: true, parameters.sortNameColumn, columnFixed: true))"
-        setDataValidation(row: sortByRow, column: valuesColumn, formula: sortValidationRange)
+        setDataValidation(row: sortByRow, column: valuesColumn, formula: "=\(parameters.sortValidationRange)")
         write(worksheet: worksheet, row: sortByRow, column: valuesColumn, string: sortData.first!.name, format: formatInt)
 
         write(worksheet: worksheet, row: awardsRow, column: titleColumn, string: "Award count:", format: formatBold)
@@ -1240,6 +1289,10 @@ class SettingsWriter: WriterBase {
     var clubCodeCell: String?
     var chooseBestCell: String?
     
+    var generalLookupsRange = "GeneralLookups"
+    var frozenRaceLookupsRange = "FrozenRaceLookups"
+    var strataRankLookupsRange = "StrataRankLookups"
+    
     private let formattedSectionRow = 0
     private let linesPerPageRow = 1
     private let pageOrientationRow = 2
@@ -1251,6 +1304,11 @@ class SettingsWriter: WriterBase {
     private let clubCodeRow = 8
     private let chooseBestRow = 9
     
+    private let lookupFileSectionRow = 11
+    private let userDownloadFileRow = 12
+    private let userDownloadFrozenFileRow = 13
+    private let strataRankFileRow = 14
+    
     let titleColumn = 0
     let valuesColumn = 1
     
@@ -1261,8 +1319,8 @@ class SettingsWriter: WriterBase {
     
     func write() {
         // Set column widths
-        setColumn(worksheet: worksheet, column: titleColumn, width: 14)
-        setColumn(worksheet: worksheet, column: valuesColumn, width: 125)
+        setColumn(worksheet: worksheet, column: titleColumn, width: 20)
+        setColumn(worksheet: worksheet, column: valuesColumn, width: 50)
 
         // Define ranges
         workbook_define_name(writer.workbook, "ImportCustomFooterCell", "=\(cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true))")
@@ -1282,11 +1340,10 @@ class SettingsWriter: WriterBase {
         write(worksheet: worksheet, row: pageOrientationRow, column: valuesColumn, string: "Portrait")
         pageOrientationCell = cell(writer: self, linesPerPageRow, rowFixed: true, valuesColumn, columnFixed: true)
         
-        let orientationValidationRange = "=\(cell(writer: parameters, parameters.dataRow, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true)):\(cell(parameters.dataRow + 1, rowFixed: true, parameters.pageOrientationColumn, columnFixed: true))"
-        setDataValidation(row: pageOrientationRow, column: valuesColumn, formula: orientationValidationRange)
+        setDataValidation(row: pageOrientationRow, column: valuesColumn, formula: "=\(parameters.orientationValidationRange)")
         
-        write(worksheet: worksheet, row: customFooterRow, column: titleColumn, string: "Custom Footer:", format: formatBold)
-        write(worksheet: worksheet, row: customFooterRow, column: valuesColumn, string: writer.rounds.first!.scoreData.customFooter) // Assumes single round
+        write(worksheet: worksheet, row: customFooterRow, column: titleColumn, string: "Custom Footer:", format: formatTopBold)
+        write(worksheet: worksheet, row: customFooterRow, column: valuesColumn, string: writer.rounds.first!.scoreData.customFooter, format: formatWrapText) // Assumes single round
         customFooterCell = cell(writer: self, customFooterRow, rowFixed: true, valuesColumn, columnFixed: true)
         
         write(worksheet: worksheet, row: otherSectionRow, column: titleColumn, string: "", format: formatBoldUnderline)
@@ -1307,6 +1364,24 @@ class SettingsWriter: WriterBase {
         write(worksheet: worksheet, row: chooseBestRow, column: titleColumn, string: "Choose best:", format: formatBold)
         write(worksheet: worksheet, row: chooseBestRow, column: valuesColumn, integer: writer.chooseBest, format: formatString)
         chooseBestCell = cell(writer: self, chooseBestRow, rowFixed: true, valuesColumn, columnFixed: true)
+        
+        write(worksheet: worksheet, row: lookupFileSectionRow, column: titleColumn, string: "", format: formatBoldUnderline)
+        write(worksheet: worksheet, row: lookupFileSectionRow, column: valuesColumn, string: "Lookup File/Data Settings", format: formatBoldUnderline)
+        
+        write(worksheet: worksheet, row: userDownloadFileRow, column: titleColumn, string: "General Lookups:", format: formatBold)
+        write(worksheet: worksheet, row: userDownloadFileRow, column: valuesColumn, string: Settings.current.userDownloadData, format: formatString)
+        workbook_define_name(writer.workbook, generalLookupsRange, "=\(cell(writer: self, userDownloadFileRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        setDataValidation(row: userDownloadFileRow, column: valuesColumn, formula: "=\(parameters.lookupFileValidationRange)", warning: true)
+        
+        write(worksheet: worksheet, row: userDownloadFrozenFileRow, column: titleColumn, string: "Frozen Race Lookups:", format: formatBold)
+        write(worksheet: worksheet, row: userDownloadFrozenFileRow, column: valuesColumn, string: Settings.current.userDownloadFrozenData, format: formatString)
+        workbook_define_name(writer.workbook, frozenRaceLookupsRange, "=\(cell(writer: self, userDownloadFrozenFileRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        setDataValidation(row: userDownloadFrozenFileRow, column: valuesColumn, formula: "=\(parameters.lookupFileValidationRange)", warning: true)
+        
+        write(worksheet: worksheet, row: strataRankFileRow, column: titleColumn, string: "Strata Rank Lookups:", format: formatBold)
+        write(worksheet: worksheet, row: strataRankFileRow, column: valuesColumn, string: parameters.latestRanksData, format: formatString)
+        workbook_define_name(writer.workbook, strataRankLookupsRange, "=\(cell(writer: self, strataRankFileRow, rowFixed: true, valuesColumn, columnFixed: true))")
+        setDataValidation(row: strataRankFileRow, column: valuesColumn, formula: "=\(parameters.lookupRankValidationRange)", warning: true)
     }
     
 }
@@ -1767,7 +1842,6 @@ class RanksPlusMPsWriter: WriterBase {
     var stratumPositionColumn: [Int] = []
     var frozenRankCategoryColumn: Int?
 
-
     var eventDescriptionCell: String?
     var entryCell: String?
     var tablesCell: String?
@@ -1821,7 +1895,7 @@ class RanksPlusMPsWriter: WriterBase {
             if let width = columnWidth[columnNumber] {
                 setColumn(worksheet: worksheet, column: columnNumber, width: width)
             } else {
-                setColumn(worksheet: worksheet, column: columnNumber, width: 6.5)
+                setColumn(worksheet: worksheet, column: columnNumber, width: 7)
             }
         }
         
@@ -1842,7 +1916,6 @@ class RanksPlusMPsWriter: WriterBase {
             let rowNumber = participantNumber + dataRow
             
             for (columnNumber, column) in columns.enumerated() {
-            
                 if participantNumber < participants.count {
                     let participant = participants[participantNumber]
                     if let content = column.content?(participant, rowNumber) {
@@ -1851,16 +1924,13 @@ class RanksPlusMPsWriter: WriterBase {
                     
                     if let playerNumber = column.playerNumber {
                         let playerList = participant.member.playerList
-                        if playerNumber < playerList.count {
-                            if let playerContent = column.playerContent?(participant, playerList[playerNumber], playerNumber, rowNumber) {
-                                let cellType = (playerContent.left(1) == "=" ? .integerFormula : column.cellType)
-                                write(cellType: (playerContent == "" ? .string : cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: playerContent)
-                            }
-                            if let strataNumber = column.strataNumber, let strataContent = column.strataContent?(playerNumber, strataNumber, rowNumber) {
-                                write(cellType: (strataContent == "" ? .string : column.cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: strataContent)
-                            }
-                        } else {
-                            write(cellType: .string, worksheet: worksheet, row: rowNumber, column: columnNumber, content: "")
+                        let player = (playerNumber < playerList.count ? playerList[playerNumber] : Player(name: ""))
+                        if let playerContent = column.playerContent?(participant, player, playerNumber, rowNumber) {
+                            let cellType = (playerContent.left(1) == "=" ? .integerFormula : column.cellType)
+                            write(cellType: (playerContent == "" ? .string : cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: playerContent)
+                        }
+                        if let strataNumber = column.strataNumber, let strataContent = column.strataContent?(playerNumber, strataNumber, rowNumber) {
+                            write(cellType: (strataContent == "" ? .string : column.cellType), worksheet: worksheet, row: rowNumber, column: columnNumber, content: strataContent)
                         }
                     }
                 }
@@ -1950,9 +2020,8 @@ class RanksPlusMPsWriter: WriterBase {
             }
             
             if !self.scoreData.strata.isEmpty {
-                columns.append(RanksPlusMPsColumn(title: "Current Rank (\(playerNumber+1))", playerContent: playerCurrentRank, playerNumber: playerNumber, cellType: .integerFormula))
+                columns.append(RanksPlusMPsColumn(title: "Strata Rank (\(playerNumber+1))", playerContent: playerCurrentRank, playerNumber: playerNumber, cellType: .integerFormula))
                 strataRankColumn.append(columns.count - 1)
-                
             }
             
             if !scoreData.manualMPs {
@@ -1993,7 +2062,7 @@ class RanksPlusMPsWriter: WriterBase {
         }
         
         if self.writer.includeInRace {
-            columns.append(RanksPlusMPsColumn(title: "\(event.type?.participantType?.string ?? "Team") Category", calculatedContent: frozenRankCategory, cellType: .stringFormula))
+            columns.append(RanksPlusMPsColumn(title: "Frozen \(event.type?.participantType?.string ?? "Team") Category", calculatedContent: frozenRankCategory, cellType: .stringFormula))
             frozenRankCategoryColumn = columns.count - 1
         }
         
@@ -2034,8 +2103,6 @@ class RanksPlusMPsWriter: WriterBase {
         }
     }
     
-    //
-    
     func addBonusMPColumns(playerNumber: Int? = nil) {
         let event = scoreData.events.first!
         let winDraw = event.type?.requiresWinDraw ?? false
@@ -2056,7 +2123,7 @@ class RanksPlusMPsWriter: WriterBase {
             columns.append(RanksPlusMPsColumn(title: "Use\nStrata\nCode", calculatedContent: playerFromStratumCode, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
             fromStratumCodeColumn.append(columns.count - 1)
             
-            columns.append(RanksPlusMPsColumn(title: "Stratum\nPosition", calculatedContent: playerStratumPosition, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
+            columns.append(RanksPlusMPsColumn(title: "Strata\nPosition", calculatedContent: playerStratumPosition, playerNumber: playerNumber, cellType: .integerFormula, format: formatZeroInt))
             stratumPositionColumn.append(columns.count - 1)
             
             columns.append(RanksPlusMPsColumn(title: (winDraw ? "Bonus" : "Total"), calculatedContent: playerBestStratumAward, playerNumber: playerNumber, cellType: .floatFormula))
@@ -2070,10 +2137,22 @@ class RanksPlusMPsWriter: WriterBase {
     // Ranks plus MPs Content getters
     
     private func playerNationalId(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
-        var result = ""
+        let event = scoreData.events.first!
+        let playerCount = round.maxParticipantPlayers
+        let extraPlayers = (playerCount > event.type?.participantType?.players ?? playerCount)
+        var result = "="
+        
         let nationalId = Int(player.nationalId ?? "0") ?? 0
-        result = "=IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId == 0 ? ("\"" + (player.nationalId ?? "0") + "\"") : player.nationalId!))"
-        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber!) {
+        
+        if extraPlayers {
+            result += "IF(\(cell(rowNumber, boardsPlayedColumn[playerNumber!], columnFixed: true))=0,\"\","
+        }
+        result += "IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId == 0 ? ("\"" + (player.nationalId ?? "0") + "\"") : player.nationalId!))"
+        if extraPlayers {
+            result += ")"
+        }
+                
+        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || MemberViewModel.member(nationalId: "\(nationalId)") == nil ) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
             if writer.missingNumbers[player.name!] == nil {
                 if player.nationalId == nil || player.nationalId == "0" {
                     writer.missingNumbers[player.name!] = ("\(-(writer.missingNumbers.count + 1))", "")
@@ -2128,7 +2207,7 @@ class RanksPlusMPsWriter: WriterBase {
     private func playerStratumPosition(playerNumber: Int? = nil, rowNumber: Int) -> String {
         let playerNumber = playerNumber ?? 0
         let fromStratumCell = cell(rowNumber, fromStratumNumberColumn[playerNumber], columnFixed: true)
-        let allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: stratumColumn!, comparison: "=\(fromStratumCell)")
+        let allPositionsRange = getAllPositionsRange(positionColumn: positionColumn!, comparisonColumn: fromStratumNumberColumn[playerNumber], comparison: "=\(fromStratumCell)")
         let result = "=IF(\(cell(rowNumber, stratumColumn!, columnFixed: true))=0,0,StratumPosition(\(cell(rowNumber, positionColumn!, columnFixed: true)),\(allPositionsRange)))"
         return result
     }
@@ -2234,25 +2313,26 @@ class RanksPlusMPsWriter: WriterBase {
     
     private func playerCurrentRank(_: Participant, player: Player, playerNumber: Int? = nil, rowNumber: Int) -> String {
         var result = ""
-        var currentRankCode: Int? = nil
+        var currentRankCode: Int
         
         // Use current rank if available
         if let nationalId = player.nationalId, let rankCode = MemberViewModel.member(nationalId: nationalId)?.rankCode {
             currentRankCode = rankCode
+        } else {
+            currentRankCode = 0
         }
             
-        if let currentRankCode = currentRankCode {
-            result = "\(currentRankCode)"
-        } else {
-            // Couldn't get current rank - look it up in the spreadsheet
-            let lookupCell = cell(rowNumber, nationalIdColumn[playerNumber ?? 0], columnFixed: true)
-            result = "\(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(lookupCell),\(vstack)(\(lookupRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupRange(Settings.current.userDownloadRankColumn))),1,0))"
-        }
+        let settings = writer.settings!
+        let parameters = writer.parameters!
+        let strataRankFileCell = settings.strataRankLookupsRange
+        let lookupCell = cell(rowNumber, nationalIdColumn[playerNumber ?? 0], columnFixed: true)
+        
+        result = "=IF(\(strataRankFileCell)=\"\(parameters.latestRanksData)\",\(currentRankCode), \(fnPrefix)NUMBERVALUE(\(fnPrefix)XLOOKUP(\(lookupCell),\(vstack)(\(lookupStrataRankRange(Settings.current.userDownloadNationalIdColumn))),\(vstack)(\(lookupStrataRankRange(Settings.current.userDownloadRankColumn))),1,0)))"
+
         return result
     }
     
     private func frozenRankCategory(_: Int? = nil, rowNumber: Int) -> String {
-        let round = writer.rounds.first!
         var result = "\(fnPrefix)IF(\(cell(rowNumber, frozenRankColumn[0], columnFixed: true))=0,\"\",CombinedCategory(TRUE,"
         for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
@@ -2265,7 +2345,6 @@ class RanksPlusMPsWriter: WriterBase {
     }
 
     private func stratum(_: Int? = nil, rowNumber: Int) -> String {
-        let round = writer.rounds.first!
         var result = "\(fnPrefix)IF(\(cell(rowNumber, strataRankColumn[0], columnFixed: true))=0,0,Stratum(\(vstack)("
         for playerNumber in 0..<round.maxParticipantPlayers {
             if playerNumber != 0 {
@@ -2717,9 +2796,11 @@ class WriterBase {
     var formatZeroFloat: UnsafeMutablePointer<lxw_format>?
     var formatZeroFloatBold: UnsafeMutablePointer<lxw_format>?
     var formatBold: UnsafeMutablePointer<lxw_format>?
+    var formatTopBold: UnsafeMutablePointer<lxw_format>?
     var formatRightBold: UnsafeMutablePointer<lxw_format>?
     var formatCenteredBold: UnsafeMutablePointer<lxw_format>?
     var formatBoldUnderline: UnsafeMutablePointer<lxw_format>?
+    var formatWrapText: UnsafeMutablePointer<lxw_format>?
     var formatRightBoldUnderline: UnsafeMutablePointer<lxw_format>?
     var formatFloatBoldUnderline: UnsafeMutablePointer<lxw_format>?
     var formatPercent: UnsafeMutablePointer<lxw_format>?
@@ -2778,11 +2859,13 @@ class WriterBase {
             self.formatZeroFloat = writer.formatZeroFloat
             self.formatZeroFloatBold = writer.formatZeroFloatBold
             self.formatBold = writer.formatBold
+            self.formatTopBold = writer.formatTopBold
             self.formatCenteredBold = writer.formatCenteredBold
             self.formatRightBold = writer.formatRightBold
             self.formatBoldUnderline = writer.formatBoldUnderline
             self.formatRightBoldUnderline = writer.formatRightBoldUnderline
             self.formatFloatBoldUnderline = writer.formatFloatBoldUnderline
+            self.formatWrapText = writer.formatWrapText
             self.formatPercent = writer.formatPercent
             self.formatDate = writer.formatDate
             self.formatRed = writer.formatRed
@@ -2839,13 +2922,17 @@ class WriterBase {
     }
     
     fileprivate func nameColumn(name: String, element: Int) -> String {
-        let names = name.components(separatedBy: " ")
-        if element == 0 {
-            var otherNames = names
-            otherNames.removeLast()
-            return otherNames.joined(separator: " ")
+        if name == "" {
+            return ""
         } else {
-            return names.last!
+            let names = name.components(separatedBy: " ")
+            if element == 0 {
+                var otherNames = names
+                otherNames.removeLast()
+                return otherNames.joined(separator: " ")
+            } else {
+                return names.last!
+            }
         }
     }
     
@@ -2893,13 +2980,27 @@ class WriterBase {
     }
     
     internal func lookupRange(_ column: String) -> String {
-        return "'\(Settings.current.userDownloadData!)'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)"
+        let settings = writer.settings!
+        let file = settings.generalLookupsRange
+        return lookupRangeInternal(file: file, column: column)
     }
     
     internal func lookupFrozenRange(_ column: String) -> String {
-        return "'\(Settings.current.userDownloadFrozenData!)'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)"
+        let settings = writer.settings!
+        let file = settings.frozenRaceLookupsRange
+        return lookupRangeInternal(file: file, column: column)
     }
     
+    internal func lookupStrataRankRange(_ column: String) -> String {
+        let settings = writer.settings!
+        let file = settings.strataRankLookupsRange
+        return lookupRangeInternal(file: file, column: column)
+    }
+    
+    internal func lookupRangeInternal(file: String, column: String) -> String {
+        "INDIRECT(\"'\" & \(file) & \"'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)\")"
+    }
+
     func setupFormats() {
         formatString = workbook_add_format(workbook)
         format_set_align(formatString, UInt8(LXW_ALIGN_LEFT.rawValue))
@@ -2937,6 +3038,10 @@ class WriterBase {
         formatBold = workbook_add_format(workbook)
         format_set_bold(formatBold)
         format_set_text_wrap(formatBold)
+        formatTopBold = workbook_add_format(workbook)
+        format_set_bold(formatTopBold)
+        format_set_text_wrap(formatTopBold)
+        format_set_align(formatTopBold, UInt8(LXW_ALIGN_VERTICAL_TOP.rawValue))
         formatCenteredBold = workbook_add_format(workbook)
         format_set_bold(formatCenteredBold)
         format_set_text_wrap(formatCenteredBold)
@@ -2962,6 +3067,8 @@ class WriterBase {
         format_set_bottom(formatFloatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
         format_set_text_wrap(formatFloatBoldUnderline)
         format_set_num_format(formatFloatBoldUnderline, "0.00;-0.00;")
+        formatWrapText = workbook_add_format(workbook)
+        format_set_text_wrap(formatWrapText)
         
         formatRed = workbook_add_format(workbook)
         format_set_bg_color(formatRed, lxw_color_t(excelRed.rgbValue))
@@ -3145,12 +3252,15 @@ class WriterBase {
         }
     }
             
-    func setDataValidation(row: Int, column: Int, formula: String) {
+    func setDataValidation(row: Int, column: Int, formula: String, warning: Bool = false) {
         let row = lxw_row_t(Int32(row))
         let column = lxw_col_t(Int32(column))
         var validation = lxw_data_validation()
         validation.validate = UInt8(LXW_VALIDATION_TYPE_LIST_FORMULA.rawValue)
         validation.criteria = UInt8(LXW_VALIDATION_CRITERIA_EQUAL_TO.rawValue)
+        if warning {
+            validation.error_type = UInt8(LXW_VALIDATION_ERROR_TYPE_WARNING.rawValue)
+        }
         validation.value_formula = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
         worksheet_data_validation_cell(worksheet, row, column, &validation)
     }

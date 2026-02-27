@@ -280,12 +280,20 @@ public class Player : Member {
     var accumulatedWinDraw: Float?
     
     var boardsPlayed: Int? { accumulatedBoardsPlayed ?? pair?.boardsPlayed ?? participant?.event?.boards}
-    var winDraw: Float { accumulatedWinDraw ?? pair?.winDraw ?? participant?.winDraw ?? 0}
+    var winDraw: Float { accumulatedWinDraw ?? pair?.winDraw ?? participant?.winDraw ?? pair?.participant?.winDraw ?? 0}
     
     init(pair: Pair? = nil) {
         super.init()
         self.participant = nil
         self.pair = pair
+    }
+    
+    init(name: String) {
+        // Used for dummy players above number in pair/team
+        super.init()
+        self.name = name
+        self.accumulatedBoardsPlayed = 0
+        self.accumulatedWinDraw = 0
     }
     
     public func copy() -> Player {
