@@ -14,7 +14,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
         // Properties in core data model
     @Published private(set) var memberId: UUID = UUID() ; public override var id: UUID { memberId }
     @Published private(set) var nationalId = ""
-    @Published public var firstName: String = ""
+    @Published public var otherNames: String = ""
     @Published public var lastName: String = ""
     @Published public var homeClub: String = ""
     @Published public var postCode: String = ""
@@ -26,6 +26,8 @@ public class MemberViewModel : ViewModel, ObservableObject {
     @Published private(set) var canSave: Bool = false
     
     public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.member")!)!
+    
+    public var names: String { "\(otherNames) \(lastName)" }
     
         // Auto-cleanup
     private var cancellableSet: Set<AnyCancellable> = []
@@ -43,10 +45,10 @@ public class MemberViewModel : ViewModel, ObservableObject {
         self.revert()
     }
     
-    public convenience init(nationalId: String, firstName: String, lastName: String, homeClub: String, postCode: String, rankCode: Int, downloaded: Date) {
+    public convenience init(nationalId: String, otherNames: String, lastName: String, homeClub: String, postCode: String, rankCode: Int, downloaded: Date) {
         self.init()
         self.nationalId = nationalId
-        self.firstName = firstName
+        self.otherNames = otherNames
         self.lastName = lastName
         self.homeClub = homeClub
         self.postCode = postCode
@@ -90,6 +92,10 @@ public class MemberViewModel : ViewModel, ObservableObject {
         return MemberViewModel.getLookup(nationalId: nationalId)
     }
     
+    public static func member(names: String) -> [MemberViewModel] {
+        return (MasterData.shared.members.array as! [MemberViewModel]).filter({"\($0.otherNames) \($0.lastName)" == names })
+    }
+    
     static public func getLookup(nationalId: String) -> MemberViewModel? {
         return (MasterData.shared.members.array as! [MemberViewModel]).first(where: {$0.nationalId == nationalId})
     }
@@ -99,7 +105,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
     }
     
     override public var description: String {
-        "Member: \(self.nationalId) - \(self.firstName) \(self.lastName)"
+        "Member: \(self.nationalId) - \(self.otherNames) \(self.lastName)"
     }
     
     override public var debugDescription: String { self.description }
@@ -108,7 +114,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
         switch key {
             case "memberId": return memberId as Any
             case "nationalId": return nationalId as Any
-            case "firstName": return firstName as Any
+            case "otherNames": return otherNames as Any
             case "lastName": return lastName as Any
             case "homeClub": return homeClub as Any
             case "postCode": return postCode as Any
@@ -122,7 +128,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
         switch key {
             case "memberId": self.memberId = value as! UUID
             case "nationalId": self.nationalId = value as! String
-            case "firstName": self.firstName = value as! String
+            case "otherNames": self.otherNames = value as! String
             case "lastName": self.lastName = value as! String
             case "homeClub": self.homeClub = value as! String
             case "postCode": self.postCode = value as! String

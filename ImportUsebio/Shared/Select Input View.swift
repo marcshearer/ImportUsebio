@@ -78,6 +78,7 @@ struct SelectInputView: View {
     @State private var showImportRanks = false
     @State private var showBlockedNumbers = false
     @State private var showStratifications = false
+    @State private var showParticipants = false
     @State private var missingNationalIds = false
     @State private var showAdvancedParameters = false
     @State private var editSettings = Settings.current.copy()
@@ -195,14 +196,16 @@ struct SelectInputView: View {
                                 Separator(thickness: 1)
                                 Spacer().frame(height: 12)
                                 HStack {
-                                    Spacer().frame(width: 40)
+                                    Spacer().frame(width: 20)
                                     addSheetButton()
-                                    Spacer().frame(width: 50)
+                                    Spacer().frame(width: 30)
                                     finishButton()
-                                    Spacer().frame(width: 50)
+                                    Spacer().frame(width: 30)
                                     clearButton()
-                                    Spacer().frame(width: 50)
+                                    Spacer().frame(width: 30)
                                     pasteButton()
+                                    Spacer().frame(width: 30)
+                                    participantsButton()
                                     Spacer()
                                     settingsButton()
                                         .popover(isPresented: $showSettingsMenu) {
@@ -238,6 +241,9 @@ struct SelectInputView: View {
         .sheet(isPresented: $showStratifications) {
             StratificationsView()
         }
+        .sheet(isPresented: $showParticipants) {
+            ParticipantsView(writer: $writer)
+        }
         .sheet(isPresented: $showImportEvents) {
             EventImportView()
         }
@@ -255,7 +261,7 @@ struct SelectInputView: View {
         .onAppear {
             setupFields()
             downloadingMemberList = false
-                // downloadMemberList()
+            downloadMemberList()
             refreshRankLists()
         }
     }
@@ -977,6 +983,23 @@ struct SelectInputView: View {
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
         .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCodeDesc != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+    }
+    
+    private func participantsButton() -> some View {
+        return Button{
+            showParticipants = true
+        } label: {
+            Text("Players")
+                .help("Click this to check player data against Mempad")
+                .foregroundColor(Palette.highlightButton.text)
+                .frame(width: 100, height: 30)
+                .font(.callout).minimumScaleFactor(0.5)
+                .background(Palette.highlightButton.background)
+                .cornerRadius(15)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .focusable(false)
+        .disabled(writer == nil)
     }
     
     

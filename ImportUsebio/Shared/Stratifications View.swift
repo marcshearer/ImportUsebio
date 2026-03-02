@@ -159,10 +159,10 @@ struct StratificationsDetailView: View {
                         }
                         LazyVGrid(columns: tableColums, spacing: 0) {
                             GridRow {
-                                CenteredClickableText(text: "#")
-                                CenteredClickableText(text: "Name")
-                                LeadingClickableText(text: "Maximum Rank")
-                                CenteredClickableText(text: "Percentage")
+                                CenteredClickableText("#")
+                                CenteredClickableText("Name")
+                                LeadingClickableText("Maximum Rank")
+                                CenteredClickableText("Percentage")
                             }
                             .bold()
                             .frame(height: 30)
@@ -171,28 +171,28 @@ struct StratificationsDetailView: View {
                             ForEach(edit.strata, id: \.strataElementid) { strata in
                                 GridRow {
                                     
-                                    CenteredClickableText(text: "\(strata.index + 1)").bold()
+                                    CenteredClickableText("\(strata.index + 1)").bold()
                                     if strata.index == 0 && strata.code.trim() == "" {
-                                        CenteredClickableText(text: "Blank")
+                                        CenteredClickableText("Blank")
                                             .foregroundColor(Palette.background.faintText)
                                     } else {
-                                        CenteredClickableText(text: "\(strata.code)")
+                                        CenteredClickableText("\(strata.code)")
                                     }
                                     
                                     if strata.index == 0 {
-                                        LeadingClickableText(text: "Any rank")
+                                        LeadingClickableText("Any rank")
                                             .foregroundColor(Palette.background.faintText)
                                     } else if strata.code.trim() == "" {
-                                        LeadingClickableText(text: "")
+                                        LeadingClickableText("")
                                     } else {
                                         let rank = RankViewModel.rank(rankCode: strata.rank)
-                                        LeadingClickableText(text: "\(rank?.rankName ?? "")")
+                                        LeadingClickableText("\(rank?.rankName ?? "")")
                                     }
                                     
                                     if strata.index == 0 || strata.code.trim() != "" {
-                                        CenteredClickableText(text: "\(strata.percent.toString(places: 2)) %")
+                                        CenteredClickableText("\(strata.percent.toString(places: 2)) %")
                                     } else {
-                                        CenteredClickableText(text: "")
+                                        CenteredClickableText("")
                                     }
                                 }
                                 .onTapGesture {

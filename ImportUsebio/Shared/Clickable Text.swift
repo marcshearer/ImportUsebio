@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct LeadingClickableText : View {
-    var text: String
+    private var text: String
+    
+    init(_ text: String) {
+        self.text = text
+    }
     
     var body : some View {
         HStack {
@@ -20,7 +24,11 @@ struct LeadingClickableText : View {
 }
 
 struct CenteredClickableText : View {
-    var text: String
+    private var text: String
+    
+    init(_ text: String) {
+        self.text = text
+    }
     
     var body : some View {
         HStack {
@@ -33,7 +41,11 @@ struct CenteredClickableText : View {
 }
 
 struct TrailingClickableText : View {
-    var text: String
+    private var text: String
+    
+    init(_ text: String) {
+        self.text = text
+    }
     
     var body : some View {
         HStack {

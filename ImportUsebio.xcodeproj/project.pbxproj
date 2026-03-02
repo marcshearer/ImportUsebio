@@ -42,6 +42,7 @@
 		B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */; };
 		B2C3247229CEC5D1005D8DED /* Generic Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */; };
 		B2C3247429CF6340005D8DED /* Award.bas in Resources */ = {isa = PBXBuildFile; fileRef = B2C3247329CF6340005D8DED /* Award.bas */; };
+		B2C67EC42F51B0EC00BDC189 /* Show Participants View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C67EC32F51B0E500BDC189 /* Show Participants View.swift */; };
 		B2D601072F3B4D8E00015BD2 /* Member Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */; };
 		B2D601092F3B4F0E00015BD2 /* Member View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D601082F3B4F0800015BD2 /* Member View Model.swift */; };
 		B2D6010B2F3C9F3600015BD2 /* Blocked Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */; };
@@ -131,6 +132,7 @@
 		B2C3246F29CDAECE005D8DED /* Manual Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Manual Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3247129CEC5D1005D8DED /* Generic Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Generic Csv Parser.swift"; sourceTree = "<group>"; };
 		B2C3247329CF6340005D8DED /* Award.bas */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Award.bas; sourceTree = "<group>"; };
+		B2C67EC32F51B0E500BDC189 /* Show Participants View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Show Participants View.swift"; sourceTree = "<group>"; };
 		B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Managed Object.swift"; sourceTree = "<group>"; };
 		B2D601082F3B4F0800015BD2 /* Member View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member View Model.swift"; sourceTree = "<group>"; };
 		B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Managed Object.swift"; sourceTree = "<group>"; };
@@ -250,6 +252,16 @@
 			name = "Data Structures";
 			sourceTree = "<group>";
 		};
+		B2C67EC52F51B2DC00BDC189 /* Unused components */ = {
+			isa = PBXGroup;
+			children = (
+				B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */,
+				B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */,
+				B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */,
+			);
+			path = "Unused components";
+			sourceTree = "<group>";
+		};
 		B2E103392992785000A35645 = {
 			isa = PBXGroup;
 			children = (
@@ -275,6 +287,7 @@
 				B271D0E429A7B70C003C417C /* Notes.txt */,
 				B2E1034E2992785200A35645 /* ImportUsebio.entitlements */,
 				B2E103542992792A00A35645 /* Shared */,
+				B2C67EC52F51B2DC00BDC189 /* Unused components */,
 				B2E103552992793B00A35645 /* Main App */,
 			);
 			path = ImportUsebio;
@@ -402,9 +415,7 @@
 			children = (
 				B2E103BB29928EB900A35645 /* Select Input View.swift */,
 				B2A784EB29B09C87000425C4 /* Show Errors View.swift */,
-				B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */,
-				B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */,
-				B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */,
+				B2C67EC32F51B0E500BDC189 /* Show Participants View.swift */,
 				B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */,
 				B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */,
 				B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */,
@@ -616,6 +627,7 @@
 				B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */,
 				B2E103992992806F00A35645 /* Slide In Menu.swift in Sources */,
 				B2E103A22992806F00A35645 /* Swipe Gestures.swift in Sources */,
+				B2C67EC42F51B0EC00BDC189 /* Show Participants View.swift in Sources */,
 				B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */,
 				B2BA8AA42E4A290000B415F5 /* Object Model.swift in Sources */,
 				B28D69082994CDCD00BA73E5 /* File System.swift in Sources */,

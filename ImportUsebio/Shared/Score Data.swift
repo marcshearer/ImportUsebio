@@ -263,8 +263,25 @@ public class Member {
             return "Unknown \(type.string)"
         }
     }
+    var lastName: String { namePart(1) }
+    var otherNames: String { namePart(0) }
     
     weak var participant: Participant?
+    
+    static func namePart(_ member: Member, _ element: Int) -> String {
+        return member.namePart(element)
+    }
+    
+    func namePart(_ element: Int) -> String {
+        let names = (name ?? "").components(separatedBy: " ")
+        if element == 0 {
+            var otherNames = names
+            otherNames.removeLast()
+            return otherNames.joined(separator: " ")
+        } else {
+            return names.last!
+        }
+    }
 }
 
 public class Player : Member {

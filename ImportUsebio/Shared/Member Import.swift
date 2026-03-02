@@ -30,7 +30,7 @@ class MemberList {
                 let lines = csvData.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
                 for line in lines.dropFirst() {
                     let fields = line.components(separatedBy: ",").map{$0.replacing("\"", with: "")}
-                    let member = MemberViewModel(nationalId: fields[0], firstName: fields[1], lastName: fields[2], homeClub: fields[3], postCode: postCode(postCodeAndRank: fields[4]), rankCode: rankCode(postCodeAndRank: fields[4]), downloaded: downloaded)
+                    let member = MemberViewModel(nationalId: fields[0], otherNames: fields[1], lastName: fields[2], homeClub: fields[3], postCode: postCode(postCodeAndRank: fields[4]), rankCode: rankCode(postCodeAndRank: fields[4]), downloaded: downloaded)
                     if let existingMember = MemberViewModel.member(nationalId: member.nationalId) {
                         existingMember.copy(from: member, copyMO: false)
                         existingMember.updateMO()

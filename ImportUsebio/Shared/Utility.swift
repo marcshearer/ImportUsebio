@@ -495,6 +495,22 @@ class Utility {
         }
         return result
     }
+    
+    public static func levenshteinDistance(_ string1: String, _ string2: String) -> Int {
+        let string1 = string1.folding(options: [.diacriticInsensitive, .caseInsensitive,], locale: .current).trimmingCharacters(in: .whitespacesAndNewlines)
+        let string2 = string2.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current).trimmingCharacters(in: .whitespacesAndNewlines)
+        let empty = [Int](repeating:0, count: string2.count)
+        var last = [Int](0...string2.count)
+        
+        for (i, char1) in string1.enumerated() {
+            var cur = [i + 1] + empty
+            for (j, char2) in string2.enumerated() {
+                cur[j + 1] = char1 == char2 ? last[j] : min(last[j], last[j + 1], cur[j]) + 1
+            }
+            last = cur
+        }
+        return last.last!
+    }
 }
 
 extension Array where Element == String {

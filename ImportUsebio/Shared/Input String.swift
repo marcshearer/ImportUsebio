@@ -34,6 +34,7 @@ struct Input : View {
     var onKeyPress: ((KeyPress)->(KeyPress.Result))?
     var detectKeys: Set<KeyEquivalent>?
     var onChange: ((String)->())?
+    var onLoseFocus: ((String)->())?
     @FocusState private var focus: Bool?
     @State private var selection: TextSelection?
 
@@ -94,7 +95,7 @@ struct Input : View {
                         VStack {
                             HStack {
                                 Spacer().frame(width: 10)
-                                LeadingClickableText(text: placeHolder)
+                                LeadingClickableText(placeHolder)
                                     .font(inputFont)
                                     .foregroundColor(Palette.input.faintText)
                             }
@@ -138,8 +139,8 @@ struct Input : View {
                                         onChange?(field)
                                     }
                                     .onChange(of: focus) {
-                                        if focus ?? false {
-                                            
+                                        if !(focus ?? false) {
+                                            onLoseFocus?(field)
                                         }
                                     }
                                     .focused($focus, equals: true)
@@ -190,8 +191,8 @@ struct Input : View {
                                     onChange?(field)
                                 }
                                 .onChange(of: focus) {
-                                    if focus ?? false {
-                                
+                                    if !(focus ?? false) {
+                                        onLoseFocus?(field)
                                     }
                                 }
                                 .focused($focus, equals: true)
@@ -217,7 +218,7 @@ struct Input : View {
                         VStack {
                             HStack {
                                 Spacer().frame(width: 10)
-                                LeadingClickableText(text: placeHolder)
+                                LeadingClickableText(placeHolder)
                                     .font(inputFont)
                                     .foregroundColor(Palette.input.faintText)
                             }

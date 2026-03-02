@@ -10,7 +10,7 @@ let memberEntity = Entity( "Member",
                            MemberMO.self,
                            Attribute("memberId",              .UUIDAttributeType),
                            Attribute("nationalId",            .stringAttributeType),
-                           Attribute("firstName",             .stringAttributeType),
+                           Attribute("otherNames",            .stringAttributeType),
                            Attribute("lastName",              .stringAttributeType),
                            Attribute("homeClub",              .stringAttributeType),
                            Attribute("postCode",              .stringAttributeType),
@@ -22,7 +22,7 @@ let memberEntity = Entity( "Member",
     public static let entity = memberEntity
     
     @NSManaged public var nationalId: String
-    @NSManaged public var firstName: String
+    @NSManaged public var otherNames: String
     @NSManaged public var lastName: String
     @NSManaged public var homeClub: String
     @NSManaged public var postCode: String
