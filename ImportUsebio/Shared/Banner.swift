@@ -64,7 +64,7 @@ struct Banner: View {
         return ZStack {
             bannerColor.background
                 .ignoresSafeArea(edges: .all)
-            VStack {
+            VStack(spacing: 0) {
                 Spacer()
                 HStack {
                     Spacer().frame(width: 20)

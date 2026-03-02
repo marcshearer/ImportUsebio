@@ -81,10 +81,9 @@ enum MemberStatus: Equatable {
     
     init(imported: Player) {
         self.player = imported
-        if let nationalId = imported.nationalId {
-            self.nationalId = nationalId
-            self.names = imported.otherNames + " " + imported.lastName
-        }
+        self.nationalId = imported.nationalId ?? ""
+        self.names = imported.name ?? ""
+         
         if let member = MemberViewModel.member(nationalId: nationalId) {
             memberNationalId = member.nationalId
             memberNames = member.names
@@ -143,17 +142,20 @@ struct ParticipantsView: View {
                         Rectangle()
                             .foregroundColor(Palette.background.background)
                     }
-                    ScrollView(showsIndicators: true) {
-                        VStack(spacing: 0) {
-                            LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                                Section(header: bannerRow()) {
-                                    ForEach(self.participants.filter({ if case .ok = $0.status { return false }; return true })) { participant in
-                                        gridRow(participant: participant)
-                                            .frame(height: 30)
+                    VStack(spacing: 0) {
+                        ScrollView(showsIndicators: true) {
+                            VStack(spacing: 0) {
+                                LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                                    Section(header: bannerRow()) {
+                                        ForEach(self.participants.filter({ if case .ok = $0.status { return false }; return true })) { participant in
+                                            gridRow(participant: participant)
+                                                .frame(height: 30)
+                                        }
                                     }
                                 }
                             }
                         }
+                        Spacer().frame(height: 5)
                     }
                 }
             }
@@ -182,7 +184,7 @@ struct ParticipantsView: View {
                 .bold()
                 Spacer()
             }
-            Spacer()
+            .frame(height: 40)
         }
     }
     
@@ -274,6 +276,8 @@ struct ChoosePossibleMatches : View {
     @State var matches: [MemberViewModel] = []
     
     let tableColumns = [GridItem(.fixed(80),  spacing: 0, alignment: .trailing),
+                        GridItem(.fixed(140), spacing: 0, alignment: .leading),
+                        GridItem(.fixed(140),  spacing: 0, alignment: .leading),
                         GridItem(.fixed(140), spacing: 0, alignment: .leading)]
     
     var body: some View {
@@ -304,8 +308,11 @@ struct ChoosePossibleMatches : View {
                                         Section(header: heading()) {
                                             ForEach(matches) { member in
                                                 GridRow {
+                                                    let rank = RankViewModel.rank(rankCode: member.rankCode)
                                                     TrailingClickableText(member.nationalId)
                                                     LeadingClickableText(member.names)
+                                                    LeadingClickableText(member.homeClub)
+                                                    LeadingClickableText(rank?.rankName ?? "Unknown")
                                                 }
                                                 .frame(height: 30)
                                                 .padding(.horizontal, 5)
@@ -321,7 +328,7 @@ struct ChoosePossibleMatches : View {
                                 }
                             }
                         }
-                        .frame(width: 220, height: 120)
+                        .frame(width: 490, height: 120)
                     }
                     Spacer()
                     VStack {
@@ -340,7 +347,7 @@ struct ChoosePossibleMatches : View {
                 if !chooseOnly {
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "National Id:", field: $nationalId, width: 140, inlineTitle: true, inlineTitleWidth: 130, onChange: { newValue in
+                        Input(title: "National Id:", field: $nationalId, width: 140, inlineTitle: true, inlineTitleWidth: 125, onChange: { newValue in
                             if let lookup = MemberViewModel.member(nationalId: newValue) {
                                 names = lookup.names
                                 focused = nil
@@ -365,7 +372,7 @@ struct ChoosePossibleMatches : View {
                     
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "Name:", field: $names, width: 140, inlineTitle: true, inlineTitleWidth: 130)
+                        Input(title: "Name:", field: $names, width: 140, inlineTitle: true, inlineTitleWidth: 125)
                             .focused($focused, equals: .names)
                         Spacer()
                     }
@@ -399,7 +406,7 @@ struct ChoosePossibleMatches : View {
             nationalId = participant.nationalId
             names = participant.names
         }
-        .frame(width: 600, height: chooseOnly ? 290 : 400)
+        .frame(width: 790, height: chooseOnly ? 290 : 400)
     }
     
     func widenSearch() {
@@ -421,6 +428,8 @@ struct ChoosePossibleMatches : View {
                     GridRow {
                         Text("National Id")
                         Text("Names")
+                        Text("Club")
+                        Text("Rank")
                     }
                     .padding(.horizontal, 5)
                 }

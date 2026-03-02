@@ -261,7 +261,7 @@ struct SelectInputView: View {
         .onAppear {
             setupFields()
             downloadingMemberList = false
-            downloadMemberList()
+            // downloadMemberList()
             refreshRankLists()
         }
     }
@@ -517,10 +517,10 @@ struct SelectInputView: View {
         HStack {
             Spacer().frame(width: 42)
             
-            Input(title: "Event code:", field: $eventCode, desc: $eventCodeDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, onKeyPress: eventKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Event code:", field: $eventCode, desc: $eventCodeDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: true, limitText: 6, onKeyPress: eventKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                 set(eventCode: newValue)
                 eventCodeData = getEventList()
-            }
+            })
             .help("Enter an event code to be used to post the MPs")
             .focused($focusedField, equals: .eventCode)
             .matchedGeometryEffect(id: ViewField.eventCode, in: autoComplete, anchor: .bottomTrailing)
@@ -552,10 +552,10 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 30)
             
-            Input(title: "Club code:", field: $clubCodeDesc, desc: $clubDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, onKeyPress: clubKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Club code:", field: $clubCodeDesc, desc: $clubDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, autoCapitalize: .sentences, autoCorrect: false, isEnabled: event == nil || event!.originatingClubCode == "", limitText: 5, onKeyPress: clubKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                 set(clubCode: newValue)
                 clubCodeData = getClubList()
-            }
+            })
             .help("Enter a club code if this is not a licensed event. Leave blank on licensed events.")
             .focused($focusedField, equals: .clubCode)
             .matchedGeometryEffect(id: ViewField.clubCode, in: autoComplete, anchor: .bottomTrailing)
@@ -586,20 +586,20 @@ struct SelectInputView: View {
             
             Spacer().frame(width: 42)
             
-            Input(title: "Minimum:", field: $minRankText, desc: $minRankMessage, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMinRank == 0, onKeyPress: minRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Minimum:", field: $minRankText, desc: $minRankMessage, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: true, onKeyPress: minRankKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                     set(minRankText: newValue, finished: false)
                     minRankCodeData = (newValue == "" ? [] : getMinRankList(text: newValue))
-            }
+            })
             .help("Enter a minimum rank code for this event or leave blank if you do not want to filter by rank")
             .focused($focusedField, equals: .minRankText)
             .matchedGeometryEffect(id: ViewField.minRankText, in: autoComplete, anchor: .bottomTrailing)
             
             Spacer().frame(width: 30)
             
-            Input(title: "Maximum:", field: $maxRankText, desc: $maxRankDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: event == nil || event!.validMaxRank == 999, onKeyPress: maxRankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Maximum:", field: $maxRankText, desc: $maxRankDesc, descOffset: 80, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, isEnabled: true, onKeyPress: maxRankKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                     set(maxRankText: newValue, finished: false)
                     maxRankCodeData = (newValue == "" ? [] : getMaxRankList(text: newValue))
-            }
+            })
             .help("Enter a maximum rank code for this event or leave blank if you do not want to filter by rank")
             .focused($focusedField, equals: .maxRankText)
             .matchedGeometryEffect(id: ViewField.maxRankText, in: autoComplete, anchor: .bottomTrailing)
@@ -649,10 +649,10 @@ struct SelectInputView: View {
         HStack {
             Spacer().frame(width: 120)
             
-            Input(title: "Stratification:", field: $strataDefName, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, onKeyPress: strataDefKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+            Input(title: "Stratification:", field: $strataDefName, topSpace: 0, width: 270, inlineTitle: true, inlineTitleWidth: 95, onKeyPress: strataDefKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                 set(strataDefName: newValue)
                 strataDefData = getStrataDefList()
-            }
+            })
             .help("Enter a stratification defintion if this is a stratified event.")
             .focused($focusedField, equals: .strataDefName)
             .matchedGeometryEffect(id: ViewField.strataDefName, in: autoComplete, anchor: .bottomTrailing)

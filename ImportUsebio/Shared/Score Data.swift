@@ -198,9 +198,9 @@ public enum ParticipantType: Int {
     public var string: String { "\(self)".capitalized }
     
     public var desc: String {
-        var result = self.string
-        if self != .player {
-            result += "s"
+        var result = self.string + "s"
+        if self == .player {
+            result = "Individual"
         }
         return result
     }
