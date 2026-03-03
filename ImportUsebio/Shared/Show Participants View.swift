@@ -56,6 +56,8 @@ enum MemberStatus: Equatable {
     var possibleMatches: [MemberViewModel] = []
     var suggested = false
     var player: Player
+    var linked: [ParticipantData] = []
+    var condition: PlayerCondition = .undefined
     var updated: Bool = false
     
     var status: MemberStatus {
@@ -105,17 +107,20 @@ enum MemberStatus: Equatable {
         names = memberNames ?? possibleMatches.first?.names ?? names
         memberNationalId = nationalId
         memberNames = names
-        player.nationalId = nationalId
-        player.name = names
         possibleMatches = []
         updated = true
         suggested = false
+        // Write back to imported data
+        for item in [self] + self.linked {
+            item.player.nationalId = nationalId
+            item.player.name = names
+            item.player.condition = condition
+        }
     }
     
 }
 
 struct ParticipantsView: View {
-    @Binding var writer: Writer?
     @State var participants: [ParticipantData] = []
     @State var exit: Bool = true
     @State var showMatches = false
@@ -163,7 +168,6 @@ struct ParticipantsView: View {
         .sheet(isPresented: $showMatches) {
             ChoosePossibleMatches(participant: $selected, chooseOnly: $chooseOnly)
         }
-        .onAppear { buildParticipantList() }
         .interactiveDismissDisabled(!exit)
         .frame(width: 850, height: 550)
     }
@@ -218,19 +222,6 @@ struct ParticipantsView: View {
         return gridRow(participant.nationalId, participant.names, participant.memberNationalId ?? "", participant.memberNames ?? "", participant.status.string, participant.status.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
     }
     
-    func buildParticipantList() {
-        participants = []
-        for round in writer!.rounds {
-            let event = round.scoreData.events.first!
-            for participant in event.participants {
-                for player in participant.member.playerList {
-                    participants.append(ParticipantData(imported: player))
-                }
-            }
-        }
-        participants.sort(by: { $0.status.priority < $1.status.priority || (($0.status.priority == $1.status.priority) && ($0.nationalId.lowercased() < $1.nationalId.lowercased()))})
-    }
-    
     func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
         HStack(spacing: 0) {
             if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.status != .ok && participant.status != .updated) {
@@ -269,11 +260,13 @@ struct ChoosePossibleMatches : View {
     @Binding var chooseOnly: Bool
     @State var nationalId: String = ""
     @State var names: String = ""
+    @State var condition: PlayerCondition = .undefined
     @State var distance = 0
     @FocusState private var focused: ViewType?
     
     let maxDistance = 5
     @State var matches: [MemberViewModel] = []
+    @State var notFound: Bool = false
     
     let tableColumns = [GridItem(.fixed(80),  spacing: 0, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 0, alignment: .leading),
@@ -351,6 +344,11 @@ struct ChoosePossibleMatches : View {
                             if let lookup = MemberViewModel.member(nationalId: newValue) {
                                 names = lookup.names
                                 focused = nil
+                                notFound = false
+                                condition = .valid
+                            } else {
+                                notFound = true
+                                condition = (condition == .valid ? .undefined : condition)
                             }
                         })
                         .focused($focused, equals: .nationalId)
@@ -376,6 +374,24 @@ struct ChoosePossibleMatches : View {
                             .focused($focused, equals: .names)
                         Spacer()
                     }
+                    
+                    Spacer().frame(height: 20)
+                    
+                    HStack {
+                        Spacer().frame(width: 20)
+                        HStack {
+                            Text("Treat as:")
+                            Spacer()
+                        }
+                        .frame(width: 115)
+                        Picker("", selection: $condition) {
+                            Text("Missing").tag(PlayerCondition.missing)
+                            Text("Lapsed").tag(PlayerCondition.lapsed)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(!notFound)
+                        Spacer()
+                    }
                 }
                 Spacer()
                 Separator(thickness: 1)
@@ -390,10 +406,11 @@ struct ChoosePossibleMatches : View {
                     CustomButton.button(title: "Update") {
                         participant.memberNationalId = nationalId
                         participant.memberNames = names
+                        participant.condition = condition
                         participant.updateFromMember()
                         dismiss()
                     }
-                    .disabled((participant.nationalId == nationalId && participant.names == names) || nationalId.isEmpty || names.isEmpty)
+                    .disabled((participant.nationalId == nationalId && participant.names == names && participant.condition == condition) || condition == .undefined || nationalId.isEmpty || names.isEmpty)
                 }
                 Spacer().frame(height: 10)
             }
@@ -405,8 +422,10 @@ struct ChoosePossibleMatches : View {
             }
             nationalId = participant.nationalId
             names = participant.names
+            notFound = (MemberViewModel.member(nationalId: nationalId) == nil)
+            condition = (notFound && participant.condition == .valid) ? .undefined : participant.condition
         }
-        .frame(width: 790, height: chooseOnly ? 290 : 400)
+        .frame(width: 790, height: chooseOnly ? 290 : 440)
     }
     
     func widenSearch() {

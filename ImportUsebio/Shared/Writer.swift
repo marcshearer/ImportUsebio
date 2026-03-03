@@ -1923,7 +1923,7 @@ class RanksPlusMPsWriter: WriterBase {
                     }
                     
                     if let playerNumber = column.playerNumber {
-                        let playerList = participant.member.playerList
+                        let playerList = participant.member.playerList(copy: false)
                         let player = (playerNumber < playerList.count ? playerList[playerNumber] : Player(name: ""))
                         if let playerContent = column.playerContent?(participant, player, playerNumber, rowNumber) {
                             let cellType = (playerContent.left(1) == "=" ? .integerFormula : column.cellType)
@@ -2151,13 +2151,13 @@ class RanksPlusMPsWriter: WriterBase {
         if extraPlayers {
             result += ")"
         }
-                
-        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || MemberViewModel.member(nationalId: "\(nationalId)") == nil ) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
+            
+        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || (player.condition.treatAsMissing && MemberViewModel.member(nationalId: "\(nationalId)") == nil )) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
             if writer.missingNumbers[player.name!] == nil {
                 if player.nationalId == nil || player.nationalId == "0" {
                     writer.missingNumbers[player.name!] = ("\(-(writer.missingNumbers.count + 1))", "")
                 } else {
-                    writer.missingNumbers[player.name!] = (player.nationalId!, "EBU")
+                    writer.missingNumbers[player.name!] = (player.nationalId!, "")
                 }
             }
         }

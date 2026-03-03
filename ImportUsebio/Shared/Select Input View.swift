@@ -96,6 +96,7 @@ struct SelectInputView: View {
     @State private var downloadMemberListMessage: String = ""
     @State var minRankList: [RankViewModel] = []
     @State var maxRankList: [RankViewModel] = []
+    @State var participants: [ParticipantData] = []
 
     @Namespace private var autoComplete
     
@@ -199,13 +200,13 @@ struct SelectInputView: View {
                                     Spacer().frame(width: 20)
                                     addSheetButton()
                                     Spacer().frame(width: 30)
+                                    participantsButton()
+                                    Spacer().frame(width: 30)
                                     finishButton()
                                     Spacer().frame(width: 30)
                                     clearButton()
                                     Spacer().frame(width: 30)
                                     pasteButton()
-                                    Spacer().frame(width: 30)
-                                    participantsButton()
                                     Spacer()
                                     settingsButton()
                                         .popover(isPresented: $showSettingsMenu) {
@@ -242,7 +243,7 @@ struct SelectInputView: View {
             StratificationsView()
         }
         .sheet(isPresented: $showParticipants) {
-            ParticipantsView(writer: $writer)
+            ParticipantsView(participants: participants)
         }
         .sheet(isPresented: $showImportEvents) {
             EventImportView()
@@ -957,6 +958,7 @@ struct SelectInputView: View {
                 scoreData.strata = strataDef?.activeStrata() ?? []
                 scoreData.customFooter = strataDef?.customFooter ?? ""
                 writer?.add(name: roundName, scoreData: scoreData)
+                buildParticipantList()
                 
                 MessageBox.shared.show("Added Successfully", okAction: {
                     self.scoreData = nil
@@ -985,6 +987,24 @@ struct SelectInputView: View {
         .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCodeDesc != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
     }
     
+    func buildParticipantList() {
+        participants = []
+        for round in writer!.rounds {
+            let event = round.scoreData.events.first!
+            for participant in event.participants {
+                for player in participant.member.playerList(copy: false) {
+                    let new = ParticipantData(imported: player)
+                    if let addTo = participants.first(where: { $0.nationalId == new.nationalId && $0.names == new.names }) {
+                        addTo.linked.append(new)
+                    } else {
+                        participants.append(new)
+                    }
+                }
+            }
+        }
+        participants.sort(by: { $0.status.priority < $1.status.priority || (($0.status.priority == $1.status.priority) && ($0.nationalId.lowercased() < $1.nationalId.lowercased()))})
+    }
+    
     private func participantsButton() -> some View {
         return Button{
             showParticipants = true
@@ -999,7 +1019,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil)
+        .disabled(writer == nil || participants.isEmpty)
     }
     
     
@@ -1030,7 +1050,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil)
+        .disabled(writer == nil || !participants.filter({$0.status != .ok && $0.status != .updated}).isEmpty)
     }
     
     private func pasteButton() -> some View {
@@ -1218,9 +1238,14 @@ struct SelectInputView: View {
             
             importInProgress = nil
             addMissingNationalIdWarning()
+            buildParticipantList()
             if !roundErrors.isEmpty {
                 showErrors = true
-                writer = nil
+            }
+            for roundErrorList in roundErrors {
+                if !roundErrorList.errors.isEmpty && roundErrorList.warnings.isEmpty {
+                    writer = nil
+                }
             }
         }
     }

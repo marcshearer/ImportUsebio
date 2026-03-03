@@ -253,6 +253,9 @@ public class Member {
     
     var type: ParticipantType { fatalError("Must be overridden") }
     var playerList: [Player] { fatalError("Must be overridden") }
+    func playerList(copy: Bool) -> [Player] {
+        fatalError("Must be overridden")
+    }
     var additional: String { fatalError("Must be overridden") }
     var description: String {
         if let name = name {
@@ -284,14 +287,35 @@ public class Member {
     }
 }
 
+enum PlayerCondition : Equatable {
+    case valid
+    case undefined
+    case missing
+    case lapsed
+    
+    var treatAsMissing: Bool {
+        switch self {
+        case .missing, .undefined:
+            true
+        default:
+            false
+        }
+    }
+}
+
 public class Player : Member {
+    var id: UUID = UUID()
     var nationalId: String?
     var seat: Seat?
+    var condition: PlayerCondition = .undefined
     weak var pair: Pair? = nil
 
     override var type: ParticipantType { .player }
     override var additional: String { "" }
     override var playerList: [Player] { [self] }
+    override func playerList(copy: Bool) -> [Player] {
+        return [self]
+    }
     
     var accumulatedBoardsPlayed: Int?
     var accumulatedWinDraw: Float?
@@ -336,6 +360,9 @@ public class Pair : Member {
                                             // work out what happens in matches with pair IDs
                                             // being unique
     override var playerList: [Player] { return players }
+    override func playerList(copy: Bool) -> [Player] {
+        return players
+    }
 }
 
 public class Team : Member {
@@ -346,6 +373,10 @@ public class Team : Member {
     override var additional: String { "" }
     
     override var playerList: [Player] {
+        playerList(copy: false)
+    }
+    
+    override func playerList(copy: Bool) -> [Player] {
         var list: [Player] = []
         if pairs.isEmpty {
             list = players
@@ -360,7 +391,12 @@ public class Team : Member {
                         existing.accumulatedWinDraw = (existing.accumulatedWinDraw ?? 0) + winDraw
                     }
                 } else {
-                    let new = player.copy()
+                    var new: Player
+                    if copy {
+                        new = player.copy()
+                    } else {
+                        new = player
+                    }
                     new.accumulatedBoardsPlayed = player.pair?.boardsPlayed
                     new.accumulatedWinDraw = player.pair?.winDraw
                     list.append(new)
