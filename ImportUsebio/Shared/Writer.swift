@@ -208,6 +208,7 @@ class Writer: WriterBase {
         summary.prepare(workbook: workbook)
         csvImport.prepare(workbook: workbook)
         formatted.prepare(workbook: workbook)
+        settings.prepare(workbook: workbook)
         if includeInRace {
             raceFormatted.prepare(workbook: workbook)
             raceExport.prepare(workbook: workbook)
@@ -221,7 +222,6 @@ class Writer: WriterBase {
         for round in rounds {
             round.individualMPs.prepare(workbook: workbook)
         }
-        settings.prepare(workbook: workbook)
         parameters.prepare(workbook: workbook)
         
         workbook_add_vba_project(workbook, "./Award.bin")

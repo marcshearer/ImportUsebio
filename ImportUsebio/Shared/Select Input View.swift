@@ -262,7 +262,7 @@ struct SelectInputView: View {
         .onAppear {
             setupFields()
             downloadingMemberList = false
-            // downloadMemberList()
+            downloadMemberList()
             refreshRankLists()
         }
     }
@@ -1019,7 +1019,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil || participants.isEmpty)
+        .disabled(writer == nil || participants.filter({$0.status != .ok}).isEmpty)
     }
     
     
@@ -1050,7 +1050,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil || !participants.filter({$0.status != .ok && $0.status != .updated}).isEmpty)
+        .disabled(writer == nil || !participants.filter({$0.status != .ok && !$0.status.isUpdated}).isEmpty)
     }
     
     private func pasteButton() -> some View {

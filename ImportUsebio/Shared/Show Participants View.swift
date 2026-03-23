@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-enum MemberStatus: Equatable {
+indirect enum MemberStatus: Equatable {
     case ok
-    case updated
+    case updated(original: MemberStatus)
     case memberNotFound(suggested: Int)
     case veryDifferent(suggested: Int)
     case slightlyDifferent
@@ -18,7 +18,7 @@ enum MemberStatus: Equatable {
     var string: String {
         switch self {
         case .ok: return "OK"
-        case .updated: return "Updated"
+        case .updated(let original): return "\(original.string) - Updated"
         case .memberNotFound: return "Not found"
         case .veryDifferent: return "Very Different"
         case .slightlyDifferent: return "Slightly Different"
@@ -37,12 +37,21 @@ enum MemberStatus: Equatable {
     
     var priority: Int {
         switch self {
-        case .ok: 0
-        case .updated: 0
+        case .ok: 99
+        case .updated: 99
         case .memberNotFound: 1
         case .veryDifferent: 2
         case .slightlyDifferent: 3
         case .triviallyDifferent: 4
+        }
+    }
+    
+    var isUpdated: Bool {
+        switch self {
+        case .updated:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -53,6 +62,9 @@ enum MemberStatus: Equatable {
     var names = ""
     var memberNationalId: String?
     var memberNames: String?
+    var originalNationalId = ""
+    var originalNames = ""
+    var originalStatus = MemberStatus.ok
     var possibleMatches: [MemberViewModel] = []
     var suggested = false
     var player: Player
@@ -74,7 +86,7 @@ enum MemberStatus: Equatable {
             }
         } else {
             if updated {
-                return .updated
+                return .updated(original: originalStatus)
             } else {
                 return .ok
             }
@@ -85,14 +97,17 @@ enum MemberStatus: Equatable {
         self.player = imported
         self.nationalId = imported.nationalId ?? ""
         self.names = imported.name ?? ""
-         
-        if let member = MemberViewModel.member(nationalId: nationalId) {
-            memberNationalId = member.nationalId
-            memberNames = member.names
-        }
+        lookupMember()
+        self.originalNationalId = self.nationalId
+        self.originalNames = imported.name ?? ""
+        self.originalStatus = self.status
         switch status {
         case .memberNotFound, .veryDifferent:
-            possibleMatches = MemberViewModel.member(names: names).filter( { BlockedViewModel.blocked(nationalId: $0.nationalId) == nil } )
+            self.possibleMatches = MemberViewModel.member(names: self.names).filter( { BlockedViewModel.blocked(nationalId: $0.nationalId) == nil } )
+        case .triviallyDifferent:
+            // Update automatically
+            self.names = memberNames ?? self.names
+            self.updated = true
         default:
             break
         }
@@ -100,6 +115,20 @@ enum MemberStatus: Equatable {
     
     func copy() -> ParticipantData {
         ParticipantData(imported: player)
+    }
+    
+    func revertToOriginal() {
+        self.nationalId = originalNationalId
+        self.names = originalNames
+        lookupMember()
+        self.updated = false
+    }
+    
+    func lookupMember() {
+        if let member = MemberViewModel.member(nationalId: nationalId) {
+            memberNationalId = member.nationalId
+            memberNames = member.names
+        }
     }
     
     func updateFromMember() {
@@ -129,11 +158,11 @@ struct ParticipantsView: View {
     
     let tableColumns = [GridItem(.fixed(80),  spacing: 10, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 30, alignment: .leading),
-                        GridItem(.fixed(70), spacing: 20, alignment: .center),
+                        GridItem(.fixed(70),  spacing: 20, alignment: .center),
                         GridItem(.fixed(80),  spacing: 10, alignment: .center),
                         GridItem(.fixed(140), spacing: 30, alignment: .leading),
-                        GridItem(.fixed(120), spacing: 10, alignment: .leading),
-                        GridItem(.fixed(80),  spacing: 10, alignment: .leading)]
+                        GridItem(.fixed(200), spacing: 10, alignment: .leading),
+                        GridItem(.fixed(80), spacing: 10, alignment: .leading)]
     
     var body: some View {
         StandardView("Select Input") {
@@ -169,7 +198,7 @@ struct ParticipantsView: View {
             ChoosePossibleMatches(participant: $selected, chooseOnly: $chooseOnly)
         }
         .interactiveDismissDisabled(!exit)
-        .frame(width: 850, height: 550)
+        .frame(width: 930, height: 550)
     }
     
     func bannerRow() -> some View {
@@ -224,18 +253,29 @@ struct ParticipantsView: View {
     
     func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
         HStack(spacing: 0) {
-            if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.status != .ok && participant.status != .updated) {
+            switch participant.status {
+            case .updated:
                 Button(action: {
-                    if participant.possibleMatches.count > 1 {
-                        editAction?(participant, true)
-                    } else {
-                        participant.updateFromMember()
-                    }
+                    participant.revertToOriginal()
                 }) {
-                    Text("􁉈").frame(width: 25, height: 25).palette(.highlightButton).cornerRadius(12.5)
+                    Text("􀄽").frame(width: 25, height: 25).palette(.enabledButton).cornerRadius(12.5)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .focusable(false)
+            default:
+                if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.status != .ok && !participant.status.isUpdated) {
+                    Button(action: {
+                        if participant.possibleMatches.count > 1 {
+                            editAction?(participant, true)
+                        } else {
+                            participant.updateFromMember()
+                        }
+                    }) {
+                        Text("􁉈").frame(width: 25, height: 25).palette(.highlightButton).cornerRadius(12.5)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
+                }
             }
             Spacer()
             Button(action: {
