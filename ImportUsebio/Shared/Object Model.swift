@@ -117,6 +117,18 @@ public class Model {
                                 if vmValue != moValue {
                                     result = true
                                 }
+                            } else if let vmValue = vmValue as? Int16, let moValue = moValue as? Int16 {
+                                if vmValue != moValue {
+                                    result = true
+                                }
+                            } else if let vmValue = vmValue as? Int32, let moValue = moValue as? Int32 {
+                                if vmValue != moValue {
+                                    result = true
+                                }
+                            } else if let vmValue = vmValue as? Int64, let moValue = moValue as? Int64 {
+                                if vmValue != moValue {
+                                    result = true
+                                }
                             }
                         case .string:
                             if let vmValue = vmValue as? String, let moValue = moValue as? String {

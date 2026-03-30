@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-indirect enum MemberStatus: Equatable {
+indirect enum ParticipantStatus: Equatable {
     case ok
-    case updated(original: MemberStatus)
+    case updated(original: ParticipantStatus)
     case memberNotFound(suggested: Int)
     case veryDifferent(suggested: Int)
+    case memberFoundLocally
     case slightlyDifferent
     case triviallyDifferent
     
@@ -20,6 +21,7 @@ indirect enum MemberStatus: Equatable {
         case .ok: return "OK"
         case .updated(let original): return "\(original.string) - Updated"
         case .memberNotFound: return "Not found"
+        case .memberFoundLocally: return "Found locally"
         case .veryDifferent: return "Very Different"
         case .slightlyDifferent: return "Slightly Different"
         case .triviallyDifferent: return "Trivially Different"
@@ -41,8 +43,9 @@ indirect enum MemberStatus: Equatable {
         case .updated: 99
         case .memberNotFound: 1
         case .veryDifferent: 2
-        case .slightlyDifferent: 3
-        case .triviallyDifferent: 4
+        case .memberFoundLocally: 3
+        case .slightlyDifferent: 4
+        case .triviallyDifferent: 5
         }
     }
     
@@ -62,19 +65,24 @@ indirect enum MemberStatus: Equatable {
     var names = ""
     var memberNationalId: String?
     var memberNames: String?
+    var memberStatus: PlayerStatus = .unknown
     var originalNationalId = ""
     var originalNames = ""
-    var originalStatus = MemberStatus.ok
+    var originalParticipantStatus = ParticipantStatus.ok
     var possibleMatches: [MemberViewModel] = []
     var suggested = false
     var player: Player
     var linked: [ParticipantData] = []
-    var condition: PlayerCondition = .undefined
+    var status: PlayerStatus = .unknown
     var updated: Bool = false
     
-    var status: MemberStatus {
-        if memberNationalId == nil || suggested {
+    var participantStatus: ParticipantStatus {
+        if updated {
+            return .updated(original: originalParticipantStatus)
+        } else if memberNationalId == nil || suggested {
             return .memberNotFound(suggested: possibleMatches.count)
+        } else if memberStatus != .active {
+            return .memberFoundLocally
         } else if names != memberNames {
             let difference = Utility.levenshteinDistance(names, memberNames ?? "")
             if difference == 0 {
@@ -85,13 +93,12 @@ indirect enum MemberStatus: Equatable {
                 return .veryDifferent(suggested: possibleMatches.count)
             }
         } else {
-            if updated {
-                return .updated(original: originalStatus)
-            } else {
-                return .ok
-            }
+            return .ok
         }
     }
+    
+    var otherNames: String { getName(names, last: false)}
+    var lastName: String { getName(names, last: true)}
     
     init(imported: Player) {
         self.player = imported
@@ -100,8 +107,8 @@ indirect enum MemberStatus: Equatable {
         lookupMember()
         self.originalNationalId = self.nationalId
         self.originalNames = imported.name ?? ""
-        self.originalStatus = self.status
-        switch status {
+        self.originalParticipantStatus = self.participantStatus
+        switch participantStatus {
         case .memberNotFound, .veryDifferent:
             self.possibleMatches = MemberViewModel.member(names: self.names).filter( { BlockedViewModel.blocked(nationalId: $0.nationalId) == nil } )
         case .triviallyDifferent:
@@ -128,12 +135,28 @@ indirect enum MemberStatus: Equatable {
         if let member = MemberViewModel.member(nationalId: nationalId) {
             memberNationalId = member.nationalId
             memberNames = member.names
+            memberStatus = member.status
+        } else {
+            if nationalId != "" {
+                if let localMember = LocalMemberViewModel.member(nationalId: nationalId), names == localMember.names {
+                    memberNationalId = localMember.nationalId
+                    memberNames = localMember.names
+                    memberStatus = localMember.status
+                }
+            } else {
+                if let localMember = LocalMemberViewModel.member(names: names) {
+                    memberNationalId = localMember.nationalId
+                    memberNames = localMember.names
+                    memberStatus = localMember.status
+                }
+            }
         }
     }
     
     func updateFromMember() {
         nationalId = memberNationalId ?? possibleMatches.first?.nationalId ?? nationalId
         names = memberNames ?? possibleMatches.first?.names ?? names
+        status = memberStatus
         memberNationalId = nationalId
         memberNames = names
         possibleMatches = []
@@ -143,10 +166,23 @@ indirect enum MemberStatus: Equatable {
         for item in [self] + self.linked {
             item.player.nationalId = nationalId
             item.player.name = names
-            item.player.condition = condition
+            item.player.status = status
         }
     }
     
+    private func getName(_ names: String, last: Bool) -> String {
+        var otherNames = ""
+        var lastName = ""
+        var names = names.components(separatedBy: " ")
+        if names.last != nil {
+            lastName = names.last!
+            names.removeLast()
+            if !names.isEmpty {
+                otherNames = names.joined(separator: " ")
+            }
+        }
+        return (last ? lastName : otherNames)
+    }
 }
 
 struct ParticipantsView: View {
@@ -181,7 +217,7 @@ struct ParticipantsView: View {
                             VStack(spacing: 0) {
                                 LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
                                     Section(header: bannerRow()) {
-                                        ForEach(self.participants.filter({ if case .ok = $0.status { return false }; return true })) { participant in
+                                        ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return false }; return true })) { participant in
                                             gridRow(participant: participant)
                                                 .frame(height: 30)
                                         }
@@ -242,18 +278,18 @@ struct ParticipantsView: View {
         }
     }
     
-    func gridRow(participant: ParticipantData, editAction: ((ParticipantData, Bool)->())? = nil) -> some View{
+    func gridRow(participant: ParticipantData, editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
         if participant.memberNationalId == nil, let suggest = participant.possibleMatches.first {
             participant.memberNationalId = suggest.nationalId
             participant.memberNames = suggest.otherNames + " " + suggest.lastName
             participant.suggested = true
         }
-        return gridRow(participant.nationalId, participant.names, participant.memberNationalId ?? "", participant.memberNames ?? "", participant.status.string, participant.status.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
+        return gridRow(participant.nationalId, participant.names, participant.memberNationalId ?? "", participant.memberNames ?? "", participant.participantStatus.string, participant.participantStatus.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
     }
     
     func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
         HStack(spacing: 0) {
-            switch participant.status {
+            switch participant.participantStatus {
             case .updated:
                 Button(action: {
                     participant.revertToOriginal()
@@ -263,7 +299,7 @@ struct ParticipantsView: View {
                 .buttonStyle(PlainButtonStyle())
                 .focusable(false)
             default:
-                if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.status != .ok && !participant.status.isUpdated) {
+                if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.participantStatus != .ok && !participant.participantStatus.isUpdated) {
                     Button(action: {
                         if participant.possibleMatches.count > 1 {
                             editAction?(participant, true)
@@ -300,7 +336,7 @@ struct ChoosePossibleMatches : View {
     @Binding var chooseOnly: Bool
     @State var nationalId: String = ""
     @State var names: String = ""
-    @State var condition: PlayerCondition = .undefined
+    @State var status: PlayerStatus = .unknown
     @State var distance = 0
     @FocusState private var focused: ViewType?
     
@@ -353,6 +389,7 @@ struct ChoosePossibleMatches : View {
                                                 .onTapGesture {
                                                     nationalId = member.nationalId
                                                     names = member.names
+                                                    status = member.status
                                                     focused = nil
                                                 }
                                             }
@@ -385,10 +422,10 @@ struct ChoosePossibleMatches : View {
                                 names = lookup.names
                                 focused = nil
                                 notFound = false
-                                condition = .valid
+                                status = .active
                             } else {
                                 notFound = true
-                                condition = (condition == .valid ? .undefined : condition)
+                                status = (status == .active ? .unknown : status)
                             }
                         })
                         .focused($focused, equals: .nationalId)
@@ -410,8 +447,11 @@ struct ChoosePossibleMatches : View {
                     
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "Name:", field: $names, width: 140, inlineTitle: true, inlineTitleWidth: 125)
-                            .focused($focused, equals: .names)
+                        Input(title: "Name:", field: $names, width: 200, inlineTitle: true, inlineTitleWidth: 125, onChange: { names in
+                            distance = 0
+                            widenSearch()
+                        })
+                        .focused($focused, equals: .names)
                         Spacer()
                     }
                     
@@ -424,9 +464,9 @@ struct ChoosePossibleMatches : View {
                             Spacer()
                         }
                         .frame(width: 115)
-                        Picker("", selection: $condition) {
-                            Text("Missing").tag(PlayerCondition.missing)
-                            Text("Lapsed").tag(PlayerCondition.lapsed)
+                        Picker("", selection: $status) {
+                            Text("Missing").tag(PlayerStatus.missing)
+                            Text("Lapsed").tag(PlayerStatus.lapsed)
                         }
                         .pickerStyle(.segmented)
                         .disabled(!notFound)
@@ -444,13 +484,17 @@ struct ChoosePossibleMatches : View {
                     Spacer().frame(width: 60)
                     
                     CustomButton.button(title: "Update") {
+                        // Write back to local members file
                         participant.memberNationalId = nationalId
                         participant.memberNames = names
-                        participant.condition = condition
+                        participant.memberStatus = status
                         participant.updateFromMember()
+                        if MemberViewModel.member(nationalId: nationalId) == nil {
+                            saveLocal(participant: participant)
+                        }
                         dismiss()
                     }
-                    .disabled((participant.nationalId == nationalId && participant.names == names && participant.condition == condition) || condition == .undefined || nationalId.isEmpty || names.isEmpty)
+                    .disabled((participant.nationalId == nationalId && participant.names == names && participant.status == status) || status == .unknown || nationalId.isEmpty || names.isEmpty )
                 }
                 Spacer().frame(height: 10)
             }
@@ -463,7 +507,7 @@ struct ChoosePossibleMatches : View {
             nationalId = participant.nationalId
             names = participant.names
             notFound = (MemberViewModel.member(nationalId: nationalId) == nil)
-            condition = (notFound && participant.condition == .valid) ? .undefined : participant.condition
+            status = (notFound && participant.status == .active) ? .unknown : participant.status
         }
         .frame(width: 790, height: chooseOnly ? 290 : 440)
     }
@@ -472,8 +516,24 @@ struct ChoosePossibleMatches : View {
         let originalMatches = matches.count
         repeat {
             distance += 1
-            matches = (MasterData.shared.members.array as! [MemberViewModel]).filter({Utility.levenshteinDistance(participant.names, $0.names) <= distance && BlockedViewModel.blocked(nationalId: $0.nationalId) == nil }).sorted(by: { Utility.levenshteinDistance(participant.names, $0.names) < Utility.levenshteinDistance(participant.names, $1.names)})
+            let members = MasterData.shared.members.array as! [MemberViewModel] + (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).map{$0.memberViewModel}
+            matches = members.filter({Utility.levenshteinDistance(participant.names, $0.names) <= distance && BlockedViewModel.blocked(nationalId: $0.nationalId) == nil }).sorted(by: { Utility.levenshteinDistance(participant.names, $0.names) < Utility.levenshteinDistance(participant.names, $1.names)})
         } while matches.count == originalMatches && distance <= maxDistance
+    }
+    
+    func saveLocal(participant: ParticipantData) {
+        if MemberViewModel.member(nationalId: nationalId) == nil {
+            if let localMember = LocalMemberViewModel.member(nationalId: nationalId) {
+                // Already exists - overwrite
+                localMember.names = participant.names
+                localMember.status = participant.status
+                localMember.save()
+            } else {
+                // New local member - create
+                let localMember = LocalMemberViewModel(nationalId: participant.nationalId, otherNames: participant.otherNames, lastName: participant.lastName, status: participant.status)
+                localMember.insert()
+            }
+        }
     }
     
     func heading() -> some View{

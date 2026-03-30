@@ -88,8 +88,7 @@ struct ShowErrorsView: View {
                             .foregroundColor(Palette.highlightButton.text)
                             .frame(width: 100, height: 30)
                             .font(.callout).minimumScaleFactor(0.5)
-                            .background(Palette.enabledButton.background)
-                            .foregroundColor(Palette.enabledButton.text)
+                            .palette(.highlightButton)
                             .cornerRadius(15)
                     }
                     .buttonStyle(PlainButtonStyle())

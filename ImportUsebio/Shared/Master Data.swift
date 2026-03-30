@@ -16,6 +16,7 @@ class MasterData: ObservableObject {
     @Published private(set) var clubs = WrappedArray()
     @Published private(set) var ranks = WrappedArray()
     @Published private(set) var members = WrappedArray()
+    @Published private(set) var localMembers = WrappedArray()
     @Published private(set) var blocked = WrappedArray()
     @Published private(set) var strataDefs = WrappedArray()
     
@@ -66,6 +67,21 @@ class MasterData: ObservableObject {
         self.members.array = []
         for memberMO in memberMOs {
             members.array.append(MemberViewModel(memberMO: memberMO))
+        }
+        
+        // Setup local members
+        let localMemberMOs = CoreData.fetch(from: LocalMemberMO.entity.name) as! [LocalMemberMO]
+
+        self.localMembers.array = []
+        for localMemberMO in localMemberMOs {
+            if MemberViewModel.member(nationalId: localMemberMO.nationalId) != nil {
+                // Already in members file - remove from local additions
+                CoreData.update {
+                    CoreData.context.delete(localMemberMO)
+                }
+            } else {
+                localMembers.array.append(LocalMemberViewModel(localMemberMO: localMemberMO))
+            }
         }
 
         // If no date then create defauls

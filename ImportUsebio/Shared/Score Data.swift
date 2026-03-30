@@ -287,19 +287,23 @@ public class Member {
     }
 }
 
-enum PlayerCondition : Equatable {
-    case valid
-    case undefined
-    case missing
-    case lapsed
+public enum PlayerStatus : Int16 {
+    case active = 0
+    case unknown = 1
+    case missing = 2
+    case lapsed = 3
     
     var treatAsMissing: Bool {
         switch self {
-        case .missing, .undefined:
+        case .missing, .unknown:
             true
         default:
             false
         }
+    }
+    
+    var string: String {
+        "\(self)".capitalized
     }
 }
 
@@ -307,7 +311,7 @@ public class Player : Member {
     var id: UUID = UUID()
     var nationalId: String?
     var seat: Seat?
-    var condition: PlayerCondition = .undefined
+    var status: PlayerStatus = .unknown
     weak var pair: Pair? = nil
 
     override var type: ParticipantType { .player }

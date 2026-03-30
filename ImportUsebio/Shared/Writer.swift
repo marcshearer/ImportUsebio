@@ -2152,7 +2152,7 @@ class RanksPlusMPsWriter: WriterBase {
             result += ")"
         }
             
-        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || (player.condition.treatAsMissing && MemberViewModel.member(nationalId: "\(nationalId)") == nil )) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
+        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || (player.status.treatAsMissing && MemberViewModel.member(nationalId: "\(nationalId)") == nil )) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
             if writer.missingNumbers[player.name!] == nil {
                 if player.nationalId == nil || player.nationalId == "0" {
                     writer.missingNumbers[player.name!] = ("\(-(writer.missingNumbers.count + 1))", "")

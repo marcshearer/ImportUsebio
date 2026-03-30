@@ -35,6 +35,7 @@ class AutoComplete {
         }
     }
 }
+
 struct AutoCompleteView<ID:Hashable> : View {
     var autoComplete: Namespace.ID
     var field: ID

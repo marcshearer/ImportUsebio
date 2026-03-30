@@ -14,6 +14,7 @@ let memberEntity = Entity( "Member",
                            Attribute("lastName",              .stringAttributeType),
                            Attribute("homeClub",              .stringAttributeType),
                            Attribute("postCode",              .stringAttributeType),
+                           Attribute("status16",              .integer16AttributeType),
                            Attribute("rankCode16",            .integer16AttributeType,
                                             equivalent: "rankCode", equivalentType: .int),
                            Attribute("downloaded",            .dateAttributeType))
@@ -27,8 +28,9 @@ let memberEntity = Entity( "Member",
     @NSManaged public var homeClub: String
     @NSManaged public var postCode: String
     @NSManaged public var rankCode16: Int16 ; @IntProperty(\MemberMO.rankCode16) @objc public var rankCode: Int
+    @NSManaged public var status16: Int16
     @NSManaged public var downloaded: Date
-
+    
     convenience init() {
         self.init(context: CoreData.context)
     }

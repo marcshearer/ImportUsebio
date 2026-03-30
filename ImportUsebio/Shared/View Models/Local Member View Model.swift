@@ -1,5 +1,5 @@
 //
-//  Member View Model.swift
+//  Local Member View Model.swift
 //  ImportUsebio
 //
 //  Created by Marc Shearer on 10/02/2026.
@@ -9,18 +9,15 @@ import Combine
 import SwiftUI
 import CoreData
 
-public class MemberViewModel : ViewModel, ObservableObject {
+public class LocalMemberViewModel : ViewModel, ObservableObject {
     
-        // Properties in core data model
+    // Properties in core data model
     @Published private(set) var memberId: UUID = UUID() ; public override var id: UUID { memberId }
     @Published private(set) var nationalId = ""
     @Published public var otherNames: String = ""
     @Published public var lastName: String = ""
     @Published public var status16: Int16 = PlayerStatus.unknown.rawValue
-    @Published public var homeClub: String = ""
-    @Published public var postCode: String = ""
-    @Published public var rankCode: Int = 0
-    @Published public var downloaded: Date = Date()
+    @Published public var created: Date = Date()
     
     @Published public var nationalIdMessage: String = ""
     @Published private(set) var saveMessage: String = ""
@@ -31,7 +28,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
         set { status16 = Int16(newValue.rawValue) }
     }
     
-    public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.member")!)!
+    public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.localmember")!)!
     
     public var names: String {
         get { "\(otherNames) \(lastName)" }
@@ -57,33 +54,34 @@ public class MemberViewModel : ViewModel, ObservableObject {
     
     override public init() {
         super.init()
-        self.entity = memberEntity
-        self.masterData = MasterData.shared.members
+        self.entity = localMemberEntity
+        self.masterData = MasterData.shared.localMembers
         self.setupMappings()
     }
     
-    public convenience init(memberMO: MemberMO) {
+    public convenience init(localMemberMO: LocalMemberMO) {
         self.init()
-        self.managedObject = memberMO
+        self.managedObject = localMemberMO
         self.revert()
     }
     
-    public convenience init(nationalId: String, otherNames: String, lastName: String, status: PlayerStatus = .active, homeClub: String = "", postCode: String = "", rankCode: Int = 0, downloaded: Date = Date()) {
+    public convenience init(nationalId: String, otherNames: String, lastName: String, status: PlayerStatus) {
         self.init()
         self.nationalId = nationalId
         self.otherNames = otherNames
         self.lastName = lastName
-        self.homeClub = homeClub
-        self.postCode = postCode
-        self.rankCode = rankCode
         self.status = status
-        self.downloaded = downloaded
+        self.created = Date()
     }
     
-    public override var newManagedObject: NSManagedObject { MemberMO() }
+    public override var newManagedObject: NSManagedObject { LocalMemberMO() }
     
-    public static func == (lhs: MemberViewModel, rhs: MemberViewModel) -> Bool {
+    public static func == (lhs: LocalMemberViewModel, rhs: LocalMemberViewModel) -> Bool {
         return lhs.nationalId == rhs.nationalId
+    }
+    
+    public var memberViewModel: MemberViewModel {
+        MemberViewModel(nationalId: nationalId, otherNames: otherNames, lastName: lastName, status: status)
     }
     
     private func setupMappings() {
@@ -109,23 +107,23 @@ public class MemberViewModel : ViewModel, ObservableObject {
     }
     
     public override var exists: Bool {
-        return MemberViewModel.member(nationalId: nationalId) != nil
+        return LocalMemberViewModel.member(nationalId: nationalId) != nil
     }
     
-    public static func member(nationalId: String) -> MemberViewModel? {
-        return MemberViewModel.getLookup(nationalId: nationalId)
+    public static func member(nationalId: String) -> LocalMemberViewModel? {
+        return LocalMemberViewModel.getLookup(nationalId: nationalId)
     }
     
-    public static func member(names: String) -> [MemberViewModel] {
-        return (MasterData.shared.members.array as! [MemberViewModel]).filter({"\($0.otherNames) \($0.lastName)" == names })
+    public static func member(names: String) -> LocalMemberViewModel? {
+        return (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).filter({"\($0.otherNames) \($0.lastName)" == names }).first
     }
     
-    static public func getLookup(nationalId: String) -> MemberViewModel? {
-        return (MasterData.shared.members.array as! [MemberViewModel]).first(where: {$0.nationalId == nationalId})
+    static public func getLookup(nationalId: String) -> LocalMemberViewModel? {
+        return (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).first(where: {$0.nationalId == nationalId})
     }
     
     private func nationalIdExists(_ nationalId: String) -> Bool {
-        return !(masterData.array as! [MemberViewModel]).filter({$0.nationalId == nationalId && $0.memberId != self.memberId}).isEmpty
+        return !(masterData.array as! [LocalMemberViewModel]).filter({$0.nationalId == nationalId && $0.memberId != self.memberId}).isEmpty
     }
     
     override public var description: String {
@@ -140,11 +138,8 @@ public class MemberViewModel : ViewModel, ObservableObject {
             case "nationalId": return nationalId as Any
             case "otherNames": return otherNames as Any
             case "lastName": return lastName as Any
-            case "homeClub": return homeClub as Any
-            case "postCode": return postCode as Any
-            case "rankCode": return rankCode as Any
             case "status16": return status16 as Any
-            case "downloaded": return downloaded as Any
+            case "created": return created as Any
             default : fatalError("Unknown property '\(key)'")
         }
     }
@@ -155,11 +150,8 @@ public class MemberViewModel : ViewModel, ObservableObject {
             case "nationalId": self.nationalId = value as! String
             case "otherNames": self.otherNames = value as! String
             case "lastName": self.lastName = value as! String
-            case "homeClub": self.homeClub = value as! String
-            case "postCode": self.postCode = value as! String
-            case "rankCode": self.rankCode = value as! Int
             case "status16": self.status16 = value as! Int16
-            case "downloaded": self.downloaded = value as! Date
+            case "created": self.created = value as! Date
             default : fatalError("Unknown property '\(key)'")
         }
     }

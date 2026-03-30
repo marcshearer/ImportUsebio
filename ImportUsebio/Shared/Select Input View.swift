@@ -1002,7 +1002,7 @@ struct SelectInputView: View {
                 }
             }
         }
-        participants.sort(by: { $0.status.priority < $1.status.priority || (($0.status.priority == $1.status.priority) && ($0.nationalId.lowercased() < $1.nationalId.lowercased()))})
+        participants.sort(by: { $0.participantStatus.priority < $1.participantStatus.priority || (($0.participantStatus.priority == $1.participantStatus.priority) && ($0.nationalId.lowercased() < $1.nationalId.lowercased()))})
     }
     
     private func participantsButton() -> some View {
@@ -1019,7 +1019,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil || participants.filter({$0.status != .ok}).isEmpty)
+        .disabled(writer == nil || participants.filter({$0.participantStatus != .ok}).isEmpty)
     }
     
     
@@ -1050,7 +1050,7 @@ struct SelectInputView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .focusable(false)
-        .disabled(writer == nil || !participants.filter({$0.status != .ok && !$0.status.isUpdated}).isEmpty)
+        .disabled(writer == nil || !participants.filter({$0.participantStatus != .ok && !$0.participantStatus.isUpdated}).isEmpty)
     }
     
     private func pasteButton() -> some View {

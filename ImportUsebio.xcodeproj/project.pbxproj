@@ -32,6 +32,8 @@
 		B2A784EA29AE293F000425C4 /* Import Rounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784E929AE293F000425C4 /* Import Rounds.swift */; };
 		B2A784EC29B09C87000425C4 /* Show Errors View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784EB29B09C87000425C4 /* Show Errors View.swift */; };
 		B2A784EE29B5E765000425C4 /* BridgeWebs Csv Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */; };
+		B2B380FC2F7A412F006ECFA9 /* Local Member Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B380FB2F7A412F006ECFA9 /* Local Member Managed Object.swift */; };
+		B2B380FE2F7A41AC006ECFA9 /* Local Member View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B380FD2F7A41AC006ECFA9 /* Local Member View Model.swift */; };
 		B2BA8A9A2E49F86000B415F5 /* Event Import View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8A992E49F84F00B415F5 /* Event Import View.swift */; };
 		B2BA8A9E2E49FAC200B415F5 /* Drop Delegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8A9D2E49FAC200B415F5 /* Drop Delegate.swift */; };
 		B2BA8AA22E4A27E900B415F5 /* Event Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BA8AA12E4A27D400B415F5 /* Event Managed Object.swift */; };
@@ -122,6 +124,8 @@
 		B2A784E929AE293F000425C4 /* Import Rounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Import Rounds.swift"; sourceTree = "<group>"; };
 		B2A784EB29B09C87000425C4 /* Show Errors View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Show Errors View.swift"; sourceTree = "<group>"; };
 		B2A784ED29B5E765000425C4 /* BridgeWebs Csv Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BridgeWebs Csv Parser.swift"; sourceTree = "<group>"; };
+		B2B380FB2F7A412F006ECFA9 /* Local Member Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Local Member Managed Object.swift"; sourceTree = "<group>"; };
+		B2B380FD2F7A41AC006ECFA9 /* Local Member View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Local Member View Model.swift"; sourceTree = "<group>"; };
 		B2BA8A992E49F84F00B415F5 /* Event Import View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Import View.swift"; sourceTree = "<group>"; };
 		B2BA8A9D2E49FAC200B415F5 /* Drop Delegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Drop Delegate.swift"; sourceTree = "<group>"; };
 		B2BA8AA12E4A27D400B415F5 /* Event Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Event Managed Object.swift"; sourceTree = "<group>"; };
@@ -214,6 +218,7 @@
 				B208737F2E4B7F4D00E509C5 /* Club Managed Object.swift */,
 				B20873832E4B833300E509C5 /* Rank Managed Object.swift */,
 				B2D601062F3B4D8400015BD2 /* Member Managed Object.swift */,
+				B2B380FB2F7A412F006ECFA9 /* Local Member Managed Object.swift */,
 				B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */,
 				B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */,
 			);
@@ -227,6 +232,7 @@
 				B20873812E4B802B00E509C5 /* Club View Model.swift */,
 				B20873852E4B834300E509C5 /* Rank View Model.swift */,
 				B2D601082F3B4F0800015BD2 /* Member View Model.swift */,
+				B2B380FD2F7A41AC006ECFA9 /* Local Member View Model.swift */,
 				B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */,
 				B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */,
 			);
@@ -579,6 +585,7 @@
 				B2E1035D29927C3300A35645 /* Declarations.swift in Sources */,
 				B2E103AE2992846000A35645 /* Custom View Animations.swift in Sources */,
 				B2A784EA29AE293F000425C4 /* Import Rounds.swift in Sources */,
+				B2B380FC2F7A412F006ECFA9 /* Local Member Managed Object.swift in Sources */,
 				B2E103912992806F00A35645 /* Input Title.swift in Sources */,
 				B2BA8AA22E4A27E900B415F5 /* Event Managed Object.swift in Sources */,
 				B20873842E4B833800E509C5 /* Rank Managed Object.swift in Sources */,
@@ -625,6 +632,7 @@
 				B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */,
 				B2E1039A2992806F00A35645 /* List Tile View.swift in Sources */,
 				B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */,
+				B2B380FE2F7A41AC006ECFA9 /* Local Member View Model.swift in Sources */,
 				B2E103992992806F00A35645 /* Slide In Menu.swift in Sources */,
 				B2E103A22992806F00A35645 /* Swipe Gestures.swift in Sources */,
 				B2C67EC42F51B0EC00BDC189 /* Show Participants View.swift in Sources */,
@@ -775,7 +783,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_APP_SANDBOX = YES;
@@ -816,7 +824,7 @@
 				CODE_SIGN_ENTITLEMENTS = ImportUsebio/ImportUsebio.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 81;
+				CURRENT_PROJECT_VERSION = 82;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_APP_SANDBOX = YES;
