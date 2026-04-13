@@ -191,6 +191,7 @@ struct ParticipantsView: View {
     @State var showMatches = false
     @State var selected = ParticipantData(imported: Player())
     @State var chooseOnly = false
+    @State var showAll = false
     
     let tableColumns = [GridItem(.fixed(80),  spacing: 10, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 30, alignment: .leading),
@@ -203,9 +204,19 @@ struct ParticipantsView: View {
     var body: some View {
         StandardView("Select Input") {
             VStack(spacing: 0) {
-                Banner(title: Binding.constant("Check Players Details"), bottomSpace: false, backEnabled: { exit }, backAction: {
-                    return true
-                })
+                ZStack {
+                    Banner(title: Binding.constant("Check Players Details"), bottomSpace: false, backEnabled: { exit }, backAction: {
+                        return true
+                    })
+                    HStack {
+                        Spacer()
+                        Picker("Include:", selection: $showAll) {
+                            Text("Incorrect").tag(false)
+                            Text("All").tag(true)
+                        }
+                        Spacer().frame(width: 20)
+                    }
+                }
                 ZStack {
                     VStack(spacing: 0) {
                         Spacer().frame(height: 30)
@@ -217,7 +228,7 @@ struct ParticipantsView: View {
                             VStack(spacing: 0) {
                                 LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
                                     Section(header: bannerRow()) {
-                                        ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return false }; return true })) { participant in
+                                        ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return showAll }; return true })) { participant in
                                             gridRow(participant: participant)
                                                 .frame(height: 30)
                                         }

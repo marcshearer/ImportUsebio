@@ -14,7 +14,7 @@ let memberEntity = Entity( "Member",
                            Attribute("lastName",              .stringAttributeType),
                            Attribute("homeClub",              .stringAttributeType),
                            Attribute("postCode",              .stringAttributeType),
-                           Attribute("status16",              .integer16AttributeType),
+                           Attribute("status16",              .integer16AttributeType, defaultValue: 0),
                            Attribute("rankCode16",            .integer16AttributeType,
                                             equivalent: "rankCode", equivalentType: .int),
                            Attribute("downloaded",            .dateAttributeType))

@@ -294,6 +294,7 @@ public class Attribute {
     var name: String = ""
     var attributeType: NSAttributeType = .stringAttributeType
     var isOptional: Bool = false
+    var defaultValue: Any? = nil
     var custom: Bool = false
     var equivalent: String? = nil
     var equivalentType: EntityAttributeType = .notSupported
@@ -304,15 +305,17 @@ public class Attribute {
             result.name = name
             result.attributeType = attributeType
             result.isOptional = isOptional
+            result.defaultValue = defaultValue
             return result
         }
     }
     
-    convenience init(_ name: String, _ type: NSAttributeType, isOptional: Bool = false, equivalent: String? = nil, equivalentType: EntityAttributeType? = nil, custom: Bool = false) {
+    convenience init(_ name: String, _ type: NSAttributeType, isOptional: Bool = false, defaultValue: Any? = nil, equivalent: String? = nil, equivalentType: EntityAttributeType? = nil, custom: Bool = false) {
         self.init()
         self.name = name
         self.attributeType = type
         self.isOptional = isOptional
+        self.defaultValue = defaultValue
         self.equivalent = equivalent
         self.equivalentType = equivalentType ?? EntityAttributeType(type: type)
         self.custom = custom
