@@ -142,6 +142,7 @@
 		B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Managed Object.swift"; sourceTree = "<group>"; };
 		B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked View Model.swift"; sourceTree = "<group>"; };
 		B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Numbers View.swift"; sourceTree = "<group>"; };
+		B2E053C12F8FB13D00009931 /* ci_post_clone.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_post_clone.sh; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -268,9 +269,18 @@
 			path = "Unused components";
 			sourceTree = "<group>";
 		};
+		B2E053C02F8FB0FE00009931 /* ci_scripts */ = {
+			isa = PBXGroup;
+			children = (
+				B2E053C12F8FB13D00009931 /* ci_post_clone.sh */,
+			);
+			path = ci_scripts;
+			sourceTree = "<group>";
+		};
 		B2E103392992785000A35645 = {
 			isa = PBXGroup;
 			children = (
+				B2E053C02F8FB0FE00009931 /* ci_scripts */,
 				B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */,
 				B2E103442992785000A35645 /* ImportUsebio */,
 				B2E103432992785000A35645 /* Products */,
