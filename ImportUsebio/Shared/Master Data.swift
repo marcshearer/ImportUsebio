@@ -25,12 +25,12 @@ class MasterData: ObservableObject {
         /// **Builds in-memory mirror of event codes, club codes and ranks **
         /// with pointers to managed objects
         /// Note that this infers that there will only ever be 1 instance of the app accessing the database
-            
+        
         let createDefaultData = true
-               
-        // Setup events
+        
+            // Setup events
         let eventMOs = CoreData.fetch(from: EventMO.entity.name) as! [EventMO]
-
+        
         self.events.array = []
         for eventMO in eventMOs {
             events.array.append(EventViewModel(eventMO: eventMO))
@@ -41,7 +41,7 @@ class MasterData: ObservableObject {
         
         // Setup clubs
         let clubMOs = CoreData.fetch(from: ClubMO.entity.name) as! [ClubMO]
-
+        
         self.clubs.array = []
         for clubMO in clubMOs {
             clubs.array.append(ClubViewModel(clubMO: clubMO))
@@ -52,41 +52,13 @@ class MasterData: ObservableObject {
         
         // Setup ranks
         let rankMOs = CoreData.fetch(from: RankMO.entity.name) as! [RankMO]
-
+        
         self.ranks.array = []
         for rankMO in rankMOs {
             ranks.array.append(RankViewModel(rankMO: rankMO))
         }
         if ranks.array.count == 0 && createDefaultData {
             // No ranks - create defaults
-        }
-        
-        // Setup members
-        let memberMOs = CoreData.fetch(from: MemberMO.entity.name) as! [MemberMO]
-
-        self.members.array = []
-        for memberMO in memberMOs {
-            members.array.append(MemberViewModel(memberMO: memberMO))
-        }
-        
-        // Setup local members
-        let localMemberMOs = CoreData.fetch(from: LocalMemberMO.entity.name) as! [LocalMemberMO]
-
-        self.localMembers.array = []
-        for localMemberMO in localMemberMOs {
-            if MemberViewModel.member(nationalId: localMemberMO.nationalId) != nil {
-                // Already in members file - remove from local additions
-                CoreData.update {
-                    CoreData.context.delete(localMemberMO)
-                }
-            } else {
-                localMembers.array.append(LocalMemberViewModel(localMemberMO: localMemberMO))
-            }
-        }
-
-        // If no date then create defauls
-        if members.array.count == 0 && createDefaultData {
-            // No members - create defaults
         }
         
         // Setup blocked
@@ -112,8 +84,8 @@ class MasterData: ObservableObject {
             BlockedViewModel(nationalId: "13037", reason: "This is almost certainly the wrong Ian Jones and should be 22199").insert()
             
         }
-        
-        // Setup blocked
+            
+        // Setup strata definitions
         let strataDefMOs = CoreData.fetch(from: StrataDefMO.entity.name) as! [StrataDefMO]
 
         self.strataDefs.array = []
@@ -138,5 +110,50 @@ class MasterData: ObservableObject {
             silver50Bronze25.strata[2].percent = 25
             silver50Bronze25.insert()
         }
+        
+        loadMembers()
+        
+        MyApp.masterDataLoaded = true
+    }
+    
+    func loadMembers() {
+        
+        let createDefaultData = true
+        
+        // Setup members
+        let memberMOs = CoreData.fetch(from: MemberMO.entity.name) as! [MemberMO]
+
+        self.members.array = []
+        for memberMO in memberMOs {
+            self.members.array.append(MemberViewModel(memberMO: memberMO))
+        }
+        
+        // Setup local members
+        let localMemberMOs = CoreData.fetch(from: LocalMemberMO.entity.name) as! [LocalMemberMO]
+
+        self.localMembers.array = []
+        for localMemberMO in localMemberMOs {
+            if member(nationalId: localMemberMO.nationalId) != nil {
+                // Already in members file - remove from local additions
+                CoreData.update {
+                    CoreData.context.delete(localMemberMO)
+                }
+            } else {
+                self.localMembers.array.append(LocalMemberViewModel(localMemberMO: localMemberMO))
+            }
+        }
+
+        // If no data then create defaults
+        if  members.array.count == 0 && createDefaultData {
+            // No members - create defaults
+        }
+    }
+    
+    public func member(nationalId: String) -> MemberViewModel? {
+        return (members.array as! [MemberViewModel]).first(where: {$0.nationalId == nationalId})
+    }
+    
+    public func member(names: String) -> [MemberViewModel] {
+        return (members.array as! [MemberViewModel]).filter({"\($0.otherNames) \($0.lastName)".trim() == names })
     }
 }

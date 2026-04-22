@@ -444,6 +444,10 @@ class Utility {
     static public var sendingMessage = false
     
     class func debugMessage(_ from: String, _ message: String, showDevice: Bool = false, force: Bool = false, mainThread: Bool = true) {
+        var debug = false
+        #if DEBUG
+        debug = true
+        #endif
         
         func closure() {
             var outputMessage: String
@@ -468,7 +472,7 @@ class Utility {
         
         let sendingMessage = Utility.sendingMessage
 
-        if Utility.isDevelopment || force {
+        if Utility.isDevelopment || force || debug {
             if mainThread {
                 Utility.mainThread(suppressDebug: true, execute: {
                     closure()

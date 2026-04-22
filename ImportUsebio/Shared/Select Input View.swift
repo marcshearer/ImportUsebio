@@ -27,6 +27,11 @@ fileprivate enum ViewField {
     case strataDefName
 }
 
+fileprivate enum AfterDownload {
+    case participants
+    case createSpreadsheet
+}
+
 struct SelectInputView: View {
     @Environment(\.scenePhase) var scenePhase
     @State private var inputFilename: String = ""
@@ -76,6 +81,7 @@ struct SelectInputView: View {
     @State private var showImportEvents = false
     @State private var showImportClubs = false
     @State private var showImportRanks = false
+    @State private var showImportMembers = false
     @State private var showBlockedNumbers = false
     @State private var showStratifications = false
     @State private var showParticipants = false
@@ -92,8 +98,10 @@ struct SelectInputView: View {
     @State private var maxRankCodeData: [AutoCompleteData] = []
     @State private var strataDefData: [AutoCompleteData] = []
     @State private var selected: Int? = nil
-    @State private var downloadingMemberList: Bool = true
-    @State private var downloadMemberListMessage: String = ""
+    @State private var showWaitingDownloadDialog: Bool = false
+    @State private var downloadMemberListStatus: String = ""
+    @State private var memberListDownloaded = false
+    @State private var afterDownload: AfterDownload? = nil
     @State var minRankList: [RankViewModel] = []
     @State var maxRankList: [RankViewModel] = []
     @State var participants: [ParticipantData] = []
@@ -224,9 +232,6 @@ struct SelectInputView: View {
             Spacer()
         }
         .frame(width: 900, height: windowHeight)
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            phaseChange(newPhase)
-        }
         .onChange(of: focusedField) { (oldValue, newValue) in
             changeFocus(leaving: oldValue, entering: newValue)
         }
@@ -248,6 +253,9 @@ struct SelectInputView: View {
         .sheet(isPresented: $showImportEvents) {
             EventImportView()
         }
+        .sheet(isPresented: $showImportMembers) {
+            MemberImportView()
+        }
         .sheet(isPresented: $showImportClubs) {
             ClubImportView()
         }
@@ -256,22 +264,42 @@ struct SelectInputView: View {
                 refreshRankLists()
             }
         }
-        .sheet(isPresented: $downloadingMemberList) {
+        .sheet(isPresented: $showWaitingDownloadDialog) {
             downloadingMemberListView()
         }
         .onAppear {
             setupFields()
-            downloadingMemberList = false
-            downloadMemberList()
             refreshRankLists()
         }
-    }
-    
-    private func phaseChange(_ newPhase: ScenePhase) {
-        if newPhase == .active && !downloadingMemberList, let lastDownloaded = MemberList.shared.lastDownloaded {
-            // When view becomes active then update memmber list if it is more than 12 hours old
-            if Date().timeIntervalSince(lastDownloaded) > 12 * 60 * 60 {
-                downloadMemberList(message: "Updating Member List")
+        .onChange(of: downloadMemberListStatus) {
+            showWaitingDownloadDialog = false
+            if downloadMemberListStatus != "" {
+                MessageBox.shared.show("Failed to download member list \n(\(downloadMemberListStatus))\n\n\nWill continue using previous version but some ranks may be out of date. This is probably only an issue for stratified events.")
+            }
+        }
+        .onChange(of: showWaitingDownloadDialog) {
+            if !showWaitingDownloadDialog {
+                switch afterDownload {
+                case .participants:
+                    showParticipants = true
+                case .createSpreadsheet:
+                    createSpreadsheet()
+                default:
+                    break
+                }
+                afterDownload = nil
+            }
+        }
+        .task {
+            let memberListDownloaded = self.memberListDownloaded
+            let lastDownloaded = MemberList.shared.lastDownloaded
+            if !memberListDownloaded || lastDownloaded == nil || Date().timeIntervalSince(lastDownloaded!) > 12 * 60 * 60 {
+                let (success, errorMessage) = await MemberList.shared.download()
+                await MainActor.run {
+                    showWaitingDownloadDialog = false
+                    downloadMemberListStatus = success ? "" : errorMessage
+                    self.memberListDownloaded = success
+                }
             }
         }
     }
@@ -289,26 +317,13 @@ struct SelectInputView: View {
         maxRankList = (MasterData.shared.ranks.array as! [RankViewModel] + [RankViewModel(rankCode: 999, rankName: "No maximum rank")]).filter({$0.rankCode != 1})
     }
     
-    private func downloadMemberList(message: String = "Downloading Member List") {
-        downloadMemberListMessage = message
-        downloadingMemberList = true
-        MemberList.shared.download() { (success, errorMessage) in
-            downloadingMemberList = false
-            if !success {
-                MessageBox.shared.show("Failed to download member list \n(\(errorMessage))\n\n\nWill continue using previous version but some ranks may be out of date. This is probably only an issue for stratified events.", okAction: {
-                    downloadingMemberList = false
-                })
-            }
-        }
-    }
-    
     private func downloadingMemberListView() -> some View {
         VStack {
             Spacer()
             Spacer().frame(height: 100)
             HStack {
                 Spacer()
-                Text(downloadMemberListMessage).font(defaultFont).foregroundColor(.blue)
+                Text("Downloading Member List").font(defaultFont).foregroundColor(.blue)
                 Spacer()
             }
             Spacer().frame(height: 10)
@@ -887,6 +902,9 @@ struct SelectInputView: View {
                 .padding([.top, .bottom], 6)
             Button("Import Events") { showImportEvents = true}
                 .padding([.leading, .trailing], 28)
+                .padding([.top, .bottom], 6)
+            Button("Import Members") { showImportMembers = true}
+                .padding([.leading, .trailing], 28)
                 .padding([.top], 6)
                 .padding([.bottom], 20)
         }.background(Color.clear)
@@ -930,7 +948,7 @@ struct SelectInputView: View {
     }
     
     private func addSheetButton() -> some View {
-        return Button{
+        return CustomButton.button(title: "Add Round", help: "Click this to add the round defined above to the current event.", enabled: { !((scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCodeDesc != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))) }, action: {
             if let scoreData = scoreData {
                 if writer == nil {
                     writer = Writer()
@@ -973,18 +991,7 @@ struct SelectInputView: View {
                     MessageBox.shared.hide()
                 }
             }
-        } label: {
-            Text("Add Round")
-                .help("Click this to add the round defined above to the current event.")
-                .foregroundColor(Palette.highlightButton.text)
-                .frame(width: 100, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.highlightButton.background)
-                .cornerRadius(15)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
-        .disabled(scoreData == nil || eventCode == "" || eventDescription == "" || roundName == "" || event == nil || (clubCodeDesc != "" && club == nil) || (minRankCode != 0 && minRank == nil) || (maxRankCode != 999 && maxRank == nil) || maxRankCode < minRankCode || (club == nil && event!.clubMandatory) || (awardTo <= 0 && basis != .manual) || (writer?.rounds.contains(where: {$0.shortName == roundName}) ?? false))
+        })
     }
     
     func buildParticipantList() {
@@ -994,7 +1001,7 @@ struct SelectInputView: View {
             for participant in event.participants {
                 for player in participant.member.playerList(copy: false) {
                     let new = ParticipantData(imported: player)
-                    if let addTo = participants.first(where: { $0.nationalId == new.nationalId && $0.names == new.names }) {
+                    if let addTo = participants.first(where: { $0.identity == new.identity && $0.names == new.names }) {
                         addTo.linked.append(new)
                     } else {
                         participants.append(new)
@@ -1002,60 +1009,52 @@ struct SelectInputView: View {
                 }
             }
         }
-        participants.sort(by: { $0.participantStatus.priority < $1.participantStatus.priority || (($0.participantStatus.priority == $1.participantStatus.priority) && ($0.nationalId.lowercased() < $1.nationalId.lowercased()))})
+        participants.sort(by: {ParticipantData.sort($0, $1)})
     }
     
     private func participantsButton() -> some View {
-        return Button{
-            showParticipants = true
-        } label: {
-            Text("Players")
-                .help("Click this to check player data against Mempad")
-                .foregroundColor(Palette.highlightButton.text)
-                .frame(width: 100, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.highlightButton.background)
-                .cornerRadius(15)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
-        .disabled(writer == nil || participants.filter({$0.participantStatus != .ok}).isEmpty)
+        return CustomButton.button(title: "Players", help: "Click this to check player data against Mempad", enabled: { !(writer == nil || participants.filter({$0.participantStatus != .ok}).isEmpty) }, action: {
+            if !memberListDownloaded {
+                afterDownload = .participants
+                showWaitingDownloadDialog = true
+            } else {
+                showParticipants = true
+            }
+        })
     }
     
     
     private func finishButton() -> some View {
-        return Button{
-            FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url) in
-                Utility.mainThread {
-                    if let writer = writer {
-                        writer.write(as: url.relativePath)
-                        MessageBox.shared.show("Written Successfully", okAction: {
-                            self.writer = nil
-                        })
-                        Utility.executeAfter(delay: 2) {
-                            self.writer = nil
-                            MessageBox.shared.hide()
-                        }
+        return CustomButton.button(title: "Create Spreadsheet", help: "Click this to create the spreadsheet", width: 150, enabled: { !(writer == nil || !participants.filter({$0.participantStatus != .ok && !$0.participantStatus.isUpdated}).isEmpty) }, action: {
+            if !memberListDownloaded {
+                afterDownload = .createSpreadsheet
+                showWaitingDownloadDialog = true
+            } else {
+                createSpreadsheet()
+            }
+        })
+    }
+    
+    private func createSpreadsheet() {
+        FileSystem.saveFile(title: "Generated Workbook Name", prompt: "Save", filename: "\(eventDescription).xlsm") { (url) in
+            Utility.mainThread {
+                if let writer = writer {
+                    writer.write(as: url.relativePath)
+                    MessageBox.shared.show("Written Successfully", okAction: {
+                        self.writer = nil
+                    })
+                    Utility.executeAfter(delay: 2) {
+                        self.writer = nil
+                        MessageBox.shared.hide()
                     }
                 }
             }
-        } label: {
-            Text("Create Spreadsheet")
-                .help("Click this to create the spreadsheet")
-                .foregroundColor(Palette.highlightButton.text)
-                .frame(width: 150, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.highlightButton.background)
-                .cornerRadius(15)
         }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
-        .disabled(writer == nil || !participants.filter({$0.participantStatus != .ok && !$0.participantStatus.isUpdated}).isEmpty)
     }
     
     private func pasteButton() -> some View {
         
-        return Button {
+        return CustomButton.button(title: "Paste Config", help: "Click this to import details of a multi-round event. The clipboard must be in a very specific format, normally copied from a 'rounds' spreadheet.", width: 120, enabled: { writer?.rounds.isEmpty ?? true }, action: {
             if let data = NSPasteboard.general.string(forType: .string) {
                 let dataLines = data.replacingOccurrences(of: "\n", with: "").components(separatedBy: "\r")
                 let lines = dataLines.map{$0.components(separatedBy: "\t")}
@@ -1069,35 +1068,13 @@ struct SelectInputView: View {
             } else {
                 MessageBox.shared.show("Invalid clipboard contents")
             }
-        } label: {
-            Text("Paste Config")
-                .help("Click this to import details of a multi-round event. The clipboard must be in a very specific format, normally copied from a 'rounds' spreadheet.")
-                .foregroundColor(Palette.enabledButton.text)
-                .frame(width: 120, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.enabledButton.background)
-                .cornerRadius(15)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
-        .disabled(writer?.rounds.count ?? 0 > 0)
+        })
     }
     
     private func clearButton() -> some View {
-        return Button{
+        return CustomButton.button(title: "Clear", help: "Click this to clear the current event. This happens automatically if a spreadsheet is created.", enabled: { writer != nil }, action: {
             self.writer = nil
-        } label: {
-            Text("Clear")
-                .help("Click this to clear the current event. This happens automatically if a spreadsheet is created.")
-                .foregroundColor(Palette.highlightButton.text)
-                .frame(width: 100, height: 30)
-                .font(.callout).minimumScaleFactor(0.5)
-                .background(Palette.highlightButton.background)
-                .cornerRadius(15)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .focusable(false)
-        .disabled(writer == nil)
+        })
     }
     
     private func parserComplete(scoreData: ScoreData?, messages: [String]) {

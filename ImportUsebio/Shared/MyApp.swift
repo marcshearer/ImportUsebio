@@ -44,6 +44,7 @@ class MyApp {
     
     public static var database: Database = .unknown
     public static var undoManager = UndoManager()
+    public static var masterDataLoaded = false
     
     #if targetEnvironment(macCatalyst)
     public static let target: Target = .macOS

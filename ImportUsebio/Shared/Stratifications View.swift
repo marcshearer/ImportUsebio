@@ -351,10 +351,10 @@ struct StratificationDetailStrataView: View {
                                 }
                                 .frame(height: 8)
                                 HStack {
-                                    Input(title: "Maximum Rank in Stratum: ", field: $rankText, desc: $rankDesc, descOffset: 80, width: 270, inlineTitle: true, inlineTitleWidth: 185, isEnabled: index != 0, onKeyPress: rankKeyPress, detectKeys: AutoComplete.detectKeys) { (newValue) in
+                                    Input(title: "Maximum Rank in Stratum: ", field: $rankText, desc: $rankDesc, descOffset: 80, width: 270, inlineTitle: true, inlineTitleWidth: 185, isEnabled: index != 0, onKeyPress: rankKeyPress, detectKeys: AutoComplete.detectKeys, onChange: { (newValue) in
                                         set(rankText: newValue)
                                         rankData = getRankList(text: rankText)
-                                    }
+                                    })
                                     .focused($focusedField, equals: .rank)
                                     .matchedGeometryEffect(id: ViewField.rank, in: autoComplete, anchor: .bottomTrailing)
                                     Spacer()

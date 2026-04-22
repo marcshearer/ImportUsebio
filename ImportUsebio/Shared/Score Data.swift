@@ -289,13 +289,12 @@ public class Member {
 
 public enum PlayerStatus : Int16 {
     case active = 0
-    case unknown = 1
     case missing = 2
     case lapsed = 3
     
     var treatAsMissing: Bool {
         switch self {
-        case .missing, .unknown:
+        case .missing:
             true
         default:
             false
@@ -311,7 +310,7 @@ public class Player : Member {
     var id: UUID = UUID()
     var nationalId: String?
     var seat: Seat?
-    var status: PlayerStatus = .unknown
+    var status: PlayerStatus = .missing
     weak var pair: Pair? = nil
 
     override var type: ParticipantType { .player }

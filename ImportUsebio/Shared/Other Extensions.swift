@@ -387,6 +387,16 @@ extension Float {
         let multiplier = pow(10, Float(places))
         return ceil(self * multiplier) / multiplier
     }
+    
+    func compare(_ other: Float) -> ComparisonResult {
+        if self < other {
+            return .orderedAscending
+        } else if self > other {
+            return .orderedDescending
+        } else {
+            return .orderedSame
+        }
+    }
 }
 
 extension Decimal {
@@ -402,6 +412,16 @@ extension Int {
     
     func toString() -> String {
         return "\(self)"
+    }
+    
+    func compare(_ other: Int) -> ComparisonResult {
+        if self < other {
+            return .orderedAscending
+        } else if self > other {
+            return .orderedDescending
+        } else {
+            return .orderedSame
+        }
     }
 }
 

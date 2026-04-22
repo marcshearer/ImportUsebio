@@ -13,10 +13,10 @@ public class MemberViewModel : ViewModel, ObservableObject {
     
         // Properties in core data model
     @Published private(set) var memberId: UUID = UUID() ; public override var id: UUID { memberId }
-    @Published private(set) var nationalId = ""
+    @Published public var nationalId = ""
     @Published public var otherNames: String = ""
     @Published public var lastName: String = ""
-    @Published public var status16: Int16 = PlayerStatus.unknown.rawValue
+    @Published public var status16: Int16 = PlayerStatus.missing.rawValue
     @Published public var homeClub: String = ""
     @Published public var postCode: String = ""
     @Published public var rankCode: Int = 0
@@ -34,9 +34,9 @@ public class MemberViewModel : ViewModel, ObservableObject {
     public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.member")!)!
     
     public var names: String {
-        get { "\(otherNames) \(lastName)" }
+        get { "\(otherNames) \(lastName)".trim() }
         set {
-            var names = newValue.components(separatedBy: " ")
+            var names = newValue.trim().components(separatedBy: " ")
             if let lastName = names.last {
                 self.lastName = lastName
                 names.removeLast()
@@ -59,7 +59,6 @@ public class MemberViewModel : ViewModel, ObservableObject {
         super.init()
         self.entity = memberEntity
         self.masterData = MasterData.shared.members
-        self.setupMappings()
     }
     
     public convenience init(memberMO: MemberMO) {
@@ -68,7 +67,7 @@ public class MemberViewModel : ViewModel, ObservableObject {
         self.revert()
     }
     
-    public convenience init(nationalId: String, otherNames: String, lastName: String, status: PlayerStatus = .active, homeClub: String = "", postCode: String = "", rankCode: Int = 0, downloaded: Date = Date()) {
+    public convenience init(nationalId: String, otherNames: String, lastName: String, status: PlayerStatus, homeClub: String = "", postCode: String = "", rankCode: Int = 0, downloaded: Date = Date()) {
         self.init()
         self.nationalId = nationalId
         self.otherNames = otherNames
@@ -86,24 +85,6 @@ public class MemberViewModel : ViewModel, ObservableObject {
         return lhs.nationalId == rhs.nationalId
     }
     
-    private func setupMappings() {
-        $nationalId
-            .receive(on: RunLoop.main)
-            .map { (nationalId) in
-                return (nationalId == "" ? "National ID must not be blank. Either enter a non-blank value or delete this member" : (self.nationalIdExists(nationalId) ? "This national ID already exists on another member. The national ID must be unique" : ""))
-            }
-            .assign(to: \.saveMessage, on: self)
-            .store(in: &cancellableSet)
-        
-        $saveMessage
-            .receive(on: RunLoop.main)
-            .map { (saveMessage) in
-                return (saveMessage == "")
-            }
-            .assign(to: \.canSave, on: self)
-            .store(in: &cancellableSet)
-    }
-    
     public override func beforeInsert() {
         assert(nationalId != "", "National ID must have a non-blank value")
     }
@@ -113,16 +94,13 @@ public class MemberViewModel : ViewModel, ObservableObject {
     }
     
     public static func member(nationalId: String) -> MemberViewModel? {
-        return MemberViewModel.getLookup(nationalId: nationalId)
+        return MasterData.shared.member(nationalId: nationalId)
     }
     
     public static func member(names: String) -> [MemberViewModel] {
-        return (MasterData.shared.members.array as! [MemberViewModel]).filter({"\($0.otherNames) \($0.lastName)" == names })
+        return MasterData.shared.member(names: names)
     }
     
-    static public func getLookup(nationalId: String) -> MemberViewModel? {
-        return (MasterData.shared.members.array as! [MemberViewModel]).first(where: {$0.nationalId == nationalId})
-    }
     
     private func nationalIdExists(_ nationalId: String) -> Bool {
         return !(masterData.array as! [MemberViewModel]).filter({$0.nationalId == nationalId && $0.memberId != self.memberId}).isEmpty

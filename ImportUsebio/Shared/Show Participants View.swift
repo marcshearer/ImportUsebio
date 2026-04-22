@@ -7,12 +7,47 @@
 
 import SwiftUI
 
+enum Nbo : String, CaseIterable, Identifiable {
+    
+    var id: String {
+        rawValue
+    }
+    
+    case sbu = ""
+    case ebu = "EBU"
+    case wbu = "WBU"
+    case nibu = "NIBU"
+    case cbai = "CBAI"
+    case other = "UNK"
+    
+    init?(nationalId: String) {
+        let components = nationalId.uppercased().components(separatedBy: "-")
+        if let prefix = components.first {
+            self.init(rawValue: prefix)
+        } else if Int(nationalId) != nil {
+            self = .sbu
+        } else {
+            self = .other
+        }
+    }
+    
+    var string: String {
+        switch self {
+        case .other:
+            "Other"
+        default:
+            "\(self)".uppercased()
+        }
+    }
+}
+
 indirect enum ParticipantStatus: Equatable {
     case ok
     case updated(original: ParticipantStatus)
     case memberNotFound(suggested: Int)
     case veryDifferent(suggested: Int)
     case memberFoundLocally
+    case lapsed
     case slightlyDifferent
     case triviallyDifferent
     
@@ -22,6 +57,7 @@ indirect enum ParticipantStatus: Equatable {
         case .updated(let original): return "\(original.string) - Updated"
         case .memberNotFound: return "Not found"
         case .memberFoundLocally: return "Found locally"
+        case .lapsed: return "Lapsed"
         case .veryDifferent: return "Very Different"
         case .slightlyDifferent: return "Slightly Different"
         case .triviallyDifferent: return "Trivially Different"
@@ -42,10 +78,11 @@ indirect enum ParticipantStatus: Equatable {
         case .ok: 99
         case .updated: 99
         case .memberNotFound: 1
-        case .veryDifferent: 2
-        case .memberFoundLocally: 3
-        case .slightlyDifferent: 4
-        case .triviallyDifferent: 5
+        case .lapsed: 2
+        case .veryDifferent: 3
+        case .memberFoundLocally: 4
+        case .slightlyDifferent: 5
+        case .triviallyDifferent: 6
         }
     }
     
@@ -59,33 +96,86 @@ indirect enum ParticipantStatus: Equatable {
     }
 }
 
+struct ParticipantIdentity: Equatable {
+    var nbo: Nbo = .sbu
+    var nationalId = ""
+    
+    init() {
+    }
+    
+    init?(combined: String?) {
+        self.init()
+        if let combined = combined {
+            if !set(combined: combined) {
+                return nil
+            }
+        } else {
+            return nil
+        }
+    }
+    
+    @discardableResult mutating func set(combined: String) -> Bool {
+        nationalId = combined.uppercased()
+        let components = nationalId.components(separatedBy: "-")
+        if components.count == 2 {
+            nbo = Nbo(rawValue: components.first!) ?? .other
+            nationalId = components.last!
+        } else if components.count == 1 && (components.first!.trim().isEmpty || Int(components.first!) != nil) {
+            nbo = .sbu
+            nationalId = components.first!
+        } else {
+            return false
+        }
+        return true
+    }
+    
+    var isEmpty: Bool {
+        combined.trim().isEmpty
+    }
+    
+    var isInvalid: Bool {
+        switch nbo {
+        case .sbu:
+            MemberViewModel.member(nationalId: combined) == nil
+        default:
+            false
+        }
+    }
+    
+    var combined: String {
+        (nbo == .sbu ? nationalId : "\(nbo.rawValue)-\(nationalId)")
+    }
+}
+
 @Observable class ParticipantData: Identifiable {
     var id: UUID = UUID()
-    var nationalId = ""
+    var identity = ParticipantIdentity()
     var names = ""
-    var memberNationalId: String?
+    var memberIdentity = ParticipantIdentity()
     var memberNames: String?
-    var memberStatus: PlayerStatus = .unknown
-    var originalNationalId = ""
+    var memberStatus: PlayerStatus = .missing
+    var originalIdentity = ParticipantIdentity()
     var originalNames = ""
     var originalParticipantStatus = ParticipantStatus.ok
     var possibleMatches: [MemberViewModel] = []
     var suggested = false
     var player: Player
     var linked: [ParticipantData] = []
-    var status: PlayerStatus = .unknown
+    var status: PlayerStatus = .missing
     var updated: Bool = false
     
     var participantStatus: ParticipantStatus {
         if updated {
             return .updated(original: originalParticipantStatus)
-        } else if memberNationalId == nil || suggested {
+        } else if memberIdentity.isEmpty || suggested {
             return .memberNotFound(suggested: possibleMatches.count)
-        } else if memberStatus != .active {
+        } else if memberStatus == .missing {
             return .memberFoundLocally
+        } else if memberStatus != .active {
+            return .lapsed
         } else if names != memberNames {
             let difference = Utility.levenshteinDistance(names, memberNames ?? "")
-            if difference == 0 {
+            if difference <= 2 {
                 return .triviallyDifferent
             } else if difference <= 5 {
                 return .slightlyDifferent
@@ -102,10 +192,10 @@ indirect enum ParticipantStatus: Equatable {
     
     init(imported: Player) {
         self.player = imported
-        self.nationalId = imported.nationalId ?? ""
+        self.identity = ParticipantIdentity(combined: imported.nationalId) ?? ParticipantIdentity()
         self.names = imported.name ?? ""
         lookupMember()
-        self.originalNationalId = self.nationalId
+        self.originalIdentity = self.identity
         self.originalNames = imported.name ?? ""
         self.originalParticipantStatus = self.participantStatus
         switch participantStatus {
@@ -125,27 +215,81 @@ indirect enum ParticipantStatus: Equatable {
     }
     
     func revertToOriginal() {
-        self.nationalId = originalNationalId
+        self.identity = originalIdentity
         self.names = originalNames
         lookupMember()
         self.updated = false
     }
     
+    static func sort(_ first: ParticipantData, _ second: ParticipantData) -> Bool {
+        // Used to sort by status priority, number of matches and national ID
+        var result: Bool
+        
+        result = sortCheck(first.participantStatus.priority.compare(second.participantStatus.priority)) {
+            // First sort key is priority of status
+            var comparison: ComparisonResult
+            switch first.participantStatus {
+            case .veryDifferent, .memberNotFound:
+                // Second sort key is number of possible matches (for statuses where that is relevant)
+                comparison = matchesSort(first.possibleMatches.count).compare(matchesSort(second.possibleMatches.count))
+            default:
+                comparison = .orderedSame
+            }
+            return sortCheck(comparison) {
+                // Third sort key is the national Id if it is integer (sorted as number)
+                if let firstNumber = Int(first.identity.combined), let secondNumber = Int(second.identity.combined) {
+                    comparison = firstNumber.compare(secondNumber)
+                } else {
+                    comparison = .orderedSame
+                }
+                return sortCheck(comparison) {
+                    // Last check is just the alpha combined identity
+                    return sortCheck(first.identity.combined.lowercased().compare(second.identity.combined.lowercased())) {
+                        return true
+                    }
+                }
+            }
+        }
+        return result
+    }
+    
+    static func matchesSort(_ matches: Int) -> Int {
+        switch matches {
+        case 0:
+            0
+        case 1:
+            2
+        default:
+            1
+        }
+    }
+                           
+    static func sortCheck(_ comparison: ComparisonResult, action: ()->Bool) -> Bool {
+        switch comparison {
+        case .orderedAscending:
+            true
+        case .orderedDescending:
+            false
+        case .orderedSame:
+            action()
+        }
+    }
+    
     func lookupMember() {
-        if let member = MemberViewModel.member(nationalId: nationalId) {
-            memberNationalId = member.nationalId
+        if let member = MemberViewModel.member(nationalId: identity.combined) {
+            memberIdentity = ParticipantIdentity(combined: member.nationalId) ?? ParticipantIdentity()
             memberNames = member.names
             memberStatus = member.status
         } else {
-            if nationalId != "" {
-                if let localMember = LocalMemberViewModel.member(nationalId: nationalId), names == localMember.names {
-                    memberNationalId = localMember.nationalId
+            if identity.combined != "" {
+                if let localMember = LocalMemberViewModel.member(nationalId: identity.combined), names == localMember.names {
+                    memberIdentity = ParticipantIdentity(combined: localMember.nationalId)  ?? ParticipantIdentity()
                     memberNames = localMember.names
                     memberStatus = localMember.status
                 }
             } else {
                 if let localMember = LocalMemberViewModel.member(names: names) {
-                    memberNationalId = localMember.nationalId
+                    memberIdentity = ParticipantIdentity(combined: localMember.nationalId)  ?? ParticipantIdentity()
                     memberNames = localMember.names
                     memberStatus = localMember.status
                 }
@@ -154,17 +298,21 @@ indirect enum ParticipantStatus: Equatable {
     }
     
     func updateFromMember() {
-        nationalId = memberNationalId ?? possibleMatches.first?.nationalId ?? nationalId
-        names = memberNames ?? possibleMatches.first?.names ?? names
+        if !memberIdentity.isEmpty {
+            identity = memberIdentity
+        } else if let firstMatch = ParticipantIdentity(combined: possibleMatches.first?.nationalId) {
+            identity = firstMatch
+        }
+        names = memberNames ?? names
         status = memberStatus
-        memberNationalId = nationalId
+        memberIdentity = identity
         memberNames = names
         possibleMatches = []
         updated = true
         suggested = false
         // Write back to imported data
         for item in [self] + self.linked {
-            item.player.nationalId = nationalId
+            item.player.nationalId = identity.combined
             item.player.name = names
             item.player.status = status
         }
@@ -193,13 +341,14 @@ struct ParticipantsView: View {
     @State var chooseOnly = false
     @State var showAll = false
     
-    let tableColumns = [GridItem(.fixed(80),  spacing: 10, alignment: .trailing),
-                        GridItem(.fixed(140), spacing: 30, alignment: .leading),
-                        GridItem(.fixed(70),  spacing: 20, alignment: .center),
-                        GridItem(.fixed(80),  spacing: 10, alignment: .center),
-                        GridItem(.fixed(140), spacing: 30, alignment: .leading),
+    let tableColumns = [GridItem(.fixed(100),  spacing: 10, alignment: .trailing),
+                        GridItem(.fixed(140), spacing: 10, alignment: .leading),
+                        GridItem(.fixed(20),  spacing: 10, alignment: .center),
+                        GridItem(.fixed(100),  spacing: 10, alignment: .center),
+                        GridItem(.fixed(140), spacing: 10, alignment: .leading),
                         GridItem(.fixed(200), spacing: 10, alignment: .leading),
-                        GridItem(.fixed(80), spacing: 10, alignment: .leading)]
+                        GridItem(.fixed(80),  spacing: 10, alignment: .leading),
+                        GridItem(.fixed(20),  spacing: 10, alignment: .leading)]
     
     var body: some View {
         StandardView("Select Input") {
@@ -224,13 +373,20 @@ struct ParticipantsView: View {
                             .foregroundColor(Palette.background.background)
                     }
                     VStack(spacing: 0) {
-                        ScrollView(showsIndicators: true) {
-                            VStack(spacing: 0) {
-                                LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                                    Section(header: bannerRow()) {
-                                        ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return showAll }; return true })) { participant in
-                                            gridRow(participant: participant)
-                                                .frame(height: 30)
+                        HStack {
+                            ScrollView(showsIndicators: true) {
+                                VStack(spacing: 0) {
+                                    LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                                        Section(header: bannerRow()) {
+                                            ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return showAll }; return true })) { participant in
+                                                gridRow(participant: participant)
+                                                    .frame(height: 30)
+                                                    .onTapGesture {
+                                                        selected = participant
+                                                        self.chooseOnly = false
+                                                        showMatches = true
+                                                    }
+                                            }
                                         }
                                     }
                                 }
@@ -245,7 +401,7 @@ struct ParticipantsView: View {
             ChoosePossibleMatches(participant: $selected, chooseOnly: $chooseOnly)
         }
         .interactiveDismissDisabled(!exit)
-        .frame(width: 930, height: 550)
+        .frame(width: 920, height: 550)
     }
     
     func bannerRow() -> some View {
@@ -286,20 +442,30 @@ struct ParticipantsView: View {
             LeadingClickableText(memberNames).foregroundColor(Palette.background.textColor(databaseColor))
             LeadingClickableText(status)
             LeadingClickableText(matches)
+            if let participant = participant {
+                editButton(participant, { (participant, chooseOnly) in
+                    selected = participant
+                    self.chooseOnly = chooseOnly
+                    showMatches = true
+                })
+            } else {
+                Text("")
+            }
         }
     }
     
     func gridRow(participant: ParticipantData, editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
-        if participant.memberNationalId == nil, let suggest = participant.possibleMatches.first {
-            participant.memberNationalId = suggest.nationalId
+        if participant.memberIdentity.isEmpty, let suggest = participant.possibleMatches.first {
+            participant.memberIdentity = ParticipantIdentity(combined: suggest.nationalId) ?? ParticipantIdentity()
             participant.memberNames = suggest.otherNames + " " + suggest.lastName
             participant.suggested = true
         }
-        return gridRow(participant.nationalId, participant.names, participant.memberNationalId ?? "", participant.memberNames ?? "", participant.participantStatus.string, participant.participantStatus.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
+        return gridRow(participant.identity.combined, participant.names, participant.memberIdentity.combined, participant.memberNames ?? "", participant.participantStatus.string, participant.participantStatus.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
     }
     
     func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
         HStack(spacing: 0) {
+            Spacer()
             switch participant.participantStatus {
             case .updated:
                 Button(action: {
@@ -310,7 +476,7 @@ struct ParticipantsView: View {
                 .buttonStyle(PlainButtonStyle())
                 .focusable(false)
             default:
-                if (participant.memberNationalId != nil || !participant.possibleMatches.isEmpty) && (participant.participantStatus != .ok && !participant.participantStatus.isUpdated) {
+                if (!participant.memberIdentity.isEmpty || !participant.possibleMatches.isEmpty) && (participant.participantStatus != .ok && !participant.participantStatus.isUpdated) {
                     Button(action: {
                         if participant.possibleMatches.count > 1 {
                             editAction?(participant, true)
@@ -325,6 +491,11 @@ struct ParticipantsView: View {
                 }
             }
             Spacer()
+        }
+    }
+    
+    func editButton(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
+        HStack(spacing: 0) {
             Button(action: {
                 editAction?(participant, false)
             }) {
@@ -332,8 +503,10 @@ struct ParticipantsView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .focusable(false)
+            Spacer()
         }
     }
+    
 }
 
 fileprivate enum ViewType {
@@ -345,40 +518,62 @@ struct ChoosePossibleMatches : View {
     @Environment(\.dismiss) var dismiss
     @Binding var participant: ParticipantData
     @Binding var chooseOnly: Bool
-    @State var nationalId: String = ""
+    @State var identity: ParticipantIdentity = ParticipantIdentity()
     @State var names: String = ""
-    @State var status: PlayerStatus = .unknown
+    @State var status: PlayerStatus = .missing
     @State var distance = 0
+    @State var namesChanged = false
     @FocusState private var focused: ViewType?
-    
+    var statusDesc: Binding<String> { Binding { status.string } set: { _ in } }
     let maxDistance = 5
     @State var matches: [MemberViewModel] = []
     @State var notFound: Bool = false
+    var originalIdentity: Binding<String> { Binding { participant.originalIdentity.combined } set: { _ in } }
     
-    let tableColumns = [GridItem(.fixed(80),  spacing: 0, alignment: .trailing),
+    let tableColumns = [GridItem(.fixed(100),  spacing: 0, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 0, alignment: .leading),
-                        GridItem(.fixed(140),  spacing: 0, alignment: .leading),
-                        GridItem(.fixed(140), spacing: 0, alignment: .leading)]
+                        GridItem(.fixed(70), spacing: 0, alignment: .leading),
+                        GridItem(.fixed(200), spacing: 0, alignment: .leading),
+                        GridItem(.flexible(minimum: 130), spacing: 0, alignment: .leading)]
     
     var body: some View {
         StandardView("Select Input") {
             VStack(spacing: 0) {
                 Banner(title: Binding.constant(chooseOnly ? "Choose Player to Update From" : "Update Player Details"), bottomSpace: false, back: false)
-                Spacer().frame(height: 30)
+                
+                Spacer().frame(height: 10)
                 HStack {
                     Spacer().frame(width: 20)
-                    VStack {
+                    Input(title: "Imported Id:", field: originalIdentity, placeHolder: "No Id imported", width: 140, inlineTitle: true, inlineTitleWidth: 125, isReadOnly: true)
+                    Spacer().frame(width: 30)
+                    Input(title: "Imported Name:", field: $participant.originalNames, width: 200, inlineTitle: true, inlineTitleWidth: 120, isReadOnly: true)
+                    Spacer()
+                }
+                Spacer().frame(height: 20)
+                
+                HStack {
+                    Spacer().frame(width: 20)
+                    VStack(alignment: .leading) {
                         Spacer().frame(height: 10)
                         Text("Possible Matches: ")
-                            .frame(width: 120)
+                        Spacer().frame(height: 10)
+                        HStack{
+                            Spacer()
+                            CustomButton.button(title: "Widen", width: 60, height: 20, color: Palette.enabledButton, enabled: { distance != maxDistance } ) {
+                                widenSearch()
+                            }
+                            Spacer()
+                        }
                         Spacer()
                     }
-                    .frame(height: 120)
+                    .frame(width: 120, height: 120)
                     Spacer().frame(width: 10)
                     VStack {
                         ZStack {
                             VStack(spacing: 0) {
-                                Spacer().frame(height: 30)
+                                UnevenRoundedRectangle(cornerRadii: .init(topLeading: 6, topTrailing: 6), style: .continuous)
+                                    .foregroundColor(Palette.tile.background)
+                                    .frame(height: 24)
                                 UnevenRoundedRectangle(cornerRadii: .init(bottomLeading: 6, bottomTrailing: 6), style: .continuous)
                                     .foregroundColor(Palette.alternate.background)
                             }
@@ -391,14 +586,15 @@ struct ChoosePossibleMatches : View {
                                                     let rank = RankViewModel.rank(rankCode: member.rankCode)
                                                     TrailingClickableText(member.nationalId)
                                                     LeadingClickableText(member.names)
+                                                    LeadingClickableText(member.status.string)
                                                     LeadingClickableText(member.homeClub)
                                                     LeadingClickableText(rank?.rankName ?? "Unknown")
                                                 }
-                                                .frame(height: 30)
+                                                .frame(height: 24)
                                                 .padding(.horizontal, 5)
-                                                .palette(nationalId == member.nationalId && names == member.names ? .highlightTile : .alternate)
+                                                .palette(identity.combined == member.nationalId && names == member.names ? .highlightTile : .alternate)
                                                 .onTapGesture {
-                                                    nationalId = member.nationalId
+                                                    identity = ParticipantIdentity(combined: member.nationalId) ?? ParticipantIdentity()
                                                     names = member.names
                                                     status = member.status
                                                     focused = nil
@@ -409,18 +605,10 @@ struct ChoosePossibleMatches : View {
                                 }
                             }
                         }
-                        .frame(width: 490, height: 120)
+                        .frame(width: 610, height: 120)
+                        .cornerRadius(8)
                     }
                     Spacer()
-                    VStack {
-                        Spacer().frame(height: 10)
-                        CustomButton.button(title: "Widen Search", width: 120) {
-                            widenSearch()
-                        }
-                        .disabled(distance == maxDistance)
-                        Spacer()
-                    }
-                    .frame(height: 120)
                     Spacer()
                 }
                 Spacer().frame(height: 30)
@@ -428,28 +616,32 @@ struct ChoosePossibleMatches : View {
                 if !chooseOnly {
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "National Id:", field: $nationalId, width: 140, inlineTitle: true, inlineTitleWidth: 125, onChange: { newValue in
-                            if let lookup = MemberViewModel.member(nationalId: newValue) {
-                                names = lookup.names
-                                focused = nil
-                                notFound = false
-                                status = .active
-                            } else {
-                                notFound = true
-                                status = (status == .active ? .unknown : status)
-                            }
-                        })
-                        .focused($focused, equals: .nationalId)
-                        Spacer().frame(width: 30)
-                        let nbos = ["EBU", "WBU", "NIBU", "CBAI", "UNK"]
-                        Menu("Add other NBO") {
-                            ForEach(nbos, id: \.self) { text in
-                                Button(text) {
-                                    nationalId = text + "-" + nationalId
-                                    focused = nil
-                                }
+                        HStack {
+                            Text("NBO:")
+                            Spacer()
+                        }
+                        .frame(width: 113)
+                        Picker("", selection: $identity.nbo) {
+                            ForEach(Nbo.allCases) { nbo in
+                                Text(nbo.string).tag(nbo)
                             }
                         }
+                        .onChange(of: identity.nbo) {
+                            if identity.nbo == .sbu, let lookup = MemberViewModel.member(nationalId: identity.combined) {
+                                if names != lookup.names {
+                                    names = lookup.names
+                                    namesChanged = true
+                                }
+                                status = lookup.status
+                            } else {
+                                if names != participant.originalNames {
+                                    names = participant.originalNames
+                                    namesChanged = true
+                                }
+                                status = .missing
+                            }
+                        }
+                        .pickerStyle(.segmented)
                         .focusable(false)
                         Spacer()
                     }
@@ -458,11 +650,25 @@ struct ChoosePossibleMatches : View {
                     
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "Name:", field: $names, width: 200, inlineTitle: true, inlineTitleWidth: 125, onChange: { names in
-                            distance = 0
-                            widenSearch()
+                        Input(title: "National Id:", field: $identity.nationalId, width: 140, inlineTitle: true, inlineTitleWidth: 125, onChange: { newValue in
+                            if let lookup = MemberViewModel.member(nationalId: identity.combined) {
+                                if names != lookup.names {
+                                    names = lookup.names
+                                    namesChanged =  true
+                                }
+                                status = lookup.status
+                                identity.nbo = .sbu
+                                notFound = false
+                            } else {
+                                if names != participant.originalNames {
+                                    names = participant.originalNames
+                                    namesChanged = true
+                                }
+                                notFound = true
+                                status = .missing
+                            }
                         })
-                        .focused($focused, equals: .names)
+                        .focused($focused, equals: .nationalId)
                         Spacer()
                     }
                     
@@ -470,17 +676,26 @@ struct ChoosePossibleMatches : View {
                     
                     HStack {
                         Spacer().frame(width: 20)
-                        HStack {
-                            Text("Treat as:")
-                            Spacer()
+                        Input(title: "Name:", field: $names, width: 200, inlineTitle: true, inlineTitleWidth: 125, onChange: { newValue in
+                            namesChanged = true
+                        })
+                        .focused($focused, equals: .names)
+                        
+                        Spacer().frame(width: 20)
+                        CustomButton.button(image: "arrow.clockwise", resizeImage: true, title: "Re-Search", width: 110, height: 20, color: Palette.enabledButton) {
+                            namesChanged = false
+                            widenSearch(newSearch: true)
                         }
-                        .frame(width: 115)
-                        Picker("", selection: $status) {
-                            Text("Missing").tag(PlayerStatus.missing)
-                            Text("Lapsed").tag(PlayerStatus.lapsed)
-                        }
-                        .pickerStyle(.segmented)
-                        .disabled(!notFound)
+                        .disabled(names.trim() == "" || !namesChanged)
+                        
+                        Spacer()
+                    }
+                    
+                    Spacer().frame(height: 20)
+                    
+                    HStack {
+                        Spacer().frame(width: 20)
+                        Input(title: "Member status: ", field: statusDesc, width: 120, inlineTitle: true, inlineTitleWidth: 125, isReadOnly: true)
                         Spacer()
                     }
                 }
@@ -496,52 +711,64 @@ struct ChoosePossibleMatches : View {
                     
                     CustomButton.button(title: "Update") {
                         // Write back to local members file
-                        participant.memberNationalId = nationalId
+                        participant.memberIdentity = identity
                         participant.memberNames = names
                         participant.memberStatus = status
                         participant.updateFromMember()
-                        if MemberViewModel.member(nationalId: nationalId) == nil {
+                        if MemberViewModel.member(nationalId: identity.combined) == nil {
                             saveLocal(participant: participant)
                         }
                         dismiss()
                     }
-                    .disabled((participant.nationalId == nationalId && participant.names == names && participant.status == status) || status == .unknown || nationalId.isEmpty || names.isEmpty )
+                    .disabled((participant.identity == identity && participant.names == names && participant.status == status) || identity.isInvalid || names.isEmpty )
                 }
                 Spacer().frame(height: 10)
             }
         }
         .onAppear {
             matches = participant.possibleMatches
-            if matches.count == 0 {
-                widenSearch()
-            }
-            nationalId = participant.nationalId
             names = participant.names
-            notFound = (MemberViewModel.member(nationalId: nationalId) == nil)
-            status = (notFound && participant.status == .active) ? .unknown : participant.status
+            identity = participant.identity
+            if let member = MemberViewModel.member(nationalId: identity.combined) {
+                status = member.status
+                notFound = false
+            } else {
+                status = .missing
+                notFound = true
+            }
+            if matches.count == 0 {
+                widenSearch(newSearch: true)
+            }
+            Utility.executeAfter(delay: 0.1) {
+                namesChanged = false
+            }
         }
-        .frame(width: 790, height: chooseOnly ? 290 : 440)
+        .frame(width: 790, height: chooseOnly ? 340 : 490)
     }
     
-    func widenSearch() {
+    func widenSearch(newSearch: Bool = false) {
+        if newSearch {
+            distance = -1
+            matches.removeAll()
+        }
         let originalMatches = matches.count
         repeat {
             distance += 1
             let members = MasterData.shared.members.array as! [MemberViewModel] + (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).map{$0.memberViewModel}
-            matches = members.filter({Utility.levenshteinDistance(participant.names, $0.names) <= distance && BlockedViewModel.blocked(nationalId: $0.nationalId) == nil }).sorted(by: { Utility.levenshteinDistance(participant.names, $0.names) < Utility.levenshteinDistance(participant.names, $1.names)})
+            matches = members.filter({Utility.levenshteinDistance(names, $0.names) <= distance && BlockedViewModel.blocked(nationalId: $0.nationalId) == nil }).sorted(by: { Utility.levenshteinDistance(names, $0.names) < Utility.levenshteinDistance(names, $1.names)})
         } while matches.count == originalMatches && distance <= maxDistance
     }
     
     func saveLocal(participant: ParticipantData) {
-        if MemberViewModel.member(nationalId: nationalId) == nil {
-            if let localMember = LocalMemberViewModel.member(nationalId: nationalId) {
+        if MemberViewModel.member(nationalId: identity.combined) == nil {
+            if let localMember = LocalMemberViewModel.member(nationalId: identity.combined) {
                 // Already exists - overwrite
                 localMember.names = participant.names
                 localMember.status = participant.status
                 localMember.save()
             } else {
                 // New local member - create
-                let localMember = LocalMemberViewModel(nationalId: participant.nationalId, otherNames: participant.otherNames, lastName: participant.lastName, status: participant.status)
+                let localMember = LocalMemberViewModel(nationalId: participant.identity.combined, otherNames: participant.otherNames, lastName: participant.lastName, status: participant.status)
                 localMember.insert()
             }
         }
@@ -558,6 +785,7 @@ struct ChoosePossibleMatches : View {
                     GridRow {
                         Text("National Id")
                         Text("Names")
+                        Text("Status")
                         Text("Club")
                         Text("Rank")
                     }
@@ -566,7 +794,7 @@ struct ChoosePossibleMatches : View {
                 .bold()
                 Spacer()
             }
-            .frame(height: 30)
+            .frame(height: 24)
         }
     }
     

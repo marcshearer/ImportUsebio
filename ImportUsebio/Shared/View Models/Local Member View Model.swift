@@ -16,7 +16,7 @@ public class LocalMemberViewModel : ViewModel, ObservableObject {
     @Published private(set) var nationalId = ""
     @Published public var otherNames: String = ""
     @Published public var lastName: String = ""
-    @Published public var status16: Int16 = PlayerStatus.unknown.rawValue
+    @Published public var status16: Int16 = PlayerStatus.missing.rawValue
     @Published public var created: Date = Date()
     
     @Published public var nationalIdMessage: String = ""
@@ -31,9 +31,9 @@ public class LocalMemberViewModel : ViewModel, ObservableObject {
     public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.localmember")!)!
     
     public var names: String {
-        get { "\(otherNames) \(lastName)" }
+        get { "\(otherNames) \(lastName)".trim() }
         set {
-            var names = newValue.components(separatedBy: " ")
+            var names = newValue.trim().components(separatedBy: " ")
             if let lastName = names.last {
                 self.lastName = lastName
                 names.removeLast()
@@ -115,7 +115,7 @@ public class LocalMemberViewModel : ViewModel, ObservableObject {
     }
     
     public static func member(names: String) -> LocalMemberViewModel? {
-        return (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).filter({"\($0.otherNames) \($0.lastName)" == names }).first
+        return (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).filter({"\($0.otherNames) \($0.lastName)".trim() == names }).first
     }
     
     static public func getLookup(nationalId: String) -> LocalMemberViewModel? {

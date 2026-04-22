@@ -20,6 +20,7 @@
 		B2250B4B2F484009008ACA67 /* Clickable Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B4A2F484004008ACA67 /* Clickable Text.swift */; };
 		B228E6452F320C5700C24918 /* Member Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B228E6442F320C5200C24918 /* Member Import.swift */; };
 		B245BF1D2E4DB5B0003D74B7 /* Club Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */; };
+		B262F1582F925A3100EC9AB0 /* Member Import View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B262F1572F925A2B00EC9AB0 /* Member Import View.swift */; };
 		B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */; };
 		B271D0E529A7B70C003C417C /* Notes.txt in Resources */ = {isa = PBXBuildFile; fileRef = B271D0E429A7B70C003C417C /* Notes.txt */; };
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
@@ -112,6 +113,7 @@
 		B2250B4A2F484004008ACA67 /* Clickable Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Clickable Text.swift"; sourceTree = "<group>"; };
 		B228E6442F320C5200C24918 /* Member Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import.swift"; sourceTree = "<group>"; };
 		B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club Codes Search View.swift"; sourceTree = "<group>"; };
+		B262F1572F925A2B00EC9AB0 /* Member Import View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import View.swift"; sourceTree = "<group>"; };
 		B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bridge Calculations.swift"; sourceTree = "<group>"; };
 		B271D0E429A7B70C003C417C /* Notes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Notes.txt; sourceTree = "<group>"; };
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
@@ -435,6 +437,7 @@
 				B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */,
 				B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */,
 				B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */,
+				B262F1572F925A2B00EC9AB0 /* Member Import View.swift */,
 				B2BA8A992E49F84F00B415F5 /* Event Import View.swift */,
 				B20873872E4B880E00E509C5 /* Club Import View.swift */,
 				B20873892E4B8A3900E509C5 /* Rank Import View.swift */,
@@ -647,6 +650,7 @@
 				B2E103A22992806F00A35645 /* Swipe Gestures.swift in Sources */,
 				B2C67EC42F51B0EC00BDC189 /* Show Participants View.swift in Sources */,
 				B2C3247029CDAECE005D8DED /* Manual Csv Parser.swift in Sources */,
+				B262F1582F925A3100EC9AB0 /* Member Import View.swift in Sources */,
 				B2BA8AA42E4A290000B415F5 /* Object Model.swift in Sources */,
 				B28D69082994CDCD00BA73E5 /* File System.swift in Sources */,
 				B20CFF382994EC8800B09269 /* Validation.swift in Sources */,
