@@ -21,6 +21,7 @@
 		B228E6452F320C5700C24918 /* Member Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B228E6442F320C5200C24918 /* Member Import.swift */; };
 		B245BF1D2E4DB5B0003D74B7 /* Club Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */; };
 		B262F1582F925A3100EC9AB0 /* Member Import View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B262F1572F925A2B00EC9AB0 /* Member Import View.swift */; };
+		B262F15A2F98BAC600EC9AB0 /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B262F1592F98BAC200EC9AB0 /* Controls.swift */; };
 		B2667DA52CF4C37F009036BD /* Bridge Calculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */; };
 		B271D0E529A7B70C003C417C /* Notes.txt in Resources */ = {isa = PBXBuildFile; fileRef = B271D0E429A7B70C003C417C /* Notes.txt */; };
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
@@ -114,6 +115,7 @@
 		B228E6442F320C5200C24918 /* Member Import.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import.swift"; sourceTree = "<group>"; };
 		B245BF1C2E4DB5A4003D74B7 /* Club Codes Search View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club Codes Search View.swift"; sourceTree = "<group>"; };
 		B262F1572F925A2B00EC9AB0 /* Member Import View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Member Import View.swift"; sourceTree = "<group>"; };
+		B262F1592F98BAC200EC9AB0 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
 		B2667DA42CF4C37F009036BD /* Bridge Calculations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bridge Calculations.swift"; sourceTree = "<group>"; };
 		B271D0E429A7B70C003C417C /* Notes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Notes.txt; sourceTree = "<group>"; };
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
@@ -357,6 +359,7 @@
 				B2E1035A29927AB100A35645 /* UserDefaults.swift */,
 				B2E1035C29927C3300A35645 /* Declarations.swift */,
 				B2EDF4A929C985D100FB4F80 /* Settings.swift */,
+				B262F1592F98BAC200EC9AB0 /* Controls.swift */,
 			);
 			name = "Standard Components";
 			sourceTree = "<group>";
@@ -616,6 +619,7 @@
 				B20873802E4B7F5700E509C5 /* Club Managed Object.swift in Sources */,
 				B2D601072F3B4D8E00015BD2 /* Member Managed Object.swift in Sources */,
 				B2E1036E29927EB100A35645 /* Utility.swift in Sources */,
+				B262F15A2F98BAC600EC9AB0 /* Controls.swift in Sources */,
 				B2E103B02992851400A35645 /* My Color.swift in Sources */,
 				B2E103922992806F00A35645 /* Target View Modifiers.swift in Sources */,
 				B2D6010D2F3CA04600015BD2 /* Blocked View Model.swift in Sources */,

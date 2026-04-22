@@ -12,6 +12,7 @@ struct ClubImportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var droppedFiles: [(filename: String, contents: String)] = []
     @State private var dropZoneEntered = false
+    @State private var isImporting = false
     private let uttypes = [UTType.data]
     
     var body: some View {
@@ -23,7 +24,7 @@ struct ClubImportView: View {
     
     var dropZone: some View {
         VStack(spacing: 0) {
-            Banner(title: Binding.constant("Import Club Code Data"))
+            Banner(title: Binding.constant("Import Club Code Data"), backEnabled: {!isImporting})
             HStack {
                 Spacer().frame(width: 50)
                 VStack {
@@ -59,6 +60,7 @@ struct ClubImportView: View {
                     if droppedFiles.count > 1 {
                         MessageBox.shared.show("Only one file can be dropped")
                     } else {
+                        isImporting = true
                         importClubCodes(droppedFiles.first!.contents)
                     }
                     droppedFiles = []

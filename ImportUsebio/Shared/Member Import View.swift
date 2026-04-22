@@ -10,8 +10,11 @@ import UniformTypeIdentifiers
 
 struct MemberImportView: View {
     @Environment(\.dismiss) private var dismiss
+    public var completion: ()->()
     @State private var droppedFiles: [(filename: String, contents: String)] = []
     @State private var dropZoneEntered = false
+    @State private var message = "Drop User Download file here"
+    @State private var isImporting = false
     private let uttypes = [UTType.data]
     
     var body: some View {
@@ -22,9 +25,8 @@ struct MemberImportView: View {
     }
     
     var dropZone: some View {
-        var message = "Drop User Dowload file here"
         return VStack(spacing: 0) {
-            Banner(title: Binding.constant("Import Member Data"))
+            Banner(title: Binding.constant("Import Member Data"), backEnabled: {!isImporting})
             HStack {
                 Spacer().frame(width: 50)
                 VStack {
@@ -40,6 +42,11 @@ struct MemberImportView: View {
                                 Spacer()
                                 Text(message).font(bannerFont)
                                     .multilineTextAlignment(.center)
+                                Spacer().frame(height: 20)
+                                if isImporting {
+                                    ProgressView("")
+                                        .progressViewStyle(.linear)
+                                }
                                 Spacer()
                             }
                             Spacer()
@@ -57,20 +64,28 @@ struct MemberImportView: View {
             }
             .onChange(of: droppedFiles.count, initial: false) {
                 if !droppedFiles.isEmpty {
-                    message = "Importing...\n\nPlease wait"
+                    message = "Importing\n\nPlease wait..."
                     if droppedFiles.count > 1 {
                         MessageBox.shared.show("Only one file can be dropped")
+                        droppedFiles = []
                     } else {
                         let (_, csvData) = droppedFiles.first!
-                        MemberList.shared.importDropped(csvData) { (success, message) in
-                            if success {
-                                MessageBox.shared.show("Import complete", okAction: { dismiss() })
-                            } else {
-                                MessageBox.shared.show("Import failed.\n(\(message))", okAction: { dismiss() })
+                        Task {
+                            isImporting = true
+                            await MemberList.shared.importDropped(csvData) { (success, message) in
+                                if success {
+                                    MessageBox.shared.show("Import complete", okAction: {
+                                        dismiss()
+                                        completion()
+                                    })
+                                } else {
+                                    MessageBox.shared.show("Import failed.\n(\(message))", okAction: { dismiss() })
+                                }
                             }
+                            isImporting = false
+                            droppedFiles = []
                         }
                     }
-                    droppedFiles = []
                 }
             }
         }

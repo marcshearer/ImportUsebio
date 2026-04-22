@@ -30,6 +30,7 @@ fileprivate enum ViewField {
 fileprivate enum AfterDownload {
     case participants
     case createSpreadsheet
+    case settings
 }
 
 struct SelectInputView: View {
@@ -237,6 +238,7 @@ struct SelectInputView: View {
         }
         .sheet(isPresented: $showErrors) {
             ShowErrorsView(roundErrors: roundErrors)
+                .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(settings: editSettings)
@@ -252,21 +254,31 @@ struct SelectInputView: View {
         }
         .sheet(isPresented: $showImportEvents) {
             EventImportView()
+                .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showImportMembers) {
-            MemberImportView()
+            MemberImportView() {
+                memberListDownloaded = false
+                Task {
+                    await downloadMemberList()
+                }
+            }
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showImportClubs) {
             ClubImportView()
+                .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showImportRanks) {
             RankImportView() {
                 refreshRankLists()
             }
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showWaitingDownloadDialog) {
             downloadingMemberListView()
         }
+        .interactiveDismissDisabled()
         .onAppear {
             setupFields()
             refreshRankLists()
@@ -284,6 +296,8 @@ struct SelectInputView: View {
                     showParticipants = true
                 case .createSpreadsheet:
                     createSpreadsheet()
+                case .settings:
+                    showSettingsMenu = true
                 default:
                     break
                 }
@@ -291,15 +305,18 @@ struct SelectInputView: View {
             }
         }
         .task {
-            let memberListDownloaded = self.memberListDownloaded
-            let lastDownloaded = MemberList.shared.lastDownloaded
-            if !memberListDownloaded || lastDownloaded == nil || Date().timeIntervalSince(lastDownloaded!) > 12 * 60 * 60 {
-                let (success, errorMessage) = await MemberList.shared.download()
-                await MainActor.run {
-                    showWaitingDownloadDialog = false
-                    downloadMemberListStatus = success ? "" : errorMessage
-                    self.memberListDownloaded = success
-                }
+            await downloadMemberList()
+        }
+    }
+    
+    func downloadMemberList() async {
+        let lastDownloaded = MemberList.shared.lastDownloaded
+        if !memberListDownloaded || lastDownloaded == nil || Date().timeIntervalSince(lastDownloaded!) > 12 * 60 * 60 {
+            let (success, errorMessage) = await MemberList.shared.download()
+            await MainActor.run {
+                showWaitingDownloadDialog = false
+                downloadMemberListStatus = success ? "" : errorMessage
+                self.memberListDownloaded = success
             }
         }
     }
@@ -318,19 +335,25 @@ struct SelectInputView: View {
     }
     
     private func downloadingMemberListView() -> some View {
-        VStack {
+        HStack {
             Spacer()
-            Spacer().frame(height: 100)
-            HStack {
+            Spacer().frame(width: 50)
+            VStack {
                 Spacer()
-                Text("Downloading Member List").font(defaultFont).foregroundColor(.blue)
+                Spacer().frame(height: 120)
+                Text("Downloading Member List")
+                Spacer().frame(height: 20)
+                Text("Please Wait...")
+                Spacer().frame(height: 20)
+                ProgressView()
+                    .progressViewStyle(.linear)
+                Spacer().frame(height: 120)
                 Spacer()
             }
-            Spacer().frame(height: 10)
-            Text("Please wait").font(captionFont)
-            Spacer().frame(height: 100)
+            Spacer().frame(width: 50)
             Spacer()
         }
+        .font(defaultFont).foregroundColor(.blue)
     }
     
     private var autoCompleteViews : some View {
@@ -915,7 +938,12 @@ struct SelectInputView: View {
     
     private func settingsButton() -> some View {
         return Button {
-            showSettingsMenu = true
+            if !memberListDownloaded {
+                afterDownload = .settings
+                showWaitingDownloadDialog = true
+            } else {
+                showSettingsMenu = true
+            }
         } label: {
             Image(systemName: "gearshape.fill").font(.largeTitle).foregroundColor(Palette.banner.background)
         }
@@ -1217,6 +1245,10 @@ struct SelectInputView: View {
             addMissingNationalIdWarning()
             buildParticipantList()
             if !roundErrors.isEmpty {
+                if roundErrors.map({$0.errors.isEmpty}).contains(false) {
+                    // There is an error there - need to abandon (but show errors)
+                    writer = nil
+                }
                 showErrors = true
             }
             for roundErrorList in roundErrors {

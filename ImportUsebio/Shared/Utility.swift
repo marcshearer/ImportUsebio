@@ -37,7 +37,7 @@ class Utility {
             }
             completion?()
             if false && !suppressDebug {
-                    Utility.debugMessage(message, "Delayed closure executed", mainThread: false)
+                Utility.debugMessage(message, "Delayed closure executed", mainThread: false)
             }
         })
     }

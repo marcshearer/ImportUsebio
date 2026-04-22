@@ -13,6 +13,7 @@ struct RankImportView: View {
     var completion: () -> ()
     @State private var droppedFiles: [(filename: String, contents: String)] = []
     @State private var dropZoneEntered = false
+    @State private var isImporting = false
     private let uttypes = [UTType.data]
     
     var body: some View {
@@ -60,6 +61,7 @@ struct RankImportView: View {
                     if droppedFiles.count > 1 {
                         MessageBox.shared.show("Only one file can be dropped")
                     } else {
+                        isImporting = true
                         importRankCodes(droppedFiles.first!.contents)
                     }
                     droppedFiles = []

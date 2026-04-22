@@ -43,10 +43,11 @@ enum Nbo : String, CaseIterable, Identifiable {
 
 indirect enum ParticipantStatus: Equatable {
     case ok
+    case blocked(because: BlockedViewModel)
     case updated(original: ParticipantStatus)
-    case memberNotFound(suggested: Int)
+    case notFound(suggested: Int)
     case veryDifferent(suggested: Int)
-    case memberFoundLocally
+    case foundLocally
     case lapsed
     case slightlyDifferent
     case triviallyDifferent
@@ -55,8 +56,9 @@ indirect enum ParticipantStatus: Equatable {
         switch self {
         case .ok: return "OK"
         case .updated(let original): return "\(original.string) - Updated"
-        case .memberNotFound: return "Not found"
-        case .memberFoundLocally: return "Found locally"
+        case .blocked: return "Member Blocked"
+        case .notFound: return "Not found"
+        case .foundLocally: return "Found locally"
         case .lapsed: return "Lapsed"
         case .veryDifferent: return "Very Different"
         case .slightlyDifferent: return "Slightly Different"
@@ -66,7 +68,7 @@ indirect enum ParticipantStatus: Equatable {
     
     var matches: String {
         switch self {
-        case .memberNotFound(let suggested), .veryDifferent(let suggested):
+        case .notFound(let suggested), .veryDifferent(let suggested):
             "\(suggested) \(suggested == 1 ? "match" : "matches")"
         default:
             ""
@@ -75,14 +77,15 @@ indirect enum ParticipantStatus: Equatable {
     
     var priority: Int {
         switch self {
-        case .ok: 99
-        case .updated: 99
-        case .memberNotFound: 1
-        case .lapsed: 2
-        case .veryDifferent: 3
-        case .memberFoundLocally: 4
-        case .slightlyDifferent: 5
-        case .triviallyDifferent: 6
+        case .ok: 9999
+        case .blocked: 10
+        case .updated: 999
+        case .notFound: 20
+        case .lapsed: 30
+        case .veryDifferent: 40
+        case .foundLocally: 50
+        case .slightlyDifferent: 60
+        case .triviallyDifferent: 70
         }
     }
     
@@ -114,6 +117,10 @@ struct ParticipantIdentity: Equatable {
         }
     }
     
+    mutating func setNextOtherNationalId() {
+        nationalId = String(format: "%06d", Controls.current.getNextOtherNationalId())
+    }
+    
     @discardableResult mutating func set(combined: String) -> Bool {
         nationalId = combined.uppercased()
         let components = nationalId.components(separatedBy: "-")
@@ -137,13 +144,15 @@ struct ParticipantIdentity: Equatable {
         switch nbo {
         case .sbu:
             MemberViewModel.member(nationalId: combined) == nil
-        default:
+        case .other:
             false
+        default:
+            nationalId.trim().isEmpty
         }
     }
     
     var combined: String {
-        (nbo == .sbu ? nationalId : "\(nbo.rawValue)-\(nationalId)")
+        (nbo == .sbu ? nationalId : "\(nbo.rawValue)-\(nationalId.trim())")
     }
 }
 
@@ -165,12 +174,14 @@ struct ParticipantIdentity: Equatable {
     var updated: Bool = false
     
     var participantStatus: ParticipantStatus {
-        if updated {
+        if let blocked = BlockedViewModel.blocked(nationalId: identity.combined) {
+            return .blocked(because: blocked)
+        } else if updated {
             return .updated(original: originalParticipantStatus)
         } else if memberIdentity.isEmpty || suggested {
-            return .memberNotFound(suggested: possibleMatches.count)
+            return .notFound(suggested: possibleMatches.count)
         } else if memberStatus == .missing {
-            return .memberFoundLocally
+            return .foundLocally
         } else if memberStatus != .active {
             return .lapsed
         } else if names != memberNames {
@@ -199,7 +210,7 @@ struct ParticipantIdentity: Equatable {
         self.originalNames = imported.name ?? ""
         self.originalParticipantStatus = self.participantStatus
         switch participantStatus {
-        case .memberNotFound, .veryDifferent:
+        case .notFound, .veryDifferent:
             self.possibleMatches = MemberViewModel.member(names: self.names).filter( { BlockedViewModel.blocked(nationalId: $0.nationalId) == nil } )
         case .triviallyDifferent:
             // Update automatically
@@ -221,6 +232,24 @@ struct ParticipantIdentity: Equatable {
         self.updated = false
     }
     
+    func saveLocalMember() {
+        if MemberViewModel.member(nationalId: identity.combined) == nil {
+            if let localMember = LocalMemberViewModel.member(nationalId: identity.combined) {
+                // Already exists - overwrite
+                localMember.names = names
+                localMember.status = status
+                localMember.save()
+            } else {
+                // New local member - create
+                if identity.nbo == .other && identity.nationalId.isEmpty {
+                    identity.setNextOtherNationalId()
+                }
+                let localMember = LocalMemberViewModel(nationalId: identity.combined, otherNames: otherNames, lastName: lastName, status: status)
+                localMember.insert()
+            }
+        }
+    }
+    
     static func sort(_ first: ParticipantData, _ second: ParticipantData) -> Bool {
         // Used to sort by status priority, number of matches and national ID
         var result: Bool
@@ -229,7 +258,7 @@ struct ParticipantIdentity: Equatable {
             // First sort key is priority of status
             var comparison: ComparisonResult
             switch first.participantStatus {
-            case .veryDifferent, .memberNotFound:
+            case .veryDifferent, .notFound:
                 // Second sort key is number of possible matches (for statuses where that is relevant)
                 comparison = matchesSort(first.possibleMatches.count).compare(matchesSort(second.possibleMatches.count))
             default:
@@ -333,13 +362,15 @@ struct ParticipantIdentity: Equatable {
     }
 }
 
+fileprivate let closeMatchDistance = 2
+
 struct ParticipantsView: View {
     @State var participants: [ParticipantData] = []
     @State var exit: Bool = true
     @State var showMatches = false
     @State var selected = ParticipantData(imported: Player())
-    @State var chooseOnly = false
-    @State var showAll = false
+    @State fileprivate var editMode = ParticipantEditMode.full
+    @State fileprivate var includeType: IncludeType = .incorrect
     
     let tableColumns = [GridItem(.fixed(100),  spacing: 10, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 10, alignment: .leading),
@@ -359,11 +390,22 @@ struct ParticipantsView: View {
                     })
                     HStack {
                         Spacer()
-                        Picker("Include:", selection: $showAll) {
-                            Text("Incorrect").tag(false)
-                            Text("All").tag(true)
+                        let original = participants.filter({$0.participantStatus != .ok}).count
+                        let outstanding = participants.filter({$0.participantStatus != .ok && !$0.participantStatus.isUpdated}).count
+                        Text("\(outstanding == 0 ? "None" : "\(outstanding)") Outstanding")
+                            .font(captionFont)
+                        HStack {
+                            Spacer()
+                            Picker("Include:", selection: $includeType) {
+                                Text(IncludeType.incorrect.string).tag(IncludeType.incorrect)
+                                if outstanding != original || includeType == .outstanding {
+                                    Text(IncludeType.outstanding.string).tag(IncludeType.outstanding)
+                                }
+                                Text(IncludeType.all.string).tag(IncludeType.all)
+                            }
+                            Spacer().frame(width: 20)
                         }
-                        Spacer().frame(width: 20)
+                        .frame(width: 400)
                     }
                 }
                 ZStack {
@@ -378,12 +420,12 @@ struct ParticipantsView: View {
                                 VStack(spacing: 0) {
                                     LazyVGrid(columns: tableColumns, spacing: 0, pinnedViews: [.sectionHeaders]) {
                                         Section(header: bannerRow()) {
-                                            ForEach(self.participants.filter({ if case .ok = $0.participantStatus { return showAll }; return true })) { participant in
+                                            ForEach(self.participants.filter({ includeType.include(status: $0.participantStatus) })) { participant in
                                                 gridRow(participant: participant)
                                                     .frame(height: 30)
                                                     .onTapGesture {
                                                         selected = participant
-                                                        self.chooseOnly = false
+                                                        self.editMode = .full
                                                         showMatches = true
                                                     }
                                             }
@@ -398,7 +440,7 @@ struct ParticipantsView: View {
             }
         }
         .sheet(isPresented: $showMatches) {
-            ChoosePossibleMatches(participant: $selected, chooseOnly: $chooseOnly)
+            ChoosePossibleMatches(participant: $selected, editMode: $editMode)
         }
         .interactiveDismissDisabled(!exit)
         .frame(width: 920, height: 550)
@@ -424,15 +466,15 @@ struct ParticipantsView: View {
         }
     }
     
-    func gridRow(_ nationalId: String, _ names: String, _ memberNationalId: String, _ memberNames: String, _ status: String, _ matches: String, participant: ParticipantData? = nil, databaseColor: ThemeTextType = .normal, editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
+    fileprivate func gridRow(_ nationalId: String, _ names: String, _ memberNationalId: String, _ memberNames: String, _ status: String, _ matches: String, participant: ParticipantData? = nil, databaseColor: ThemeTextType = .normal, editAction: ((ParticipantData, ParticipantEditMode)->())? = nil) -> some View {
         
         GridRow {
             TrailingClickableText(nationalId)
             LeadingClickableText(names)
             if let participant = participant {
-                actionButtons(participant, { (participant, chooseOnly) in
+                actionButtons(participant, { (participant, editMode) in
                     selected = participant
-                    self.chooseOnly = chooseOnly
+                    self.editMode = editMode
                     showMatches = true
                 })
             } else {
@@ -443,9 +485,9 @@ struct ParticipantsView: View {
             LeadingClickableText(status)
             LeadingClickableText(matches)
             if let participant = participant {
-                editButton(participant, { (participant, chooseOnly) in
+                editButton(participant, { (participant, editMode) in
                     selected = participant
-                    self.chooseOnly = chooseOnly
+                    self.editMode = editMode
                     showMatches = true
                 })
             } else {
@@ -454,7 +496,7 @@ struct ParticipantsView: View {
         }
     }
     
-    func gridRow(participant: ParticipantData, editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
+    fileprivate func gridRow(participant: ParticipantData, editAction: ((ParticipantData, ParticipantEditMode)->())? = nil) -> some View {
         if participant.memberIdentity.isEmpty, let suggest = participant.possibleMatches.first {
             participant.memberIdentity = ParticipantIdentity(combined: suggest.nationalId) ?? ParticipantIdentity()
             participant.memberNames = suggest.otherNames + " " + suggest.lastName
@@ -463,7 +505,7 @@ struct ParticipantsView: View {
         return gridRow(participant.identity.combined, participant.names, participant.memberIdentity.combined, participant.memberNames ?? "", participant.participantStatus.string, participant.participantStatus.matches, participant: participant, databaseColor: (participant.suggested ? .faint : .normal))
     }
     
-    func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
+    fileprivate func actionButtons(_ participant: ParticipantData, _ editAction: ((ParticipantData, ParticipantEditMode)->())? = nil) -> some View {
         HStack(spacing: 0) {
             Spacer()
             switch participant.participantStatus {
@@ -475,16 +517,36 @@ struct ParticipantsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .focusable(false)
+            case .blocked:
+                EmptyView()
             default:
                 if (!participant.memberIdentity.isEmpty || !participant.possibleMatches.isEmpty) && (participant.participantStatus != .ok && !participant.participantStatus.isUpdated) {
                     Button(action: {
                         if participant.possibleMatches.count > 1 {
-                            editAction?(participant, true)
+                            editAction?(participant, .exactMatches)
                         } else {
                             participant.updateFromMember()
                         }
                     }) {
                         Text("􁉈").frame(width: 25, height: 25).palette(.highlightButton).cornerRadius(12.5)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .focusable(false)
+                } else if participant.names != "" {
+                    Button(action: {
+                        let participantClose = closeMatches(names: participant.names, distance: closeMatchDistance).count
+                        if participantClose > 0 {
+                            editAction?(participant, .closeMatches)
+                        } else {
+                            participant.memberIdentity.nbo = .other
+                            participant.memberIdentity.setNextOtherNationalId()
+                            participant.memberNames = participant.names
+                            participant.memberStatus = .missing
+                            participant.updateFromMember()
+                            participant.saveLocalMember()
+                        }
+                    }) {
+                        Text("􀯩").frame(width: 25, height: 25).palette(.highlightButton).cornerRadius(12.5)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .focusable(false)
@@ -494,10 +556,15 @@ struct ParticipantsView: View {
         }
     }
     
-    func editButton(_ participant: ParticipantData, _ editAction: ((ParticipantData, Bool)->())? = nil) -> some View {
+    func closeMatches(names: String, distance: Int) -> [MemberViewModel] {
+        let members = MasterData.shared.members.array as! [MemberViewModel]
+        return members.filter({Utility.levenshteinDistance(names, $0.names) <= distance})
+    }
+    
+    fileprivate func editButton(_ participant: ParticipantData, _ editAction: ((ParticipantData, ParticipantEditMode)->())? = nil) -> some View {
         HStack(spacing: 0) {
             Button(action: {
-                editAction?(participant, false)
+                editAction?(participant, .full)
             }) {
                 Text("􀈊").frame(width: 25, height: 25).palette(.highlightButton).cornerRadius(12.5)
             }
@@ -514,10 +581,56 @@ fileprivate enum ViewType {
     case names
 }
 
+fileprivate enum IncludeType {
+    case all
+    case incorrect
+    case outstanding
+    
+    var string: String {
+        switch self {
+        case .all:
+            "All participants"
+        case .incorrect:
+            "Originally incorrect"
+        case .outstanding:
+            "Still incorrect"
+        }
+    }
+    
+    func include(status: ParticipantStatus) -> Bool {
+        switch status {
+        case .ok:
+            self == .all
+        case .updated:
+            self == .all || self == .incorrect
+        default:
+            true
+        }
+    }
+    
+}
+
+fileprivate enum ParticipantEditMode {
+    case exactMatches
+    case closeMatches
+    case full
+    
+    var title: String {
+        switch self {
+        case .closeMatches:
+            "Members with Similar Names Found"
+        case .exactMatches:
+            "Choose Player to Update From"
+        case .full:
+            "Update Player Details"
+        }
+    }
+}
+
 struct ChoosePossibleMatches : View {
     @Environment(\.dismiss) var dismiss
     @Binding var participant: ParticipantData
-    @Binding var chooseOnly: Bool
+    @Binding fileprivate var editMode: ParticipantEditMode
     @State var identity: ParticipantIdentity = ParticipantIdentity()
     @State var names: String = ""
     @State var status: PlayerStatus = .missing
@@ -525,7 +638,7 @@ struct ChoosePossibleMatches : View {
     @State var namesChanged = false
     @FocusState private var focused: ViewType?
     var statusDesc: Binding<String> { Binding { status.string } set: { _ in } }
-    let maxDistance = 5
+    @State var maxDistance = 6
     @State var matches: [MemberViewModel] = []
     @State var notFound: Bool = false
     var originalIdentity: Binding<String> { Binding { participant.originalIdentity.combined } set: { _ in } }
@@ -539,7 +652,7 @@ struct ChoosePossibleMatches : View {
     var body: some View {
         StandardView("Select Input") {
             VStack(spacing: 0) {
-                Banner(title: Binding.constant(chooseOnly ? "Choose Player to Update From" : "Update Player Details"), bottomSpace: false, back: false)
+                Banner(title: Binding.constant(editMode.title), bottomSpace: false, back: false)
                 
                 Spacer().frame(height: 10)
                 HStack {
@@ -557,12 +670,14 @@ struct ChoosePossibleMatches : View {
                         Spacer().frame(height: 10)
                         Text("Possible Matches: ")
                         Spacer().frame(height: 10)
-                        HStack{
-                            Spacer()
-                            CustomButton.button(title: "Widen", width: 60, height: 20, color: Palette.enabledButton, enabled: { distance != maxDistance } ) {
-                                widenSearch()
+                        if editMode != .exactMatches {
+                            HStack{
+                                Spacer()
+                                CustomButton.button(title: "Widen", width: 60, height: 20, color: Palette.enabledButton, enabled: { distance != maxDistance } ) {
+                                    widenSearch()
+                                }
+                                Spacer()
                             }
-                            Spacer()
                         }
                         Spacer()
                     }
@@ -613,7 +728,7 @@ struct ChoosePossibleMatches : View {
                 }
                 Spacer().frame(height: 30)
                 
-                if !chooseOnly {
+                if editMode == .full {
                     HStack {
                         Spacer().frame(width: 20)
                         HStack {
@@ -634,11 +749,21 @@ struct ChoosePossibleMatches : View {
                                 }
                                 status = lookup.status
                             } else {
+                                if identity.nbo == .other {
+                                    identity.nationalId = ""
+                                }
                                 if names != participant.originalNames {
                                     names = participant.originalNames
                                     namesChanged = true
                                 }
                                 status = .missing
+                                if identity.nationalId == "" && identity.nbo != .other {
+                                    // Set to space to allow focus
+                                    identity.nationalId = " "
+                                }
+                            }
+                            Utility.executeAfter(delay: 0.1) {
+                                focused = (identity.nbo == .other ? nil : .nationalId)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -650,7 +775,7 @@ struct ChoosePossibleMatches : View {
                     
                     HStack {
                         Spacer().frame(width: 20)
-                        Input(title: "National Id:", field: $identity.nationalId, width: 140, inlineTitle: true, inlineTitleWidth: 125, onChange: { newValue in
+                        Input(title: "National Id:", field: $identity.nationalId, placeHolder: (identity.nbo == .other ? "Generated" : ""), width: 140, inlineTitle: true, inlineTitleWidth: 125, isEnabled: identity.nbo != .other, onChange: { newValue in
                             if let lookup = MemberViewModel.member(nationalId: identity.combined) {
                                 if names != lookup.names {
                                     names = lookup.names
@@ -669,6 +794,15 @@ struct ChoosePossibleMatches : View {
                             }
                         })
                         .focused($focused, equals: .nationalId)
+                        switch participant.participantStatus {
+                        case .blocked(let blocked):
+                            HStack {
+                                Spacer().frame(width: 30)
+                                Text(blocked.reason)
+                            }
+                        default:
+                            EmptyView()
+                        }
                         Spacer()
                     }
                     
@@ -709,14 +843,34 @@ struct ChoosePossibleMatches : View {
                     
                     Spacer().frame(width: 60)
                     
-                    CustomButton.button(title: "Update") {
+                    if editMode == .closeMatches {
+                        // Reject close matches and set missing anyway
+                        CustomButton.button(title: "Set Missing", width: 130) {
+                            participant.memberIdentity.nbo = .other
+                            participant.memberIdentity.setNextOtherNationalId()
+                            participant.memberNames = names
+                            participant.memberStatus = status
+                            participant.updateFromMember()
+                            if MemberViewModel.member(nationalId: identity.combined) == nil {
+                                participant.saveLocalMember()
+                            }
+                            dismiss()
+                        }
+                    }
+                    
+                    Spacer().frame(width: 60)
+                    
+                    CustomButton.button(title: (editMode == .full ? "Update" : "Select Match"), width: (editMode == .full ? 100 : 130)) {
                         // Write back to local members file
                         participant.memberIdentity = identity
+                        if participant.memberIdentity.nbo == .other {
+                            participant.memberIdentity.setNextOtherNationalId()
+                        }
                         participant.memberNames = names
                         participant.memberStatus = status
                         participant.updateFromMember()
                         if MemberViewModel.member(nationalId: identity.combined) == nil {
-                            saveLocal(participant: participant)
+                            participant.saveLocalMember()
                         }
                         dismiss()
                     }
@@ -737,16 +891,17 @@ struct ChoosePossibleMatches : View {
                 notFound = true
             }
             if matches.count == 0 {
-                widenSearch(newSearch: true)
+                widenSearch(newSearch: true, maxDistance: closeMatchDistance)
             }
             Utility.executeAfter(delay: 0.1) {
                 namesChanged = false
             }
         }
-        .frame(width: 790, height: chooseOnly ? 340 : 490)
+        .frame(width: 790, height: editMode != .full ? 340 : 490)
     }
     
-    func widenSearch(newSearch: Bool = false) {
+    func widenSearch(newSearch: Bool = false, maxDistance: Int? = nil) {
+        let maxDistance = maxDistance ?? self.maxDistance
         if newSearch {
             distance = -1
             matches.removeAll()
@@ -756,22 +911,7 @@ struct ChoosePossibleMatches : View {
             distance += 1
             let members = MasterData.shared.members.array as! [MemberViewModel] + (MasterData.shared.localMembers.array as! [LocalMemberViewModel]).map{$0.memberViewModel}
             matches = members.filter({Utility.levenshteinDistance(names, $0.names) <= distance && BlockedViewModel.blocked(nationalId: $0.nationalId) == nil }).sorted(by: { Utility.levenshteinDistance(names, $0.names) < Utility.levenshteinDistance(names, $1.names)})
-        } while matches.count == originalMatches && distance <= maxDistance
-    }
-    
-    func saveLocal(participant: ParticipantData) {
-        if MemberViewModel.member(nationalId: identity.combined) == nil {
-            if let localMember = LocalMemberViewModel.member(nationalId: identity.combined) {
-                // Already exists - overwrite
-                localMember.names = participant.names
-                localMember.status = participant.status
-                localMember.save()
-            } else {
-                // New local member - create
-                let localMember = LocalMemberViewModel(nationalId: participant.identity.combined, otherNames: participant.otherNames, lastName: participant.lastName, status: participant.status)
-                localMember.insert()
-            }
-        }
+        } while matches.count == originalMatches && distance < maxDistance
     }
     
     func heading() -> some View{
@@ -797,5 +937,4 @@ struct ChoosePossibleMatches : View {
             .frame(height: 24)
         }
     }
-    
 }

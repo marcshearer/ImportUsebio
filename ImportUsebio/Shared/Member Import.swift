@@ -80,25 +80,21 @@ class MemberList {
                             if member.changed {
                                 member.save()
                                 updated += 1
-                                Utility.debugMessage("Download", "Member updated")
                             }
                         } else {
                             member = MemberViewModel(nationalId: fields[memberIdColumn], otherNames: fields[forenameColumn], lastName: fields[surnameColumn], status: .active, homeClub: fields[homeClubColumn], postCode: postCode(postCodeAndRank: fields[postcodeAndRankColumn]), rankCode: rankCode(postCodeAndRank: fields[postcodeAndRankColumn]), downloaded: downloadedDate)
                             member!.insert()
                             importedIds[member!.memberId] = false
                             new += 1
-                            Utility.debugMessage("Download", "New member added")
                         }
                     }
                     // Mark anything we have not just imported as lapsed
                     let members = MasterData.shared.members.array as! [MemberViewModel]
-                    Utility.debugMessage("Import", "Starting lapse set")
                     for member in members.filter({importedIds[$0.memberId] == nil && $0.status == .active}) {
                         member.status = .lapsed
                         member.save()
                         lapsed += 1
                     }
-                    Utility.debugMessage("Import", "Ending lapse set")
                     self.lastDownloaded = downloadedDate
                     result =  (true, "")
                 } else {
@@ -111,7 +107,7 @@ class MemberList {
         return result
     }
     
-    func importDropped(_ csvData: String, completion: @escaping (Bool, String)->()) {
+    func importDropped(_ csvData: String, completion: @escaping (Bool, String)->()) async {
         var updated: Int = 0
         var new: Int = 0
         var removed: Int = 0

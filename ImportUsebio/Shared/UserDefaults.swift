@@ -40,6 +40,8 @@ enum UserDefault: String, CaseIterable {
     case settingUserDownloadHomeClubColumn
     case settingUserDownloadStatusColumn
     case settingUserDownloadPaymentStatusColumn
+
+    case controlNextOtherNationalId
     
     public var defaultValue: Any? {
         switch self {
@@ -103,6 +105,8 @@ enum UserDefault: String, CaseIterable {
             return "B"
         case .settingUserDownloadPaymentStatusColumn:
             return "Y"
+        case .controlNextOtherNationalId:
+            return 1
         }
     }
     

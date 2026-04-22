@@ -9,7 +9,7 @@ import Combine
 import SwiftUI
 import CoreData
 
-public class BlockedViewModel : ViewModel, ObservableObject {
+public class BlockedViewModel : ViewModel, ObservableObject, Equatable {
     
     
     // Properties in core data model
