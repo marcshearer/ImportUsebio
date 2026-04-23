@@ -10,6 +10,7 @@ import SwiftUI
 class Controls: ObservableObject {
 
     @Published var nextOtherNationalId: Int!
+    @Published var lastMemberDownload: Date!
 
     static public var current =  Controls(load: true)
     
@@ -31,10 +32,12 @@ class Controls: ObservableObject {
     
     public func load() {
         self.nextOtherNationalId = UserDefault.controlNextOtherNationalId.int
+        self.lastMemberDownload = UserDefault.controlLastMemberDownload.date
     }
     
     public func save() {
         UserDefault.controlNextOtherNationalId.set(self.nextOtherNationalId)
+        UserDefault.controlLastMemberDownload.set(self.lastMemberDownload)
     }
     
     public func getNextOtherNationalId() -> Int {

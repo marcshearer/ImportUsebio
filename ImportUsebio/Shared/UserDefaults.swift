@@ -42,6 +42,7 @@ enum UserDefault: String, CaseIterable {
     case settingUserDownloadPaymentStatusColumn
 
     case controlNextOtherNationalId
+    case controlLastMemberDownload
     
     public var defaultValue: Any? {
         switch self {
@@ -105,8 +106,11 @@ enum UserDefault: String, CaseIterable {
             return "B"
         case .settingUserDownloadPaymentStatusColumn:
             return "Y"
+        
         case .controlNextOtherNationalId:
             return 1
+        case .controlLastMemberDownload:
+            return Date().addingTimeInterval(-24*60*60)
         }
     }
     

@@ -304,19 +304,11 @@ struct SelectInputView: View {
                 afterDownload = nil
             }
         }
-        .task {
-            await downloadMemberList()
-        }
-    }
-    
-    func downloadMemberList() async {
-        let lastDownloaded = MemberList.shared.lastDownloaded
-        if !memberListDownloaded || lastDownloaded == nil || Date().timeIntervalSince(lastDownloaded!) > 12 * 60 * 60 {
-            let (success, errorMessage) = await MemberList.shared.download()
-            await MainActor.run {
-                showWaitingDownloadDialog = false
-                downloadMemberListStatus = success ? "" : errorMessage
-                self.memberListDownloaded = success
+        .onChange(of: scenePhase, initial: true) {
+            if scenePhase == .active {
+                Task.detached(priority: .userInitiated) {
+                    await downloadMemberList()
+                }
             }
         }
     }
@@ -332,6 +324,21 @@ struct SelectInputView: View {
     private func refreshRankLists() {
         minRankList = ([RankViewModel(rankCode: 0, rankName: "No minimum rank")] + MasterData.shared.ranks.array as! [RankViewModel]).filter({$0.rankCode != 1})
         maxRankList = (MasterData.shared.ranks.array as! [RankViewModel] + [RankViewModel(rankCode: 999, rankName: "No maximum rank")]).filter({$0.rankCode != 1})
+    }
+    
+    
+    func downloadMemberList() async {
+        let lastDownload = Controls.current.lastMemberDownload
+        if lastDownload == nil || Date().timeIntervalSince(lastDownload!) > 12 * 60 * 60 {
+            let (success, errorMessage) = await MemberList.shared.download()
+            await MainActor.run {
+                showWaitingDownloadDialog = false
+                downloadMemberListStatus = success ? "" : errorMessage
+                memberListDownloaded = true
+            }
+        } else {
+            memberListDownloaded = true
+        }
     }
     
     private func downloadingMemberListView() -> some View {

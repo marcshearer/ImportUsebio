@@ -95,7 +95,8 @@ class MemberList {
                         member.save()
                         lapsed += 1
                     }
-                    self.lastDownloaded = downloadedDate
+                    Controls.current.lastMemberDownload = downloadedDate
+                    Controls.current.save()
                     result =  (true, "")
                 } else {
                     result = (false, "Missing mandatory columns in downloaded file")
