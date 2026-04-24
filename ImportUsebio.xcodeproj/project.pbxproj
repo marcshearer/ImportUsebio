@@ -52,6 +52,7 @@
 		B2D6010B2F3C9F3600015BD2 /* Blocked Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010A2F3C9F2600015BD2 /* Blocked Managed Object.swift */; };
 		B2D6010D2F3CA04600015BD2 /* Blocked View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */; };
 		B2D6010F2F3CA4D400015BD2 /* Blocked Numbers View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */; };
+		B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */ = {isa = PBXBuildFile; fileRef = B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -90,7 +91,6 @@
 		B2E103C52994120700A35645 /* Writer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E103C42994120700A35645 /* Writer.swift */; };
 		B2EDF4A329C8A0D900FB4F80 /* Settings View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */; };
 		B2EDF4AA29C985D100FB4F80 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EDF4A929C985D100FB4F80 /* Settings.swift */; };
-		B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */; };
 		B2EE64CF2D76027200CB73DC /* Debug Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EE64CE2D76027200CB73DC /* Debug Utilities.swift */; };
 		B2FDB96429C4644400888DD9 /* Award.bin in Resources */ = {isa = PBXBuildFile; fileRef = B2FDB96329C4644400888DD9 /* Award.bin */; };
 		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
@@ -147,6 +147,7 @@
 		B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked View Model.swift"; sourceTree = "<group>"; };
 		B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Numbers View.swift"; sourceTree = "<group>"; };
 		B2E053C12F8FB13D00009931 /* ci_post_clone.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_post_clone.sh; sourceTree = "<group>"; };
+		B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "Import Usebio.icon"; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -187,7 +188,6 @@
 		B2E103C42994120700A35645 /* Writer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Writer.swift; sourceTree = "<group>"; };
 		B2EDF4A229C8A0D900FB4F80 /* Settings View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings View.swift"; sourceTree = "<group>"; };
 		B2EDF4A929C985D100FB4F80 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
-		B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B2EE64CE2D76027200CB73DC /* Debug Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debug Utilities.swift"; sourceTree = "<group>"; };
 		B2FDB96329C4644400888DD9 /* Award.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = Award.bin; sourceTree = "<group>"; };
 		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
@@ -316,6 +316,7 @@
 		B2E1034B2992785200A35645 /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
+				B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */,
 				B2E1034C2992785200A35645 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
@@ -345,7 +346,6 @@
 			children = (
 				B2E10357299279D700A35645 /* Standard Components */,
 				B2E1034B2992785200A35645 /* Preview Content */,
-				B2EDF4AB29C9D70C00FB4F80 /* Assets.xcassets */,
 			);
 			path = "Main App";
 			sourceTree = "<group>";
@@ -530,10 +530,10 @@
 			files = (
 				B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */,
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
+				B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
 				B2FDB96429C4644400888DD9 /* Award.bin in Resources */,
 				B2C3247429CF6340005D8DED /* Award.bas in Resources */,
-				B2EDF4AC29C9D70C00FB4F80 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
