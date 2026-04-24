@@ -318,7 +318,6 @@
 		B2E1034B2992785200A35645 /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
-				B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */,
 				B2E1034C2992785200A35645 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
@@ -370,6 +369,7 @@
 			isa = PBXGroup;
 			children = (
 				B2E103B12992857D00A35645 /* Import Usebio App.swift */,
+				B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */,
 				B2E091492F9B7FFF00E5C5F1 /* Assets.xcassets */,
 			);
 			name = "Standard Components";
