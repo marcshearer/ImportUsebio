@@ -53,6 +53,7 @@
 		B2D6010D2F3CA04600015BD2 /* Blocked View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010C2F3CA04100015BD2 /* Blocked View Model.swift */; };
 		B2D6010F2F3CA4D400015BD2 /* Blocked Numbers View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */; };
 		B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */ = {isa = PBXBuildFile; fileRef = B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */; };
+		B2E0914A2F9B7FFF00E5C5F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E091492F9B7FFF00E5C5F1 /* Assets.xcassets */; };
 		B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2E1034C2992785200A35645 /* Preview Assets.xcassets */; };
 		B2E1035929927A6A00A35645 /* MyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035829927A6A00A35645 /* MyApp.swift */; };
 		B2E1035B29927AB100A35645 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1035A29927AB100A35645 /* UserDefaults.swift */; };
@@ -148,6 +149,7 @@
 		B2D6010E2F3CA4CD00015BD2 /* Blocked Numbers View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Blocked Numbers View.swift"; sourceTree = "<group>"; };
 		B2E053C12F8FB13D00009931 /* ci_post_clone.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_post_clone.sh; sourceTree = "<group>"; };
 		B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "Import Usebio.icon"; sourceTree = "<group>"; };
+		B2E091492F9B7FFF00E5C5F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -368,6 +370,7 @@
 			isa = PBXGroup;
 			children = (
 				B2E103B12992857D00A35645 /* Import Usebio App.swift */,
+				B2E091492F9B7FFF00E5C5F1 /* Assets.xcassets */,
 			);
 			name = "Standard Components";
 			sourceTree = "<group>";
@@ -497,7 +500,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1420;
-				LastUpgradeCheck = 1420;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					B2E103412992785000A35645 = {
 						CreatedOnToolsVersion = 14.2;
@@ -532,6 +535,7 @@
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
 				B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
+				B2E0914A2F9B7FFF00E5C5F1 /* Assets.xcassets in Resources */,
 				B2FDB96429C4644400888DD9 /* Award.bin in Resources */,
 				B2C3247429CF6340005D8DED /* Award.bas in Resources */,
 			);
@@ -711,6 +715,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -733,6 +738,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -771,6 +777,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -786,6 +793,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};
@@ -802,6 +810,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 86;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_APP_SANDBOX = YES;
@@ -846,6 +855,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 86;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"ImportUsebio/Main App/Preview Content\"";
 				DEVELOPMENT_TEAM = 3T7CT2S464;
 				ENABLE_APP_SANDBOX = YES;
