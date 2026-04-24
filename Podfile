@@ -20,4 +20,15 @@ post_install do |installer|
       end
     end
   end
+
+  # Suppress warning about Symlinks
+  installer.pods_project.targets.each do |target|
+    target.build_phases.each do |phase|
+      # Check if the phase name matches the one causing the warning
+      if phase.respond_to?(:name) && phase.name == 'Create Symlinks to Header Folders'
+        # This is the Ruby equivalent of unchecking "Based on dependency analysis"
+        phase.always_out_of_date = '1'
+      end
+    end
+  end
 end
