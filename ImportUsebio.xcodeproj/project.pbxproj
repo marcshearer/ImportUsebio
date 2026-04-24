@@ -150,6 +150,7 @@
 		B2E053C12F8FB13D00009931 /* ci_post_clone.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_post_clone.sh; sourceTree = "<group>"; };
 		B2E091472F9B789A00E5C5F1 /* Import Usebio.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "Import Usebio.icon"; sourceTree = "<group>"; };
 		B2E091492F9B7FFF00E5C5F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B2E0914D2F9B8FB300E5C5F1 /* Import Usebio.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = "Import Usebio.icon"; path = "ImportUsebio/Main App/Import Usebio.icon"; sourceTree = "<group>"; };
 		B2E103422992785000A35645 /* ImportUsebio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImportUsebio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2E1034C2992785200A35645 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B2E1034E2992785200A35645 /* ImportUsebio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ImportUsebio.entitlements; sourceTree = "<group>"; };
@@ -286,6 +287,7 @@
 		B2E103392992785000A35645 = {
 			isa = PBXGroup;
 			children = (
+				B2E0914D2F9B8FB300E5C5F1 /* Import Usebio.icon */,
 				B2E053C02F8FB0FE00009931 /* ci_scripts */,
 				B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */,
 				B2E103442992785000A35645 /* ImportUsebio */,
@@ -531,13 +533,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */,
 				B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */,
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
-				B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
-				B2E0914A2F9B7FFF00E5C5F1 /* Assets.xcassets in Resources */,
 				B2FDB96429C4644400888DD9 /* Award.bin in Resources */,
 				B2C3247429CF6340005D8DED /* Award.bas in Resources */,
+				B2E0914A2F9B7FFF00E5C5F1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -574,9 +576,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
