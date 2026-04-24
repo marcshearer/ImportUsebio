@@ -6,14 +6,15 @@
     {
       "layers" : [
         {
+          "glass" : false,
           "image-name" : "Import Usebio.png",
           "name" : "Import Usebio",
           "opacity" : 1,
           "position" : {
-            "scale" : 1,
+            "scale" : 1.2,
             "translation-in-points" : [
-              5,
-              31.72265625
+              -4.5078125,
+              -8.450000000000045
             ]
           }
         }
