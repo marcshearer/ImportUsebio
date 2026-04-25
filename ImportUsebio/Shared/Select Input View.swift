@@ -211,11 +211,11 @@ struct SelectInputView: View {
                                     Spacer().frame(width: 30)
                                     participantsButton()
                                     Spacer().frame(width: 30)
-                                    finishButton()
+                                    createSpreadsheetButton()
                                     Spacer().frame(width: 30)
                                     clearButton()
                                     Spacer().frame(width: 30)
-                                    pasteButton()
+                                    pasteConfigButton()
                                     Spacer()
                                     settingsButton()
                                         .popover(isPresented: $showSettingsMenu) {
@@ -1048,7 +1048,9 @@ struct SelectInputView: View {
     }
     
     private func participantsButton() -> some View {
-        return CustomButton.button(title: "Players", help: "Click this to check player data against Mempad", enabled: { !(writer == nil || participants.filter({$0.participantStatus != .ok}).isEmpty) }, action: {
+        let participantErrors = participants.filter({$0.participantStatus != .ok})
+        let outstandingErrors = participantErrors.filter({!$0.participantStatus.isUpdated})
+        return CustomButton.button(title: "Players", help: "Click this to check player data against Mempad", color: (!outstandingErrors.isEmpty ? Palette.destructiveButton : Palette.highlightButton), enabled: { !(writer == nil || participantErrors.isEmpty) }, action: {
             if !memberListDownloaded {
                 afterDownload = .participants
                 showWaitingDownloadDialog = true
@@ -1059,8 +1061,10 @@ struct SelectInputView: View {
     }
     
     
-    private func finishButton() -> some View {
-        return CustomButton.button(title: "Create Spreadsheet", help: "Click this to create the spreadsheet", width: 150, enabled: { !(writer == nil || !participants.filter({$0.participantStatus != .ok && !$0.participantStatus.isUpdated}).isEmpty) }, action: {
+    private func createSpreadsheetButton() -> some View {
+        let participantErrors = participants.filter({$0.participantStatus != .ok})
+        let outstandingErrors = participantErrors.filter({!$0.participantStatus.isUpdated})
+        return CustomButton.button(title: "Create Spreadsheet", help: "Click this to create the spreadsheet", width: 150, enabled: { writer != nil && outstandingErrors.isEmpty }, action: {
             if !memberListDownloaded {
                 afterDownload = .createSpreadsheet
                 showWaitingDownloadDialog = true
@@ -1087,7 +1091,7 @@ struct SelectInputView: View {
         }
     }
     
-    private func pasteButton() -> some View {
+    private func pasteConfigButton() -> some View {
         
         return CustomButton.button(title: "Paste Config", help: "Click this to import details of a multi-round event. The clipboard must be in a very specific format, normally copied from a 'rounds' spreadheet.", width: 120, enabled: { writer?.rounds.isEmpty ?? true }, action: {
             if let data = NSPasteboard.general.string(forType: .string) {
