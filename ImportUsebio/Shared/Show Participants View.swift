@@ -327,7 +327,7 @@ struct ParticipantIdentity: Equatable {
             }
             if !localFound {
                 if let localMember = LocalMemberViewModel.member(names: names) {
-                    memberIdentity = ParticipantIdentity(combined: localMember.nationalId)  ?? ParticipantIdentity()
+                    memberIdentity = ParticipantIdentity(combined: localMember.nationalId) ?? ParticipantIdentity()
                     memberNames = localMember.names
                     memberStatus = localMember.status
                 }
