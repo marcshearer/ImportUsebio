@@ -212,6 +212,12 @@ struct ParticipantIdentity: Equatable {
         switch participantStatus {
         case .notFound, .veryDifferent:
             self.possibleMatches = MemberViewModel.member(names: self.names).filter( { BlockedViewModel.blocked(nationalId: $0.nationalId) == nil } )
+        case .foundLocally:
+            if self.identity.nationalId == self.memberIdentity.nationalId && self.names == self.memberNames {
+                // Update automatically
+                self.names = memberNames ?? self.names
+                self.updated = true
+            }
         case .triviallyDifferent:
             // Update automatically
             self.names = memberNames ?? self.names
@@ -310,13 +316,16 @@ struct ParticipantIdentity: Equatable {
             memberNames = member.names
             memberStatus = member.status
         } else {
+            var localFound = false
             if identity.combined != "" {
                 if let localMember = LocalMemberViewModel.member(nationalId: identity.combined), names == localMember.names {
                     memberIdentity = ParticipantIdentity(combined: localMember.nationalId)  ?? ParticipantIdentity()
                     memberNames = localMember.names
                     memberStatus = localMember.status
+                    localFound = true
                 }
-            } else {
+            }
+            if !localFound {
                 if let localMember = LocalMemberViewModel.member(names: names) {
                     memberIdentity = ParticipantIdentity(combined: localMember.nationalId)  ?? ParticipantIdentity()
                     memberNames = localMember.names
