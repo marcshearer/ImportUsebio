@@ -2142,17 +2142,20 @@ class RanksPlusMPsWriter: WriterBase {
         let extraPlayers = (playerCount > event.type?.participantType?.players ?? playerCount)
         var result = "="
         
-        let nationalId = Int(player.nationalId ?? "0") ?? 0
+        let identity = ParticipantIdentity(combined: player.nationalId) ?? ParticipantIdentity(0)
+        if Int(player.nationalId ?? "X") == nil {
+            
+        }
         
         if extraPlayers {
             result += "IF(\(cell(rowNumber, boardsPlayedColumn[playerNumber!], columnFixed: true))=0,\"\","
         }
-        result += "IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(nationalId == 0 ? ("\"" + (player.nationalId ?? "0") + "\"") : player.nationalId!))"
+        result += "IFERROR(VLOOKUP(\(fnPrefix)CONCATENATE(\(cell(rowNumber, firstNameColumn[playerNumber!])),\" \",\(cell(rowNumber, otherNamesColumn[playerNumber!]))), \(cell(writer: writer.missing, writer.missing.dataRow, rowFixed: true, writer.missing.nameColumn, columnFixed: true)):\(cell(writer.missing.dataRow + Settings.current.largestPlayerCount, rowFixed: true, writer.missing.nationalIdColumn, columnFixed: true)),2,FALSE),\(identity.nbo != .sbu ? ("\"" + identity.combined + "\"") : identity.combined))"
         if extraPlayers {
             result += ")"
         }
             
-        if (nationalId <= 0 || nationalId > Settings.current.maxNationalIdNumber! || (player.status.treatAsMissing && MemberViewModel.member(nationalId: "\(nationalId)") == nil )) && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
+        if identity.nbo == .other && (!extraPlayers || (player.boardsPlayed ?? 0) > 0) {
             if writer.missingNumbers[player.name!] == nil {
                 if player.nationalId == nil || player.nationalId == "0" {
                     writer.missingNumbers[player.name!] = ("\(-(writer.missingNumbers.count + 1))", "")

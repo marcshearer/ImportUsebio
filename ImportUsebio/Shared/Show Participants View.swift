@@ -106,6 +106,11 @@ struct ParticipantIdentity: Equatable {
     init() {
     }
     
+    init(_ number: Int) {
+        nbo = .other
+        nationalId = "\(number)"
+    }
+    
     init?(combined: String?) {
         self.init()
         if let combined = combined {
@@ -216,6 +221,7 @@ struct ParticipantIdentity: Equatable {
             if self.identity.nationalId == self.memberIdentity.nationalId && self.names == self.memberNames {
                 // Update automatically
                 self.names = memberNames ?? self.names
+                self.identity = memberIdentity
                 self.updated = true
             }
         case .triviallyDifferent:
@@ -330,6 +336,7 @@ struct ParticipantIdentity: Equatable {
                     memberIdentity = ParticipantIdentity(combined: localMember.nationalId) ?? ParticipantIdentity()
                     memberNames = localMember.names
                     memberStatus = localMember.status
+                    localFound = true
                 }
             }
         }
@@ -348,7 +355,9 @@ struct ParticipantIdentity: Equatable {
         possibleMatches = []
         updated = true
         suggested = false
-        // Write back to imported data
+    }
+    
+    func writeBackToPlayer() {
         for item in [self] + self.linked {
             item.player.nationalId = identity.combined
             item.player.name = names
@@ -395,6 +404,7 @@ struct ParticipantsView: View {
             VStack(spacing: 0) {
                 ZStack {
                     Banner(title: Binding.constant("Check Players Details"), bottomSpace: false, backEnabled: { exit }, backAction: {
+                        writeBack()
                         return true
                     })
                     HStack {
@@ -565,6 +575,17 @@ struct ParticipantsView: View {
         }
     }
     
+    func writeBack() {
+        for participant in participants {
+            switch participant.participantStatus {
+            case .updated:
+                participant.writeBackToPlayer()
+            default:
+                break
+            }
+        }
+    }
+    
     func closeMatches(names: String, distance: Int) -> [MemberViewModel] {
         let members = MasterData.shared.members.array as! [MemberViewModel]
         return members.filter({Utility.levenshteinDistance(names, $0.names) <= distance})
@@ -652,11 +673,12 @@ struct ChoosePossibleMatches : View {
     @State var notFound: Bool = false
     var originalIdentity: Binding<String> { Binding { participant.originalIdentity.combined } set: { _ in } }
     
-    let tableColumns = [GridItem(.fixed(100),  spacing: 0, alignment: .trailing),
+    let tableColumns = [GridItem(.fixed(150),  spacing: 0, alignment: .trailing),
                         GridItem(.fixed(140), spacing: 0, alignment: .leading),
                         GridItem(.fixed(70), spacing: 0, alignment: .leading),
                         GridItem(.fixed(200), spacing: 0, alignment: .leading),
-                        GridItem(.flexible(minimum: 130), spacing: 0, alignment: .leading)]
+                        GridItem(.flexible(minimum: 130), spacing: 0, alignment: .leading),
+                        GridItem(.fixed(100), spacing: 0, alignment: .leading)]
     
     var body: some View {
         StandardView("Select Input") {
@@ -705,7 +727,8 @@ struct ChoosePossibleMatches : View {
                                 VStack(spacing: 0) {
                                     LazyVGrid(columns: tableColumns, alignment: .center, spacing: 0, pinnedViews: [.sectionHeaders]) {
                                         Section(header: heading()) {
-                                            ForEach(matches) { member in
+                                            ForEach(0..<matches.count, id: \.self) { index in
+                                                let member = matches[index]
                                                 GridRow {
                                                     let rank = RankViewModel.rank(rankCode: member.rankCode)
                                                     TrailingClickableText(member.nationalId)
@@ -713,6 +736,18 @@ struct ChoosePossibleMatches : View {
                                                     LeadingClickableText(member.status.string)
                                                     LeadingClickableText(member.homeClub)
                                                     LeadingClickableText(rank?.rankName ?? "Unknown")
+                                                    HStack {
+                                                        Image(systemName: "trash")
+                                                            .onTapGesture {
+                                                                if let localMember = LocalMemberViewModel.member(nationalId: member.nationalId) {
+                                                                    localMember.remove()
+                                                                    matches.remove(at: index)
+                                                                }
+                                                            }
+                                                            .focusable(false)
+                                                            .background(.clear)
+                                                        Spacer()
+                                                    }
                                                 }
                                                 .frame(height: 24)
                                                 .padding(.horizontal, 5)
@@ -729,7 +764,7 @@ struct ChoosePossibleMatches : View {
                                 }
                             }
                         }
-                        .frame(width: 610, height: 120)
+                        .frame(width: 710, height: 120)
                         .cornerRadius(8)
                     }
                     Spacer()
@@ -906,7 +941,7 @@ struct ChoosePossibleMatches : View {
                 namesChanged = false
             }
         }
-        .frame(width: 790, height: editMode != .full ? 340 : 490)
+        .frame(width: 940, height: editMode != .full ? 340 : 490)
     }
     
     func widenSearch(newSearch: Bool = false, maxDistance: Int? = nil) {
