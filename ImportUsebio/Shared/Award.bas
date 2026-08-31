@@ -384,6 +384,7 @@ Sub PrintSheet(SheetName As String, FileSuffix As String, TitleSuffix As String,
             ActiveSheet.PageSetup.Orientation = xlPortrait
         End If
     End If
+    ActiveSheet.PageSetup.CenterHorizontally = True
     ActiveSheet.PageSetup.CenterHeader = Title
     ActiveSheet.PageSetup.CenterFooter = Footer
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=Filename, IncludeDocProperties:=True, OpenAfterPublish:=True
