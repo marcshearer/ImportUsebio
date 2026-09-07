@@ -2494,7 +2494,7 @@ class RanksPlusMPsWriter: WriterBase {
         for (index, stratum) in self.scoreData.strata.enumerated() {
             writeCell(title: "Strata \(index + 1) Code", titleFormat: formatCenteredBold, string: stratum.code, format: formatCenteredString) ; strataCodeCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
             writeCell(title: "Strata \(index + 1) Rank", integer: stratum.rank) ; strataRankCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
-            writeCell(title: "Strata \(index + 1) Award%", float: stratum.percent / 100, format: formatPercent) ; strataPercentCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
+            writeCell(title: "Strata \(index + 1) Award%", floatFormula: "ROUND(\(stratum.percent / 100), 4)", format: formatPercent) ; strataPercentCell.append(cell(headerDataRow, rowFixed: true, column, columnFixed: true))
         }
         
         headerColumns = column + 1
