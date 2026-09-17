@@ -224,7 +224,11 @@ class Writer: WriterBase {
         }
         parameters.prepare(workbook: workbook)
         
-        workbook_add_vba_project(workbook, "./Award.bin")
+        if let vbaProjectPath = Bundle.main.path(forResource: "Award", ofType: "bin") {
+            _ = vbaProjectPath.withCString { vbaProjectPath in
+                workbook_add_vba_project(workbook, vbaProjectPath)
+            }
+        }
         
         // Process data
         parameters.prewrite1()
