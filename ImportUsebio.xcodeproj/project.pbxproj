@@ -96,12 +96,9 @@
 		B2FDB96429C4644400888DD9 /* Award.bin in Resources */ = {isa = PBXBuildFile; fileRef = B2FDB96329C4644400888DD9 /* Award.bin */; };
 		B2FEA7F529A218E900BD43F7 /* Input Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F429A218E900BD43F7 /* Input Integer.swift */; };
 		B2FEA7F729A636FC00BD43F7 /* Input Float.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FEA7F629A636FC00BD43F7 /* Input Float.swift */; };
-		FA3159DCBD56ECB8B9F9A701 /* Pods_ImportUsebio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D2F95071D4EC8ECE243067C0 /* Pods_ImportUsebio.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6251B899D03B9B558B6DFAFB /* Pods-ImportUsebio.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ImportUsebio.release.xcconfig"; path = "Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio.release.xcconfig"; sourceTree = "<group>"; };
-		7560428ABF5BBFBD709EC702 /* Pods-ImportUsebio.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ImportUsebio.debug.xcconfig"; path = "Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio.debug.xcconfig"; sourceTree = "<group>"; };
 		B208737F2E4B7F4D00E509C5 /* Club Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club Managed Object.swift"; sourceTree = "<group>"; };
 		B20873812E4B802B00E509C5 /* Club View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Club View Model.swift"; sourceTree = "<group>"; };
 		B20873832E4B833300E509C5 /* Rank Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Rank Managed Object.swift"; sourceTree = "<group>"; };
@@ -194,7 +191,6 @@
 		B2FDB96329C4644400888DD9 /* Award.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = Award.bin; sourceTree = "<group>"; };
 		B2FEA7F429A218E900BD43F7 /* Input Integer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Integer.swift"; sourceTree = "<group>"; };
 		B2FEA7F629A636FC00BD43F7 /* Input Float.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Input Float.swift"; sourceTree = "<group>"; };
-		D2F95071D4EC8ECE243067C0 /* Pods_ImportUsebio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ImportUsebio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -202,7 +198,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FA3159DCBD56ECB8B9F9A701 /* Pods_ImportUsebio.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,8 +207,6 @@
 		8E9833FBCBDBB8F0A0CDF842 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				7560428ABF5BBFBD709EC702 /* Pods-ImportUsebio.debug.xcconfig */,
-				6251B899D03B9B558B6DFAFB /* Pods-ImportUsebio.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -291,7 +284,6 @@
 				B2E103442992785000A35645 /* ImportUsebio */,
 				B2E103432992785000A35645 /* Products */,
 				8E9833FBCBDBB8F0A0CDF842 /* Pods */,
-				D1F31D4E1BCCB5CAAA05FA83 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -462,14 +454,6 @@
 			name = "Main Classes";
 			sourceTree = "<group>";
 		};
-		D1F31D4E1BCCB5CAAA05FA83 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				D2F95071D4EC8ECE243067C0 /* Pods_ImportUsebio.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -477,11 +461,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B2E103512992785200A35645 /* Build configuration list for PBXNativeTarget "ImportUsebio" */;
 			buildPhases = (
-				1B22462127750C73F44706A2 /* [CP] Check Pods Manifest.lock */,
 				B2E1033E2992785000A35645 /* Sources */,
 				B2E1033F2992785000A35645 /* Frameworks */,
 				B2E103402992785000A35645 /* Resources */,
-				5BD2E99692309AB1634C7163 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -542,52 +524,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		1B22462127750C73F44706A2 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ImportUsebio-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		5BD2E99692309AB1634C7163 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ImportUsebio/Pods-ImportUsebio-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B2E1033E2992785000A35645 /* Sources */ = {
@@ -801,7 +737,6 @@
 		};
 		B2E103522992785200A35645 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7560428ABF5BBFBD709EC702 /* Pods-ImportUsebio.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Import Usebio";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -846,7 +781,6 @@
 		};
 		B2E103532992785200A35645 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6251B899D03B9B558B6DFAFB /* Pods-ImportUsebio.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "Import Usebio";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
