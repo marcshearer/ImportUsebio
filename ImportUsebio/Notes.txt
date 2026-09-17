@@ -6,13 +6,13 @@ Formatted should calculate rank correctly if there are more than 4 members in a 
 TO UPDATE Award.bin (Macros)
 ----------------------------
 Edit the macros in an existing spreadsheet
+Export the module as ~/Downloads/Award.bas
 Save the spreadsheet in Downloads
 Go into Terminal and navigate to Downloads
 Run "unzip <filename>.xlsm"
-Look in xl directory and move .bin file to /Users/marcshearer/Library/Containers/MarcShearer.ImportUsebio/Data directory
-Remove old Award.bin and rename new .bin file to Award.bin
-Save version of Award.bas in this project
+Look in xl directory and move vbaProject.bin file to Award.bin in this XCode project
 Save version of Award.bin in this project
+Commit the changes
 
 Pods problem
 ------------
