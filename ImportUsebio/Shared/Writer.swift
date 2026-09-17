@@ -5,7 +5,7 @@
 //  Created by Marc Shearer on 08/02/2023.
 //
 
-import xlsxwriter
+import libxlsxwriter
 import SwiftUI
 
 enum CellType {
@@ -2896,15 +2896,21 @@ class WriterBase {
     fileprivate func createMacroButton(worksheet: UnsafeMutablePointer<lxw_worksheet>?, title: String, macro: String, row: Int, column: Int, height: Int = 30, width: Int = 60, xScale: Double = 1.5, yScale: Double = 1.5, xOffset: Int = 2, yOffset: Int = 2) {
         // Add macro buttons
         var options = lxw_button_options()
-        options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
-        options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
-        options.height = UInt16(height)
-        options.width = UInt16(width)
-        options.x_scale = xScale
-        options.y_scale = yScale
-        options.x_offset = Int32(xOffset)
-        options.y_offset = Int32(yOffset)
-        worksheet_insert_button(worksheet, lxw_row_t(row + 1), lxw_col_t(column + 1), &options)
+        // options.macro = UnsafeMutablePointer<Int8>(mutating: (macro as NSString).utf8String)
+        macro.withCString { macro in
+            options.macro = macro
+            // options.caption = UnsafeMutablePointer<Int8>(mutating: (title as NSString).utf8String)
+            title.withCString { title in
+                options.caption = title
+                options.height = UInt16(height)
+                options.width = UInt16(width)
+                options.x_scale = xScale
+                options.y_scale = yScale
+                options.x_offset = Int32(xOffset)
+                options.y_offset = Int32(yOffset)
+                worksheet_insert_button(worksheet, lxw_row_t(row + 1), lxw_col_t(column + 1), &options)
+            }
+        }
     }
     
     fileprivate func formatFrom(cellType: CellType? = nil) -> UnsafeMutablePointer<lxw_format>? {
@@ -3240,11 +3246,14 @@ class WriterBase {
         let formula = formula
         var conditionalFormat = lxw_conditional_format()
         conditionalFormat.type = UInt8(LXW_CONDITIONAL_TYPE_FORMULA.rawValue)
-        conditionalFormat.value_string = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
-        conditionalFormat.stop_if_true = stopIfTrue ? 1 : 0
-        conditionalFormat.format = format
-        
-        worksheet_conditional_format_range(worksheet, lxw_row_t(Int32(fromRow)), lxw_col_t(Int32(fromColumn)), lxw_row_t(Int32(toRow)), lxw_col_t(Int32(toColumn)), &conditionalFormat)
+        // conditionalFormat.value_string = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
+        formula.withCString { formula in
+            conditionalFormat.value_string = formula
+            conditionalFormat.stop_if_true = stopIfTrue ? 1 : 0
+            conditionalFormat.format = format
+            
+            worksheet_conditional_format_range(worksheet, lxw_row_t(Int32(fromRow)), lxw_col_t(Int32(fromColumn)), lxw_row_t(Int32(toRow)), lxw_col_t(Int32(toColumn)), &conditionalFormat)
+        }
         
         if checkDuplicates {
             var dupFormat = lxw_conditional_format()
@@ -3264,8 +3273,11 @@ class WriterBase {
         if warning {
             validation.error_type = UInt8(LXW_VALIDATION_ERROR_TYPE_WARNING.rawValue)
         }
-        validation.value_formula = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
-        worksheet_data_validation_cell(worksheet, row, column, &validation)
+        // validation.value_formula = UnsafeMutablePointer<CChar>(mutating: NSString(string: formula).utf8String)
+        formula.withCString { formula in
+            validation.value_formula = formula
+            worksheet_data_validation_cell(worksheet, row, column, &validation)
+        }
     }
     
     func setColumn(worksheet: UnsafeMutablePointer<lxw_worksheet>?, column: Int, toColumn: Int? = nil, width: Float? = nil, hidden: Bool = false, format: UnsafeMutablePointer<lxw_format>? = nil) {

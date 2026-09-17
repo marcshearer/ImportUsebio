@@ -16,6 +16,7 @@
 		B208738C2E4C88DF00E509C5 /* Rank Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B208738B2E4C88D600E509C5 /* Rank Codes Search View.swift */; };
 		B208738E2E4CCE5A00E509C5 /* Event Codes Search View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B208738D2E4CCE4D00E509C5 /* Event Codes Search View.swift */; };
 		B20CFF382994EC8800B09269 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20CFF372994EC8800B09269 /* Validation.swift */; };
+		B21E640E305C0DFD00B6CB4A /* libxlsxwriter in Frameworks */ = {isa = PBXBuildFile; productRef = B21E640D305C0DFD00B6CB4A /* libxlsxwriter */; };
 		B2250B492F47384A008ACA67 /* Auto Complete.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B482F473843008ACA67 /* Auto Complete.swift */; };
 		B2250B4B2F484009008ACA67 /* Clickable Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2250B4A2F484004008ACA67 /* Clickable Text.swift */; };
 		B228E6452F320C5700C24918 /* Member Import.swift in Sources */ = {isa = PBXBuildFile; fileRef = B228E6442F320C5200C24918 /* Member Import.swift */; };
@@ -27,7 +28,6 @@
 		B28D69062994C87E00BA73E5 /* Score Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69052994C87E00BA73E5 /* Score Data.swift */; };
 		B28D69082994CDCD00BA73E5 /* File System.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28D69072994CDCD00BA73E5 /* File System.swift */; };
 		B28E7B3C2F3DAC41005282E9 /* Custom Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28E7B3B2F3DAC3E005282E9 /* Custom Button.swift */; };
-		B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */ = {isa = PBXBuildFile; fileRef = B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */; };
 		B2A22CC62F4328DB00FC3B0C /* Strata Definition Managed Object.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */; };
 		B2A22CC82F432AE400FC3B0C /* Strata Defintion View Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */; };
 		B2A22CCB2F43409900FC3B0C /* Stratifications View.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */; };
@@ -119,7 +119,6 @@
 		B28D69052994C87E00BA73E5 /* Score Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Score Data.swift"; sourceTree = "<group>"; };
 		B28D69072994CDCD00BA73E5 /* File System.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "File System.swift"; sourceTree = "<group>"; };
 		B28E7B3B2F3DAC3E005282E9 /* Custom Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Custom Button.swift"; sourceTree = "<group>"; };
-		B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ImportUsebio.xcworkspace; sourceTree = "<group>"; };
 		B2A22CC52F4328C900FC3B0C /* Strata Definition Managed Object.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strata Definition Managed Object.swift"; sourceTree = "<group>"; };
 		B2A22CC72F432ADC00FC3B0C /* Strata Defintion View Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Strata Defintion View Model.swift"; sourceTree = "<group>"; };
 		B2A22CCA2F43409300FC3B0C /* Stratifications View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Stratifications View.swift"; sourceTree = "<group>"; };
@@ -198,19 +197,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B21E640E305C0DFD00B6CB4A /* libxlsxwriter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8E9833FBCBDBB8F0A0CDF842 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		B208737D2E4B7E3300E509C5 /* Managed Objects */ = {
 			isa = PBXGroup;
 			children = (
@@ -280,10 +273,8 @@
 			isa = PBXGroup;
 			children = (
 				B2E053C02F8FB0FE00009931 /* ci_scripts */,
-				B2935F3C299A0E5800963910 /* ImportUsebio.xcworkspace */,
 				B2E103442992785000A35645 /* ImportUsebio */,
 				B2E103432992785000A35645 /* Products */,
-				8E9833FBCBDBB8F0A0CDF842 /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -499,6 +490,9 @@
 				Base,
 			);
 			mainGroup = B2E103392992785000A35645;
+			packageReferences = (
+				B21E640C305C0DFD00B6CB4A /* XCRemoteSwiftPackageReference "libxlsxwriter" */,
+			);
 			productRefGroup = B2E103432992785000A35645 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -513,7 +507,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B2935F3D299A0E5800963910 /* ImportUsebio.xcworkspace in Resources */,
 				B271D0E529A7B70C003C417C /* Notes.txt in Resources */,
 				B2E091482F9B789A00E5C5F1 /* Import Usebio.icon in Resources */,
 				B2E1034D2992785200A35645 /* Preview Assets.xcassets in Resources */,
@@ -844,6 +837,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B21E640C305C0DFD00B6CB4A /* XCRemoteSwiftPackageReference "libxlsxwriter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jmcnamara/libxlsxwriter";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B21E640D305C0DFD00B6CB4A /* libxlsxwriter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B21E640C305C0DFD00B6CB4A /* XCRemoteSwiftPackageReference "libxlsxwriter" */;
+			productName = libxlsxwriter;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B2E1033A2992785000A35645 /* Project object */;
 }
