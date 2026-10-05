@@ -451,8 +451,8 @@ public class Match {
     var opposingScore: Float?
     var vp: Float?
     var opposingVP: Float?
-    var pairNumbers: Set<String> = []
-    var opposingPairNumbers: Set<String> = []
+    var pairNumbers: [String:Int] = [:]
+    var opposingPairNumbers: [String:Int] = [:]
     var boards: [Board] = []
 }
 

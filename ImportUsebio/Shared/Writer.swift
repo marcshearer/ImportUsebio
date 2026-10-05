@@ -2031,12 +2031,12 @@ class RanksPlusMPsWriter: WriterBase {
             if !scoreData.manualMPs {
                 
                 if playerCount > event.type?.participantType?.players ?? playerCount {
-                    if event.type != .head_to_head {
+                    // if event.type != .head_to_head {
                         columns.append(RanksPlusMPsColumn(title: "Played (\(playerNumber+1))", playerContent: { (_, player, _, _) in
                             "\(player.boardsPlayed ?? event.boards ?? 1)"
                         }, playerNumber: playerNumber, cellType: .integer))
                         boardsPlayedColumn.append(columns.count - 1)
-                    }
+                    // }
                     
                     if winDraw {
                         columns.append(RanksPlusMPsColumn(title: "Win / Draw (\(playerNumber+1))", playerContent: { (_, player, _, _) in "\(player.winDraw)" }, playerNumber: playerNumber, cellType: .float))

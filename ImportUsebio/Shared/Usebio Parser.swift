@@ -52,6 +52,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var filterParticipantNumberMin: String?
     private var filterParticipantNumberMax: String?
     private var overrideEventType: EventType? // Used to switch to a specific event type (currently only for head-to-head teams league)
+    private var patternMatchedSessions = 0
     
     init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, roundContinuousVPDraw: Bool = false, winDrawLevel: WinDrawLevel? = nil, mergeMatches: Bool = false, vpType: VpType? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
@@ -222,11 +223,19 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             current = current?.add(child: Node(name: name, process: processMatch))
         case "SESSION":
             var matched = true
-            if let filterSessionId = filterSessionId {
-                if let id = attributes["SESSION_ID"] {
-                    if id.uppercased() != filterSessionId.uppercased() {
+            if let filterSessionId = filterSessionId, let id = attributes["SESSION_ID"] {
+                // First try regular expression - Note that if we match multiple sessions we need to do something to avoid duplicate participants
+                // This requires more work
+                if let regularExpression = try? Regex(filterSessionId) {
+                    if id.wholeMatch(of: regularExpression) != nil {
+                        patternMatchedSessions += 1
+                    } else {
                         matched = false
                     }
+                }
+                // If not regular expression match try exact (case-insensitive) match
+                if !matched && id.uppercased() != filterSessionId.uppercased() {
+                    matched = false
                 }
             }
             if matched {
@@ -456,9 +465,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         case "NS_PAIR_NUMBER", "EW_PAIR_NUMBER":
             current = current?.add(child: Node(name: name, completion: { (value) in
                 if name.left(2) == self.travellerDirection?.string.uppercased() {
-                    match?.pairNumbers.insert(value)
+                    match?.pairNumbers[value, default: 0] += 1
                 } else {
-                    match?.opposingPairNumbers.insert(value)
+                    match?.opposingPairNumbers[value, default: 0] += 1
                 }
             }))
         default:
@@ -584,9 +593,24 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                 if increment != 0 {
                                     if let team = participant.member as? Team {
                                         for pair in team.pairs {
-                                            if (match.number == participant.member.number && match.pairNumbers.contains(pair.number!)) ||
-                                                (match.opposingNumber == participant.member.number && match.opposingPairNumbers.contains(pair.number!)) {
-                                                pair.winDraw = pair.winDraw! + increment
+                                            var totalBoards: Float?
+                                            var playedBoards: Float?
+                                            // Note need to halve total boards since team always play a board twice
+                                            if match.number == participant.member.number, let boards = match.pairNumbers[pair.number!] {
+                                                // This pair played in match as first pair
+                                                playedBoards = Float(boards)
+                                                totalBoards = Float( match.pairNumbers.map{$0.value}.reduce(0,+) / 2)
+                                            } else if match.opposingNumber == participant.member.number, let boards = match.opposingPairNumbers[pair.number!] {
+                                                // This pair played in match as opposing pair
+                                                playedBoards = Float(boards)
+                                                totalBoards = Float(match.opposingPairNumbers.map{$0.value}.reduce(0,+) / 2)
+                                            }
+                                            if let totalBoards = totalBoards, let playedBoards = playedBoards {
+                                                if playedBoards == totalBoards {
+                                                    pair.winDraw = pair.winDraw! + increment
+                                                } else {
+                                                    pair.winDraw = pair.winDraw! + increment * (Float(playedBoards) / Float(totalBoards))
+                                                }
                                             }
                                         }
                                     }
@@ -672,8 +696,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                         var subOpposingScore: Float?
                         var subVp: Float?
                         var subOpposingVp: Float?
-                        var subPairNumbers: Set<String>
-                        var subOpposingPairNumbers: Set<String>
+                        var subPairNumbers: [String : Int] = [:]
+                        var subOpposingPairNumbers: [String : Int] = [:]
                         if match.number == subMatch.number {
                             subScore = subMatch.score
                             subOpposingScore = subMatch.opposingScore
@@ -697,8 +721,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                         if let opposingVp = match.opposingVP, let subOpposingVp = subOpposingVp {
                             match.opposingVP = opposingVp + subOpposingVp
                         }
-                        match.pairNumbers = match.pairNumbers.union(subPairNumbers)
-                        match.opposingPairNumbers = match.opposingPairNumbers.union(subOpposingPairNumbers)
+                        match.pairNumbers.merge(subPairNumbers) { $0 + $1 }
+                        match.opposingPairNumbers.merge(subOpposingPairNumbers) { $0 + $1 }
                         for board in subMatch.boards {
                             if match.number != subMatch.number {
                                     // Swap scores if pair numbers other way round
@@ -714,7 +738,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             }
         }
         // Now remove the duplicates
-        for removeIndex in remove.reversed() {
+        for removeIndex in remove.sorted(by: { $0 > $1 }) {
             event.matches.remove(at: removeIndex)
         }
     }
