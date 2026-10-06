@@ -183,6 +183,7 @@ public class Event {
     var contact: String?
     var participants: [Participant] = []
     var matches: [Match] = []
+    var boardsOutsideMatches: [Board] = []
     var winnerType: Int = 1
     var sectionCount: Int = 1
     var sessionCount: Int = 1
@@ -412,6 +413,7 @@ public class Team : Member {
 
 public class Participant {
     var place: Int?
+    var sequence: Int?
     var score: Float?
     var winDraw: Float?
     var manualMps: Float?
@@ -422,8 +424,9 @@ public class Participant {
     var description: String { member.description }
     var number: String { member.number ?? "" }
     
-    init(_ type: ParticipantType, from event: Event) {
+    init(_ type: ParticipantType, from event: Event, sequence: Int? = nil) {
         self.event = event
+        self.sequence = sequence
         
         var member: Member?
         switch type {
@@ -459,6 +462,17 @@ public class Match {
 public class Board {
     var nsScore: Float?
     var ewScore: Float?
+    // Only used in ScoreBridge Swiss teams to build wins/draws from travellers
+    var boardNumber: Int?
+    var travellers: [Traveller] = []
+}
+
+public class Traveller {
+    // Only used in ScoreBridge Swiss teams to build wins/draws from travellers
+    var number: String?
+    var opposingNumber: String?
+    var score: Float?
+    var opposingScore: Float?
 }
 
 public class ScoreData {

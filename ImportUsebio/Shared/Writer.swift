@@ -1953,6 +1953,8 @@ class RanksPlusMPsWriter: WriterBase {
     private func sortCriteria(_ a: Participant, _ b: Participant) -> Bool {
         let aPlace = a.place ?? 0
         let bPlace = b.place ?? 0
+        let aSequence = a.sequence ?? 0
+        let bSequence = b.sequence ?? 0
         var aDirection: Int = 0
         var bDirection: Int = 0
         if scoreData.events.first!.winnerType == 2 {
@@ -1966,9 +1968,17 @@ class RanksPlusMPsWriter: WriterBase {
         } else if aDirection == bDirection {
             if aPlace < bPlace {
                 return true
-            } else if (a.place ?? 0) == (b.place ?? 0) {
-                if a.number < b.number {
+            } else if aPlace == bPlace {
+                // Split ties by order in original XML
+                if aSequence < bSequence {
                     return true
+                } else if aSequence == bSequence {
+                    // If no order has come through use participant's number
+                    if a.number < b.number {
+                        return true
+                    } else {
+                        return false
+                    }
                 } else {
                     return false
                 }

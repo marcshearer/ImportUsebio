@@ -53,6 +53,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var filterParticipantNumberMax: String?
     private var overrideEventType: EventType? // Used to switch to a specific event type (currently only for head-to-head teams league)
     private var patternMatchedSessions = 0
+    private var boardsOutsideMatches = false
+    private var sequence = 0
     
     init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, roundContinuousVPDraw: Bool = false, winDrawLevel: WinDrawLevel? = nil, mergeMatches: Bool = false, vpType: VpType? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
@@ -221,6 +223,20 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             let match = Match()
             scoreData.events.last?.matches.append(match)
             current = current?.add(child: Node(name: name, process: processMatch))
+        case "BOARD":
+            // This occurs if scored by ScoreBridge and Event Type is SWISS_PAIRS
+            // Ignore otherwise but could add in (carefully)
+            if let event = scoreData.events.last, event.programName?.lowercased() == "scorebridge" && event.type == .swiss_pairs {
+                // Just add up match points to calculate win/draw
+                event.boardScoring = .percentage
+                event.matchScoring = .vps
+                boardsOutsideMatches = true
+                let board = Board()
+                scoreData.events.last?.boardsOutsideMatches.append(board)
+                current = current?.add(child: Node(name: name, process: processBoardOutsideMatch))
+            } else {
+                current = current?.add(child: Node(name: name))
+            }
         case "SESSION":
             var matched = true
             if let filterSessionId = filterSessionId, let id = attributes["SESSION_ID"] {
@@ -274,20 +290,22 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     func processParticipants(name: String, attributes: [String : String]) {
         let event = scoreData.events.first!
+        let sequence = self.sequence
+        self.sequence += 1
         switch name {
         case "TEAM":
             current = current?.add(child: Node(name: name, process: processTeam))
-            let participant = Participant(.team, from: event)
+            let participant = Participant(.team, from: event, sequence: sequence)
             let team = participant.member as! Team
             team.number = attributes["TEAM_ID"]
             team.name = attributes["TEAM_NAME"]
             self.scoreData.events.last?.participants.append(participant)
         case "PAIR":
             current = current?.add(child: Node(name: name, process: processPair))
-            self.scoreData.events.last?.participants.append(Participant(.pair, from: event))
+            self.scoreData.events.last?.participants.append(Participant(.pair, from: event, sequence: sequence))
         case "PLAYER":
             current = current?.add(child: Node(name: name, process: processPlayer))
-            self.scoreData.events.last?.participants.append(Participant(.player, from: event))
+            self.scoreData.events.last?.participants.append(Participant(.player, from: event, sequence: sequence))
         default:
             current = current?.add(child: Node(name: name))
         }
@@ -444,7 +462,6 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                 match?.boards.append(board)
             }))
         case "TRAVELLER_LINE":
-            // Not sure this is used
             travellerDirection = nil
             current = current?.add(child: Node(name: name, process: processTravellerLine, completion: { (value) in
                 self.travellerDirection = nil
@@ -453,7 +470,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             current = current?.add(child: Node(name: name))
         }
     }
-
+    
     private func processTravellerLine(name: String, attributes: [String : String]) {
         // Used if match doesn't have pair numbers in it so need to look at travellers
         let match = scoreData.events.last?.matches.last
@@ -468,6 +485,48 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                     match?.pairNumbers[value, default: 0] += 1
                 } else {
                     match?.opposingPairNumbers[value, default: 0] += 1
+                }
+            }))
+        default:
+            current = current?.add(child: Node(name: name))
+        }
+    }
+    
+    private func processBoardOutsideMatch(name: String, attributes: [String : String]) {
+        let board = scoreData.events.last?.boardsOutsideMatches.last
+        switch name {
+        case "BOARD_NUMBER":
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                board?.boardNumber = Int(value)
+            }))
+        case "TRAVELLER_LINE":
+            let traveller = Traveller()
+            board?.travellers.append(traveller)
+            current = current?.add(child: Node(name: name, process: processTravellerLineOutsideMatch))
+        default:
+            current = current?.add(child: Node(name: name))
+        }
+    }
+    
+    private func processTravellerLineOutsideMatch(name: String, attributes: [String : String]) {
+        // Used for boards encountered outside matches
+        let board = scoreData.events.last?.boardsOutsideMatches.last
+        let traveller = board?.travellers.last
+        switch name {
+        case "NS_PAIR_NUMBER", "EW_PAIR_NUMBER":
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                if name.left(2) == "NS" {
+                    traveller?.number = value
+                } else {
+                    traveller?.opposingNumber = value
+                }
+            }))
+        case "NS_MATCH_POINTS", "EW_MATCH_POINTS":
+            current = current?.add(child: Node(name: name, completion: { (value) in
+                if name.left(2) == "NS" {
+                    traveller?.score = Float(value)
+                } else {
+                    traveller?.opposingScore = Float(value)
                 }
             }))
         default:
@@ -503,6 +562,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     
     private func finalUpdates() {
         if let event = scoreData.events.first {
+            if boardsOutsideMatches && event.matches.isEmpty && !event.boardsOutsideMatches.isEmpty {
+                rebuildMatchesFromBoards(event: event)
+            }
             if event.boardScoring == nil {
                 if event.type?.participantType?.players == 4 {
                     event.boardScoring = .imps
@@ -511,6 +573,31 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                 }
             }
         }
+    }
+    
+    public func rebuildMatchesFromBoards(event: Event) {
+        var matches: [String:Match] = [:]
+        for board in event.boardsOutsideMatches {
+            for traveller in board.travellers {
+                let id = "\(traveller.number ?? "")-\(traveller.opposingNumber ?? "")"
+                var match = matches[id]
+                if match == nil {
+                    match = Match()
+                    match!.number = traveller.number
+                    match!.opposingNumber = traveller.opposingNumber
+                    matches[id] = match
+                }
+                let matchBoard = Board()
+                matchBoard.boardNumber = board.boardNumber
+                let totalScore = (traveller.score ?? 0) + (traveller.opposingScore ?? 0)
+                if totalScore != 0 {
+                    matchBoard.nsScore = Utility.round(((traveller.score ?? 0) * 100) / totalScore, places: 2)
+                    matchBoard.ewScore = Utility.round(((traveller.opposingScore ?? 0) * 100) / totalScore, places: 2)
+                }
+                match!.boards.append(matchBoard)
+            }
+        }
+        event.matches = matches.map{$0.value}
     }
 
     public static func calculatePlace(scoreData: ScoreData) {
@@ -657,10 +744,16 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                                 score = boardTotal
                             }
                         case .vps:
-                            if vpType == .discrete {
-                                score = Float(BridgeImps(Int(boardTotal)).discreteVp(boards: match.boards.count, maxVp: 20))
-                            } else {
-                                score = Float(BridgeImps(Int(boardTotal)).vp(boards: match.boards.count, maxVp: 20, places: 2))
+                            if boardScoring == .percentage {
+                                if let vps = BridgeMatchPoints(boardTotal).vp(boards: match.boards.count) {
+                                    score = Float(vps)
+                                }
+                            } else if boardScoring == .imps {
+                                if vpType == .discrete {
+                                    score = Float(BridgeImps(Int(boardTotal)).discreteVp(boards: match.boards.count, maxVp: 20))
+                                } else {
+                                    score = Float(BridgeImps(Int(boardTotal)).vp(boards: match.boards.count, maxVp: 20, places: 2))
+                                }
                             }
                         }
                         if let score = score, let opposingScore = matchScoring.invert(score: score) {

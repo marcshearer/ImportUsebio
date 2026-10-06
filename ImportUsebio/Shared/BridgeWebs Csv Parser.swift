@@ -74,6 +74,7 @@ public class BridgeWebsCsvParser {
     private var boardColumns: [String] = []
     private var travellerColumns: [String] = []
     private var direction: Direction?
+    private var sequence = 0
     
     init(fileUrl: URL, data: [[String]], completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
@@ -187,7 +188,9 @@ public class BridgeWebsCsvParser {
             report(error: "Column headers do not match score data")
         } else {
             let event = scoreData.events.first!
-            let participant = Participant(.pair, from: event)
+            let sequence = self.sequence
+            self.sequence += 1
+            let participant = Participant(.pair, from: event, sequence: sequence)
             let pair = Pair()
             pair.direction = direction
             participant.member = pair

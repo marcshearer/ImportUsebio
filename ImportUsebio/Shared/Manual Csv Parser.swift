@@ -87,6 +87,7 @@ public class ManualCsvParser {
     private var parameterColumns: [String] = []
     private var roundColumns: [String] = []
     private var participantColumns: [String] = []
+    private var sequence = 0
     
     init(fileUrl: URL, data: [[String]], manualPointsColumn: String? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
@@ -227,7 +228,9 @@ public class ManualCsvParser {
         } else {
             let event = scoreData.events.first!
             let type = event.type!.participantType!
-            let participant = Participant(type, from: event)
+            let sequence = self.sequence
+            self.sequence += 1
+            let participant = Participant(type, from: event, sequence: sequence)
             switch type {
             case .pair:
                 participant.member = Pair()
