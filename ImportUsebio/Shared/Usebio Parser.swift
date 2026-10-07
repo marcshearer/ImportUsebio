@@ -55,6 +55,7 @@ public class UsebioParser: NSObject, XMLParserDelegate {
     private var patternMatchedSessions = 0
     private var boardsOutsideMatches = false
     private var sequence = 0
+    private var messages: [String] = []
     
     init(fileUrl: URL, data: Data, filterSessionId: String? = nil, filterParticipantNumberMin: String? = nil, filterParticipantNumberMax: String? = nil, overrideEventType: EventType? = nil, roundContinuousVPDraw: Bool = false, winDrawLevel: WinDrawLevel? = nil, mergeMatches: Bool = false, vpType: VpType? = nil, completion: @escaping (ScoreData?, [String])->()) {
         self.scoreData.fileUrl = fileUrl
@@ -83,8 +84,8 @@ public class UsebioParser: NSObject, XMLParserDelegate {
         filterParticipantNumbers()
         finalUpdates()
         UsebioParser.calculatePlace(scoreData: scoreData)
-        let message = UsebioParser.calculateWinDraw(scoreData: scoreData)
-        completion(scoreData, message)
+        messages.append(contentsOf: UsebioParser.calculateWinDraw(scoreData: scoreData))
+        completion(scoreData, messages)
     }
             
     // MARK: - Parser Delegate ========================================================================== -
@@ -230,9 +231,12 @@ public class UsebioParser: NSObject, XMLParserDelegate {
                 // Just add up match points to calculate win/draw
                 event.boardScoring = .percentage
                 event.matchScoring = .vps
-                boardsOutsideMatches = true
                 let board = Board()
                 scoreData.events.last?.boardsOutsideMatches.append(board)
+                if !boardsOutsideMatches {
+                    boardsOutsideMatches = true
+                    messages.append("Matches built from boards / travellers - ScoreBridge Swiss Pairs")
+                }
                 current = current?.add(child: Node(name: name, process: processBoardOutsideMatch))
             } else {
                 current = current?.add(child: Node(name: name))
@@ -598,6 +602,9 @@ public class UsebioParser: NSObject, XMLParserDelegate {
             }
         }
         event.matches = matches.map{$0.value}
+        if (event.boardsPerRound ?? 0) == 0 {
+            event.boardsPerRound = matches.map{$1.boards.count}.max()
+        }
     }
 
     public static func calculatePlace(scoreData: ScoreData) {
