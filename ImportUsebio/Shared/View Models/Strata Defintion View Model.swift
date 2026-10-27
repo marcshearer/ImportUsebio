@@ -43,8 +43,6 @@ public class StrataDefViewModel : ViewModel, ObservableObject {
     @Published private(set) var saveMessage: String = ""
     @Published private(set) var canSave: Bool = false
     
-    let strataElements = 3
-    
     static var data = MasterData.shared.strataDefs.array as! [StrataDefViewModel]
     
     public let itemProvider = NSItemProvider(contentsOf: URL(string: "com.sheareronline.importusebio.strata")!)!

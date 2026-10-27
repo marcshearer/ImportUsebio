@@ -13,6 +13,9 @@ import CoreGraphics
 public let appGroup = "group.com.sheareronline.ImportUsebio" // Has to match entitlements
 public let widgetKind = "com.sheareronline.ImportUsebio"
 
+// Limits
+let strataElements = 3
+
 // Sizes
 public var isLandscape: Bool { false }
 

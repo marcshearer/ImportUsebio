@@ -1233,6 +1233,7 @@ struct SelectInputView: View {
                     filterSessionId = round.filterSessionId ?? ""
                     overrideTeamMembers = round.overrideTeamMembers ?? 0
                     manualPointsColumn = round.manualPointsColumn
+                    strataDefName = round.strataDefName ?? ""
                     
                     scoreData.roundName = roundName
                     scoreData.national = localNational == .national
@@ -1246,6 +1247,9 @@ struct SelectInputView: View {
                     scoreData.aggreateAs = round.aggregateAs
                     scoreData.overrideTeamMembers = (overrideTeamMembers == 0 ? nil : overrideTeamMembers)
                     scoreData.manualPointsColumn = manualPointsColumn
+                    if let strataDef = StrataDefViewModel.strataDef(name: strataDefName) {
+                        scoreData.strata = strataDef.strata
+                    }
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe
                     }

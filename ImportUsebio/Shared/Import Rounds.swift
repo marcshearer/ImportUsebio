@@ -34,33 +34,15 @@ fileprivate enum EventColumn: String, EnumProtocol {
 fileprivate enum RoundColumn: String, EnumProtocol {
     case name = "ROUND NAME"
     case shortName = "SHORT NAME"
-    case toe = "TOE"
     case exclude = "EXCLUDE"
     case basis = "BASIS"
+    case toe = "TOE"
     case localNational = "LOCAL / NATIONAL"
-    case maxAward = "MAX AWARD"
-    case nsMaxAward = "NS MAX AWARD"
-    case ewMaxAward = "EW MAX AWARD"
     case reducedTo = "REDUCED TO %"
     case minEntry = "MIN ENTRY"
     case awardTo = "AWARD TO"
-    case perWin = "PER WIN"
     case filterSessionId = "FILTER SESSION ID"
                     // Used to restrict the import of a Usebio raw data file to a specific Session Id
-    case aggregateAs = "AGGREGATE AS"
-                    // Used to combine columns in the Formatted tab using this column title
-    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN"
-    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX"
-                    // Used when a single file/session contains multiple separate teams quali events as at Peebles 2024
-    case manualPointsColumn = "POINTS COLUMN"
-                    // Column with this title in Manual CSV data will get
-                    // number of master points from column with this name
-                    // rather than the default MANUAL MPS
-    case filename = "FILENAME"
-                    // Source file name
-    case overrideTeamMembers = "OVERRIDE TEAM MEMBERS"
-                    // Will ignore data from team members beyond this number - useful to get rid of subs where scores not materially affected
-                    // Alternatively will always allow for this number - useful if want to manually enter subs
     case winDrawLevel = "WIN/DRAW LEVEL"
                     // Use Win/Draw data from PARTICIPANT or from MATCH or from MATCH recalculated from BOARD scores - Falls back if data not available at level requested
     case mergeMatches = "MERGE MATCHES"
@@ -69,7 +51,34 @@ fileprivate enum RoundColumn: String, EnumProtocol {
                     // Only relevant if above is MATCH/BOARD
     case roundContinuousVPDraw = "ROUND VP DRAWS"
                     // If using continuous VPs then setting this to "Yes" treats a score in range 9.50-10.49 as a draw
+    case overrideTeamMembers = "OVERRIDE TEAM MEMBERS"
+                    // Will ignore data from team members beyond this number - useful to get rid of subs where scores not materially affected
+                    // Alternatively will always allow for this number - useful if want to manually enter subs
+    case aggregateAs = "AGGREGATE AS"
+                    // Used to combine columns in the Formatted tab using this column title
+    case perWin = "PER WIN"
+    case maxAward = "MAX AWARD"
+    case nsMaxAward = "NS MAX AWARD"
+    case ewMaxAward = "EW MAX AWARD"
+    case manualPointsColumn = "POINTS COLUMN"
+                    // Column with this title in Manual CSV data will get
+                    // number of master points from column with this name
+                    // rather than the default MANUAL MPS
+    case filename = "FILENAME"
+                    // Source file name
     
+    // Columns not in template
+    case filterParticipantNumberMin = "FILTER PARTICIPANT NUMBER MIN"
+    case filterParticipantNumberMax = "FILTER PARTICIPANT NUMBER MAX"
+                    // Used when a single file/session contains multiple separate teams quali events as at Peebles 2024
+    case strataName = "STRATA DEF"
+                    // Used to specify the stratification code for this round - if blank then the detailed elements are used
+    case strataCode = "STRATA CODE #"
+                    // Used to set the stratification name for the given level - the upper limit must be less or equal to strataElements
+    case strataMaxRank = "STRATA MAX RANK #"
+                    // Used to set the stratification maximum rank for the given level - the upper limit in name must be less or equal to strataElements
+    case strataPercent = "STRATA PERCENT #"
+                    // Used to set the stratification award% for the given level - the upper limit in name must be less or equal to strataElements
     var string: String { self.rawValue.capitalized }
 }
 
@@ -114,6 +123,10 @@ class ImportRound {
     var filterParticipantNumberMax: String?
     var manualPointsColumn: String?
     var overrideTeamMembers: Int?
+    var strataDefName: String?
+    var strataCode: [Int:String] = [:]
+    var strataMaxRank: [Int:Int] = [:]
+    var strataPercent: [Int:Float] = [:]
     var scoreData: ScoreData?
 }
 
@@ -126,6 +139,7 @@ class ImportRounds {
     private var eventColumns: [EventColumn:Int] = [:]
     private var roundColumnNumbers: [Int:RoundColumn] = [:]
     private var roundColumns: [RoundColumn:Int] = [:]
+    private var roundColumnIndex: [Int:Int] = [:]
     private var failed = false
     
     private init(_ data: [[String]], completion: @escaping (ImportRounds?, String?, String?)->()) {
@@ -273,13 +287,20 @@ class ImportRounds {
         return error
     }
     
-    private func parseRoundHeader(columns:[String])->String? {
+    private func parseRoundHeader(columns: [String]) -> String? {
         var error: String? = nil
         
         for (columnNumber, column) in columns.enumerated() {
-            if let roundColumn = RoundColumn(rawValue: column.uppercased()) {
+            let deIndexedColumn = column.uppercased().replacing(/\d/, with: "#")
+            if let roundColumn = RoundColumn(rawValue: deIndexedColumn) {
                 roundColumnNumbers[columnNumber] = roundColumn
                 roundColumns[roundColumn] = columnNumber
+                if deIndexedColumn != column.uppercased() {
+                    // Extract the index
+                    if let index = Int(column.filter({ $0.isNumber })) {
+                        roundColumnIndex[columnNumber] = index
+                    }
+                }
             }
         }
         
@@ -359,6 +380,20 @@ class ImportRounds {
                         round.overrideTeamMembers = Int(columnValue)
                     case .filename:
                         round.filename = columnValue
+                    case .strataName:
+                        round.strataDefName = columnValue
+                    case .strataCode:
+                        if let index = roundColumnIndex[columnNumber], index <= strataElements {
+                            round.strataCode[index] = columnValue
+                        }
+                    case .strataMaxRank:
+                        if let index = roundColumnIndex[columnNumber], index <= strataElements {
+                            round.strataMaxRank[index] = Int(columnValue) ?? 0
+                        }
+                    case .strataPercent:
+                        if let index = roundColumnIndex[columnNumber], index <= strataElements {
+                            round.strataPercent[index] = Float(columnValue) ?? 0
+                        }
                     }
                 }
             }
@@ -377,8 +412,42 @@ class ImportRounds {
                 error = "\(RoundColumn.awardTo.string) must be greater than 0% less than or equal to 100%"
             } else if round.filename == nil {
                 error = "\(RoundColumn.filename.string) must not be blank"
+            } else if let stratificationError = checkStratification(round: round) {
+                error = stratificationError
             } else {
                 rounds.append(round)
+            }
+        }
+        
+        return error
+    }
+    
+    private func checkStratification(round: ImportRound) -> String? {
+        var error: String?
+        
+        if let stratName = round.strataDefName, !stratName.isEmpty {
+            // Need to check code exists and that the detail for the round matches the detail of the stratification definition in the database
+            
+            if let strataDef = StrataDefViewModel.strataDef(name: stratName) {
+                if round.strataCode.isEmpty && round.strataMaxRank.isEmpty && round.strataPercent.isEmpty {
+                    // OK as no detail given
+                } else {
+                    for strata in strataDef.strata {
+                        if strata.code.rtrim() != round.strataCode[strata.index + 1] ?? "" {
+                            error = "Strata code \(strata.index + 1) (\(round.strataCode[strata.index + 1] ?? "<Blank>")) does not match definition (\(strata.code.rtrim() == "" ? "<Blank>" : strata.code))"
+                        } else if strata.rank != round.strataMaxRank[strata.index + 1] ?? 0 {
+                            error = "Strata max rank \(strata.index + 1) (\(round.strataMaxRank[strata.index + 1]?.toString() ?? "<Blank>")) does not match definition (\(strata.rank))"
+                        } else if strata.percent != round.strataPercent[strata.index + 1] ?? 0 {
+                            error = "Strata percent \(strata.index + 1) (\(round.strataPercent[strata.index + 1]?.toString(places: 2) ?? "<Blank>")) does not match definition (\(strata.percent.toString(places: 2)))"
+                        }
+                    }
+                }
+            } else {
+                error = "Invalid Stratification code (\(stratName))"
+            }
+        } else {
+            if !round.strataCode.isEmpty || !round.strataMaxRank.isEmpty || !round.strataPercent.isEmpty {
+                error = "Stratification details found with no Stratification definition"
             }
         }
         
