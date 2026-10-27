@@ -27,6 +27,7 @@ fileprivate enum EventColumn: String, EnumProtocol {
     case minRank = "MIN RANK"
     case maxRank = "MAX RANK"
     case localNational = "LOCAL / NATIONAL"
+    case includeInRace = "INCLUDE RACE"
     
     var string: String { self.rawValue.capitalized }
 }
@@ -96,6 +97,7 @@ class ImportEvent {
     var maxRank: Int?
     var localNational: LocalNational?
     var chooseBest: Int?
+    var includeInRace: Bool?
 }
 
 class ImportRound {
@@ -227,6 +229,9 @@ class ImportRounds {
         if Set(names).count != names.count || Set(shortNames).count != shortNames.count {
             report(error: "Round names / Short names must be unique")
         }
+        if (event?.includeInRace ?? false) && rounds.count > 1 {
+            report(error: "Include in race not supported with multiple rounds")
+        }
     }
     
     private func report(error: String) {
@@ -271,6 +276,8 @@ class ImportRounds {
                         event?.minRank = Int(columnValue)
                     case .maxRank:
                         event?.maxRank = Int(columnValue)
+                    case .includeInRace:
+                        event?.includeInRace = columnValue.uppercased() == "INCLUDE"
                     }
                 }
             }

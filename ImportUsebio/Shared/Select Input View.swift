@@ -1210,6 +1210,7 @@ struct SelectInputView: View {
             chooseBest = importInProgress!.event!.chooseBest ?? 0
             minRankCode = importInProgress!.event!.minRank ?? 0
             maxRankCode = ((importInProgress!.event!.maxRank ?? 999) == 0 ? 999 : importInProgress!.event!.maxRank!)
+            includeInRace = importInProgress!.event!.includeInRace ?? false
             
             writer = Writer()
             writer!.eventDescription = eventDescription
@@ -1219,7 +1220,7 @@ struct SelectInputView: View {
             writer!.chooseBest = chooseBest
             writer!.minRank = minRankCode
             writer!.maxRank = maxRankCode
-            writer!.includeInRace = false
+            writer!.includeInRace = (writer!.rounds.count <= 0 && includeInRace)
             
             for round in importInProgress!.rounds {
                 if let scoreData = round.scoreData {
