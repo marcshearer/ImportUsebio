@@ -488,8 +488,10 @@ public class ScoreData {
     public var awardTo: Float = 0.0
     public var perWin: Float = 0.0
     public var filterSessionId: String = ""
+    public var filterParticipantNumberMin: String = ""
+    public var filterParticipantNumberMax: String = ""
     public var otherSessionData: ScoreData? = nil
-    public var aggreateAs: String?
+    public var aggregateAs: String?
     public var overrideTeamMembers: Int?
     public var manualPointsColumn: String?
     public var version: String?
@@ -502,6 +504,7 @@ public class ScoreData {
     internal var errors: [String] = []
     internal var warnings: [String] = []
     internal var validateMissingNationalIds = false
+    public var strataDefName: String = ""
     public var strata: [StrataElement] = []
     public var customFooter: String = ""
 }

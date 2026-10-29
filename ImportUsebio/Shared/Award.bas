@@ -215,6 +215,20 @@ Sub CopyRaceExport()
     Width = DataRow.Columns.Count
     Set CopyArea = Range(DataRow(1, Width), FirstArray(Height, 1))
     CopyArea.Copy
+    Application.CutCopyMode = False
+    
+    Application.DisplayAlerts = True
+End Sub
+
+Sub CopyInputRounds()
+    Dim InputRoundsArea As Range
+    
+    Application.DisplayAlerts = False
+    
+    Set CurrentSheet = ActiveSheet
+    Set CopyArea = Range("InputRoundsArea")
+    CopyArea.Copy
+    Application.CutCopyMode = False
     
     Application.DisplayAlerts = True
 End Sub

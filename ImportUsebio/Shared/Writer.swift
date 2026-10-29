@@ -24,36 +24,6 @@ enum CellType {
     }
 }
 
-enum RankCategory: CaseIterable {
-    case gold
-    case silver
-    case bronze
-    
-    var string: String {
-        "\(self)".capitalized
-    }
-    
-    var backgroundColor: lxw_color_t {
-        switch self {
-        case .gold:
-            lxw_color_t(excelGold.rgbValue)
-        case .silver:
-            lxw_color_t(excelSilver.rgbValue)
-        case .bronze:
-            lxw_color_t(excelBronze.rgbValue)
-        }
-    }
-    
-    var textColor: lxw_color_t {
-        switch self {
-        case .bronze:
-            LXW_COLOR_WHITE.rawValue
-        default:
-            LXW_COLOR_BLACK.rawValue
-        }
-    }
-}
-
 class Column {
     var title: String
     var content: ((Participant, Int)->String)?
@@ -164,6 +134,7 @@ class Writer: WriterBase {
     var raceExport: RaceExportWriter!
     var raceDetail: RaceDetailWriter!
     var raceFormatted: RaceFormattedWriter!
+    var inputRounds: InputRoundsWriter!
     var rounds: [Round] = []
     var minRank = 0
     var maxRank = 9999
@@ -188,6 +159,7 @@ class Writer: WriterBase {
         raceExport = RaceExportWriter(writer: self)
         raceDetail = RaceDetailWriter(writer: self)
         raceFormatted = RaceFormattedWriter(writer: self)
+        inputRounds = InputRoundsWriter(writer: self)
     }
         
     @discardableResult func add(name: String, shortName: String? = nil, scoreData: ScoreData) -> Round {
@@ -223,6 +195,7 @@ class Writer: WriterBase {
             round.individualMPs.prepare(workbook: workbook)
         }
         parameters.prepare(workbook: workbook)
+        inputRounds.prepare(workbook: workbook)
         
         if let vbaProjectPath = Bundle.main.path(forResource: "Award", ofType: "bin") {
             _ = vbaProjectPath.withCString { vbaProjectPath in
@@ -255,6 +228,8 @@ class Writer: WriterBase {
         }
         parameters.write()
         worksheet_hide(parameters.worksheet)
+        inputRounds.write()
+        // worksheet_hide(inputRounds.worksheet)
         
         // Finish up
         workbook_close(workbook)
@@ -667,7 +642,7 @@ class FormattedWriter: WriterBase {
         worksheet_set_footer(worksheet,"&RPage &P of &N")
         
         for (columnNumber, column) in columns.enumerated() {
-            var bannerFormat = formatBannerString
+            var bannerFormat = formatBannerIndentedString
             var bodyFormat = formatBodyString
             if column.cellType == .integer || column.cellType == .float || column.cellType == .integerFormula || column.cellType == .floatFormula {
                 bannerFormat = formatBannerFloat
@@ -802,7 +777,7 @@ class FormattedWriter: WriterBase {
             var positionWidth: Float? = 9
             if !ranksPlusMPs.scoreData.strata.isEmpty, let ranksFromStratumCodeColumn = ranksPlusMPs.fromStratumCodeColumn.first {
                 
-                positionWidth = 7
+                positionWidth = 9 // This was previously changed to 7 but then didn't fit
                 columns.append(FormattedColumn(title: "Strata", referenceDynamic: { [self] in "=\(ranksArrayRef(ranksPlusMPs: ranksPlusMPs, arrayContent: sourceRef(column: ranksFromStratumCodeColumn)))" }, cellType: .numericFormula, format: formatBodyCenteredInt, width: positionWidth))
                 fromStratumColumn = columns.count - 1
                 leftColumns.append(columns.last!.title)
@@ -837,7 +812,7 @@ class FormattedWriter: WriterBase {
             leftRightColumns.append(columns.last!.title)
             
         } else {
-            let chooseBest = (rounds.filter({$0.scoreData.aggreateAs != nil}).count == 0)
+            let chooseBest = (rounds.filter({$0.scoreData.aggregateAs != nil}).count == 0)
             
             columns.append(FormattedColumn(title: "National ID", referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.nationalIdColumn!))" }, cellType: .numericFormula, width: 9, sortedDynamic: true))
             let nationalIdColumn = columns.count - 1
@@ -856,7 +831,7 @@ class FormattedWriter: WriterBase {
             categoryColumn = columns.count - 1
             
             for (roundNumber, round) in rounds.enumerated() {
-                let column = FormattedColumn(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggreateAs, roundNumber: roundNumber, sortedDynamic: true)
+                let column = FormattedColumn(title: round.shortName.replacingOccurrences(of: " ", with: "\n"), referenceDynamic: { [self] in "\(consolidatedArrayRef(column: consolidated.dataColumn! + roundNumber))" }, cellType: .floatFormula, width: 10, aggregateAs: round.scoreData.aggregateAs, roundNumber: roundNumber, sortedDynamic: true)
                 if chooseBest {
                     // Note relies on fact that won't happen if later are inserting aggregated columns
                     column.referenceColumn = roundNumber
@@ -868,7 +843,7 @@ class FormattedWriter: WriterBase {
                 } else {
                     local = true
                 }
-                if let aggregateAs = round.scoreData.aggreateAs {
+                if let aggregateAs = round.scoreData.aggregateAs {
                     // Add to list of aggregate columns
                     var columns = aggregateColumns[aggregateAs] ?? []
                     columns.append(column)
@@ -1006,25 +981,11 @@ class FormattedWriter: WriterBase {
     }
     
     func setupFormattedFormats() {
-        
-        formatLeftRight = workbook_add_format(workbook)
-        format_set_left(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_right(formatLeftRight, UInt8(LXW_BORDER_THIN.rawValue))
-        
-        formatLeftRightBottom = workbook_add_format(workbook)
-        format_set_left(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_right(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_bottom(formatLeftRightBottom, UInt8(LXW_BORDER_THIN.rawValue))
-        
-        formatBottom = workbook_add_format(workbook)
-        format_set_bottom(formatBottom, UInt8(LXW_BORDER_THIN.rawValue))
-        
-        formatLeft = workbook_add_format(workbook)
-        format_set_left(formatLeft, UInt8(LXW_BORDER_THIN.rawValue))
-
-        formatLeftBottom = workbook_add_format(workbook)
-        format_set_left(formatLeftBottom, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_bottom(formatLeftBottom, UInt8(LXW_BORDER_THIN.rawValue))
+        formatLeftRight = format(edges: [.leading, .trailing], weight: .thin)
+        formatLeftRightBottom = format(edges: [.leading, .trailing, .bottom], weight: .thin)
+        formatBottom = format(edges: [.bottom], weight: .thin)
+        formatLeft = format(edges: [.leading], weight: .thin)
+        formatLeftBottom = format(edges: [.leading, .bottom], weight: .thin)
     }
 }
 
@@ -1551,26 +1512,6 @@ class RaceExportWriter: WriterBase {
 
 // MARK: - Race Formatted
 
-enum FormatType: CaseIterable {
-    case largeCenter
-    case center
-    case left
-    
-    var fontSize: Double {
-        switch self {
-        case .largeCenter: 18
-        default: 11
-        }
-    }
-    
-    var alignment: UInt8 {
-        switch self {
-        case .left: UInt8(LXW_ALIGN_LEFT.rawValue)
-        default: UInt8(LXW_ALIGN_CENTER.rawValue)
-        }
-    }
-}
-
 class RaceFormattedWriter: WriterBase {
     override var name: String { "Race Formatted" }
     var raceDetail: RaceDetailWriter!
@@ -1664,15 +1605,7 @@ class RaceFormattedWriter: WriterBase {
         for category in RankCategory.allCases {
             format[category] = [:]
             for formatType in FormatType.allCases {
-                format[category]![formatType] = workbook_add_format(workbook)
-                format_set_align(format[category]![formatType]!, formatType.alignment)
-                format_set_align(format[category]![formatType]!, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-                format_set_bold(format[category]![formatType]!)
-                format_set_pattern (format[category]![formatType]!, UInt8(LXW_PATTERN_SOLID.rawValue))
-                format_set_bg_color(format[category]![formatType]!, lxw_color_t(category.backgroundColor))
-                format_set_font_color(format[category]![formatType]!, lxw_color_t(category.textColor))
-                format_set_font_size(format[category]![formatType]!, formatType.fontSize)
-                format_set_text_wrap(format[category]![formatType]!)
+                format[category]![formatType] = format(align: formatType.alignment, verticalAlign: .middle, bold: true, wrap: true, backgroundColor: category.backgroundColor, fontColor: category.textColor, pattern: .solid, fontSize: formatType.fontSize)
             }
         }
     }
@@ -2792,7 +2725,143 @@ class MissingNumbersWriter : WriterBase {
         return "\(filename ? "'\(Settings.current.userDownloadData!)'!" : "")\(cell(row, rowFixed: true, column, columnFixed: true))"
     }
 }
-// MARK - Writer base class
+
+// MARK: - Input Rounds
+
+// This shows what the inputs to the ImportUsebio were to create the WorkBook
+
+class InputRoundsWriter: WriterBase {
+    private let eventHeaderRow = 0
+    private let eventBodyRow = 1
+    private let roundsHeaderRow = 3
+    private let roundsBodyRow = 4
+    override var name: String { "Input Rounds" }
+    
+    private var nextEventColumn = 0
+    private var nextRoundColumn = 0
+    private var roundNumber = 0
+    private var columnWidth: [Int:Float] = [:]
+    
+    var format: [RankCategory:[FormatType:UnsafeMutablePointer<lxw_format>?]] = [:]
+    
+    init(writer: Writer) {
+        super.init(writer: writer)
+        self.workbook = workbook
+    }
+    
+    func write() {
+        // Header
+        writeEventColumn(.description, stringValue: writer.eventDescription, width: 19)
+        writeEventColumn(.code, stringValue: writer.eventCode, width: 14)
+        writeEventColumn(.clubCode, stringValue: writer.clubCode, width: 10)
+        writeEventColumn(.minRank, intValue: writer.minRank, width: 12)
+        writeEventColumn(.maxRank, intValue: writer.maxRank, width: 12)
+        writeEventColumn(.localNational, stringValue: LocalNational.byRound.rawValue.capitalized, width: 8)
+        writeEventColumn(.chooseBest, intValue: writer.chooseBest, width: 12)
+        writeEventColumn(.includeInRace, stringValue: writer.includeInRace ? "Include" : "Exclude", width: 15)
+        
+        // Rounds
+        roundNumber = 0
+        for round in writer.rounds {
+            nextRoundColumn = 0
+            writeRoundColumn(.name, stringValue: round.name, width: 19)
+            writeRoundColumn(.shortName, stringValue: round.shortName, width: 14)
+            writeRoundColumn(.basis, stringValue: (round.scoreData.events.first?.type == .head_to_head ? "Head-to-head" : (round.scoreData.manualMPs ? "Manual" : "Specific")), width: 12)
+            writeRoundColumn(.toe, intValue: round.toe)
+            writeRoundColumn(.localNational, stringValue: (round.scoreData.national ? LocalNational.national : .local).rawValue.capitalized, width: 9)
+            writeRoundColumn(.reducedTo, percentValue: round.scoreData.reducedTo)
+            writeRoundColumn(.minEntry, intValue: round.scoreData.minEntry)
+            writeRoundColumn(.awardTo, percentValue: (round.scoreData.awardTo / 100))
+            writeRoundColumn(.filterSessionId, stringValue: round.scoreData.filterSessionId)
+            if round.scoreData.filterParticipantNumberMin != "" {
+                writeRoundColumn(.filterParticipantNumberMin, stringValue: round.scoreData.filterParticipantNumberMin, width: 10)
+            }
+            if round.scoreData.filterParticipantNumberMax != "" {
+                writeRoundColumn(.filterParticipantNumberMax, stringValue: round.scoreData.filterParticipantNumberMax, width: 10)
+            }
+            writeRoundColumn(.winDrawLevel, stringValue: round.scoreData.winDrawLevel.string.capitalized, width: 10)
+            writeRoundColumn(.mergeMatches, stringValue: round.scoreData.mergeMatches ? "Yes" : "No")
+            writeRoundColumn(.vpType, stringValue: round.scoreData.vpType.string.capitalized, width: 10)
+            writeRoundColumn(.roundContinuousVPDraw, stringValue: round.scoreData.roundContinuousVPDraw ? "Rounded" : "Exact", width: 10)
+            writeRoundColumn(.overrideTeamMembers, intValue: round.scoreData.overrideTeamMembers ?? 0, width: 10)
+            writeRoundColumn(.aggregateAs, stringValue: round.scoreData.aggregateAs ?? "", width: 10)
+            writeRoundColumn(.perWin, floatValue: round.scoreData.perWin)
+            writeRoundColumn(.nsMaxAward, floatValue: round.scoreData.maxAward)
+            writeRoundColumn(.ewMaxAward, floatValue: round.scoreData.ewMaxAward)
+            writeRoundColumn(.manualPointsColumn, stringValue: round.scoreData.manualPointsColumn ?? "", width: 10)
+            writeRoundColumn(.filename, stringValue: round.scoreData.fileUrl?.lastPathComponent.removingPercentEncoding ?? "", width: 26)
+            if !round.scoreData.strata.isEmpty {
+                writeRoundColumn(.strataName, stringValue: round.scoreData.strataDefName, width: 16)
+                for (index, strata) in round.scoreData.strata.enumerated() {
+                    if index == 0 || strata.code != "" {
+                        writeIndexedRoundColumn(.strataCode, index: index + 1, stringValue: strata.code, width: 16)
+                        writeIndexedRoundColumn(.strataMaxRank, index: index + 1, intValue: strata.rank, width: 10)
+                        writeIndexedRoundColumn(.strataPercent, index: index + 1, percentValue: Utility.round(strata.percent / 100, places: 2), width: 10)
+                    }
+                }
+            }
+            roundNumber += 1
+        }
+        
+        // Define copy area
+        let inputRoundsArea = "\(cell(writer: self, 0, rowFixed: true, 0, columnFixed: true)):\(cell(roundsBodyRow + roundNumber - 1, rowFixed: true, max(nextEventColumn, nextRoundColumn) - 1, columnFixed: true))"
+        workbook_define_name(writer.workbook, "InputRoundsArea", "=\(inputRoundsArea)")
+        
+        // Setup copy button
+        writer.createMacroButton(worksheet: worksheet, title: "Copy", macro: "CopyInputRounds", row: eventBodyRow, column: nextEventColumn, height: 10, width: 50, yOffset: -30)
+        
+        // Add the notes
+        writer.write(worksheet: worksheet, row: roundsBodyRow + roundNumber + 2, column: 0, string: "Note that this data is intended to show the original inputs to the Import Usebio program, it does not reconstitute the original rounds spreadsheet", format: formatBoldNoWrap)
+        writer.write(worksheet: worksheet, row: roundsBodyRow + roundNumber + 3, column: 0, string: "The copied data (possibly modified) can however be used for the \"Paste Config\" option in the program", format: formatBoldNoWrap)
+    }
+    
+    private func writeEventColumn(_ eventColumn: EventColumn, stringValue: String? = nil, intValue: Int? = nil, floatValue: Float? = nil, percentValue: Float? = nil, width: Float? = nil) {
+        writeColumn(title: eventColumn.string, columnNumber: nextEventColumn, headerRowNumber: eventHeaderRow, bodyRowNumber: eventBodyRow, stringValue: stringValue, intValue: intValue, floatValue: floatValue, percentValue: percentValue, width: width)
+        nextEventColumn += 1
+    }
+    
+    private func writeIndexedRoundColumn(_ roundColumn: RoundColumn, index: Int, stringValue: String? = nil, intValue: Int? = nil, floatValue: Float? = nil, percentValue: Float? = nil, width: Float? = nil) {
+        let title = roundColumn.string.replacingOccurrences(of: "#", with: index.toString())
+        writeRoundColumn(roundColumn, title: title, stringValue: stringValue, intValue: intValue, floatValue: floatValue, percentValue: percentValue, width: width)
+    }
+        
+    private func writeRoundColumn(_ roundColumn: RoundColumn, title: String? = nil, stringValue: String? = nil, intValue: Int? = nil, floatValue: Float? = nil, percentValue: Float? = nil, width: Float? = nil) {
+        writeColumn(title: title ?? roundColumn.string, columnNumber: nextRoundColumn, headerRowNumber: roundsHeaderRow, bodyRowNumber: roundsBodyRow + roundNumber, stringValue: stringValue, intValue: intValue, floatValue: floatValue, percentValue: percentValue, width: width)
+        nextRoundColumn += 1
+    }
+    
+    private func writeColumn(title: String, columnNumber: Int, headerRowNumber: Int, bodyRowNumber: Int, stringValue: String? = nil, intValue: Int? = nil, floatValue: Float? = nil, percentValue: Float? = nil, width: Float? = nil) {
+        
+        if stringValue != nil {
+            write(worksheet: worksheet, row: headerRowNumber, column: columnNumber, string: title, format: formatBorderedBannerString)
+        } else {
+            write(worksheet: worksheet, row: headerRowNumber, column: columnNumber, string: title, format: formatBorderedBannerRightString)
+        }
+        
+        if let stringValue = stringValue {
+            write(worksheet: worksheet, row: bodyRowNumber, column: columnNumber, string: stringValue, format: formatBorderedString)
+        } else if let intValue = intValue {
+            write(worksheet: worksheet, row: bodyRowNumber, column: columnNumber, integer: intValue, format: formatBorderedInt)
+        } else if let floatValue = floatValue {
+            write(worksheet: worksheet, row: bodyRowNumber, column: columnNumber, float: floatValue, format: formatBorderedFloat)
+        } else if let percentValue = percentValue {
+            write(worksheet: worksheet, row: bodyRowNumber, column: columnNumber, float: percentValue, format: formatBorderedPercent)
+        }
+        
+        setWidth(column: columnNumber, width: width)
+    }
+    
+    func setWidth(column: Int, width: Float? = nil) {
+        if let width = width {
+            let width = max(width, columnWidth[column, default: 0])
+            setColumn(worksheet: worksheet, column: column, width: width)
+            columnWidth[column] = width
+        }
+    }
+    
+}
+
+// MARK: - Writer base class
 
 class WriterBase {
     
@@ -2823,6 +2892,7 @@ class WriterBase {
     var formatZeroFloat: UnsafeMutablePointer<lxw_format>?
     var formatZeroFloatBold: UnsafeMutablePointer<lxw_format>?
     var formatBold: UnsafeMutablePointer<lxw_format>?
+    var formatBoldNoWrap: UnsafeMutablePointer<lxw_format>?
     var formatTopBold: UnsafeMutablePointer<lxw_format>?
     var formatRightBold: UnsafeMutablePointer<lxw_format>?
     var formatCenteredBold: UnsafeMutablePointer<lxw_format>?
@@ -2840,7 +2910,13 @@ class WriterBase {
     var formatNotActive: UnsafeMutablePointer<lxw_format>?
     var formatNoHomeClub: UnsafeMutablePointer<lxw_format>?
     var formatNotPaid: UnsafeMutablePointer<lxw_format>?
-    var formatBannerString: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedBannerString: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedBannerRightString: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedString: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedInt: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedFloat: UnsafeMutablePointer<lxw_format>?
+    var formatBorderedPercent: UnsafeMutablePointer<lxw_format>?
+    var formatBannerIndentedString: UnsafeMutablePointer<lxw_format>?
     var formatBannerCenteredString: UnsafeMutablePointer<lxw_format>?
     var formatBannerFloat: UnsafeMutablePointer<lxw_format>?
     var formatBannerNumeric: UnsafeMutablePointer<lxw_format>?
@@ -2864,12 +2940,12 @@ class WriterBase {
         var fullName = ""
         if let round = round {
             fullName += round.shortName.replacingOccurrences(of: "[", with: "")
-                                       .replacingOccurrences(of: "]", with: "")
-                                       .replacingOccurrences(of: ":", with: "-")
-                                       .replacingOccurrences(of: "*", with: "-")
-                                       .replacingOccurrences(of: "?", with: "-")
-                                       .replacingOccurrences(of: "/", with: "-")
-                                       .replacingOccurrences(of: "\\", with: "-") + " "
+                .replacingOccurrences(of: "]", with: "")
+                .replacingOccurrences(of: ":", with: "-")
+                .replacingOccurrences(of: "*", with: "-")
+                .replacingOccurrences(of: "?", with: "-")
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: "\\", with: "-") + " "
         }
         fullName += name
         worksheet = workbook_add_worksheet(workbook, fullName)
@@ -2886,6 +2962,7 @@ class WriterBase {
             self.formatZeroFloat = writer.formatZeroFloat
             self.formatZeroFloatBold = writer.formatZeroFloatBold
             self.formatBold = writer.formatBold
+            self.formatBoldNoWrap = writer.formatBoldNoWrap
             self.formatTopBold = writer.formatTopBold
             self.formatCenteredBold = writer.formatCenteredBold
             self.formatRightBold = writer.formatRightBold
@@ -2903,7 +2980,13 @@ class WriterBase {
             self.formatNotActive = writer.formatNotActive
             self.formatNoHomeClub = writer.formatNoHomeClub
             self.formatNotPaid = writer.formatNotPaid
-            self.formatBannerString = writer.formatBannerString
+            self.formatBorderedBannerString = writer.formatBorderedBannerString
+            self.formatBorderedBannerRightString = writer.formatBorderedBannerRightString
+            self.formatBorderedString = writer.formatBorderedString
+            self.formatBorderedInt = writer.formatBorderedInt
+            self.formatBorderedFloat = writer.formatBorderedFloat
+            self.formatBorderedPercent = writer.formatBorderedPercent
+            self.formatBannerIndentedString = writer.formatBannerIndentedString
             self.formatBannerCenteredString = writer.formatBannerCenteredString
             self.formatBannerFloat = writer.formatBannerFloat
             self.formatBannerNumeric = writer.formatBannerNumeric
@@ -3033,153 +3116,7 @@ class WriterBase {
     internal func lookupRangeInternal(file: String, column: String) -> String {
         "INDIRECT(\"'\" & \(file) & \"'!$\(column)$\(Settings.current.userDownloadMinRow!):$\(column)$\(Settings.current.userDownloadMaxRow!)\")"
     }
-
-    func setupFormats() {
-        formatString = workbook_add_format(workbook)
-        format_set_align(formatString, UInt8(LXW_ALIGN_LEFT.rawValue))
-        formatCenteredString = workbook_add_format(workbook)
-        format_set_align(formatCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
-        formatZeroBlank = workbook_add_format(workbook)
-        format_set_num_format(formatZeroBlank, "0;-0;")
-        format_set_align(formatZeroBlank, UInt8(LXW_ALIGN_LEFT.rawValue))
-        formatInt = workbook_add_format(workbook)
-        format_set_num_format(formatInt, "0;-0;")
-        format_set_align(formatInt, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        formatFloat = workbook_add_format(workbook)
-        format_set_num_format(formatFloat, "0.00;-0.00;")
-        format_set_align(formatFloat, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        formatFloatUnderline = workbook_add_format(workbook)
-        format_set_num_format(formatFloatUnderline, "0.00;-0.00;")
-        format_set_align(formatFloatUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        format_set_bottom(formatFloatUnderline, UInt8(LXW_BORDER_THIN.rawValue))
-        formatZeroInt = workbook_add_format(workbook)
-        format_set_num_format(formatZeroInt, "0")
-        format_set_align(formatZeroInt, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        formatZeroFloat = workbook_add_format(workbook)
-        format_set_num_format(formatZeroFloat, "0.00")
-        format_set_align(formatZeroFloat, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        formatZeroFloatBold = workbook_add_format(workbook)
-        format_set_num_format(formatZeroFloatBold, "0.00")
-        format_set_align(formatZeroFloatBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        format_set_bold(formatZeroFloatBold)
-        formatDate = workbook_add_format(workbook)
-        format_set_num_format(formatDate, "dd/MM/yyyy")
-        format_set_align(formatDate, UInt8(LXW_ALIGN_LEFT.rawValue))
-        formatPercent = workbook_add_format(workbook)
-        format_set_num_format(formatPercent, "0.00%")
-        format_set_align(formatPercent, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        formatBold = workbook_add_format(workbook)
-        format_set_bold(formatBold)
-        format_set_text_wrap(formatBold)
-        formatTopBold = workbook_add_format(workbook)
-        format_set_bold(formatTopBold)
-        format_set_text_wrap(formatTopBold)
-        format_set_align(formatTopBold, UInt8(LXW_ALIGN_VERTICAL_TOP.rawValue))
-        formatCenteredBold = workbook_add_format(workbook)
-        format_set_bold(formatCenteredBold)
-        format_set_text_wrap(formatCenteredBold)
-        format_set_align(formatCenteredBold, UInt8(LXW_ALIGN_CENTER.rawValue))
-        formatRightBold = workbook_add_format(workbook)
-        format_set_bold(formatRightBold)
-        format_set_align(formatRightBold, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        format_set_num_format(formatRightBold, "0;-0;")
-        format_set_text_wrap(formatRightBold)
-        formatBoldUnderline = workbook_add_format(workbook)
-        format_set_bold(formatBoldUnderline)
-        format_set_bottom(formatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_text_wrap(formatBoldUnderline)
-        formatRightBoldUnderline = workbook_add_format(workbook)
-        format_set_bold(formatRightBoldUnderline)
-        format_set_align(formatRightBoldUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        format_set_bottom(formatRightBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_text_wrap(formatRightBoldUnderline)
-        format_set_num_format(formatRightBoldUnderline, "0;-0;")
-        formatFloatBoldUnderline = workbook_add_format(workbook)
-        format_set_bold(formatFloatBoldUnderline)
-        format_set_align(formatFloatBoldUnderline, UInt8(LXW_ALIGN_RIGHT.rawValue))
-        format_set_bottom(formatFloatBoldUnderline, UInt8(LXW_BORDER_THIN.rawValue))
-        format_set_text_wrap(formatFloatBoldUnderline)
-        format_set_num_format(formatFloatBoldUnderline, "0.00;-0.00;")
-        formatWrapText = workbook_add_format(workbook)
-        format_set_text_wrap(formatWrapText)
-        
-        formatRed = workbook_add_format(workbook)
-        format_set_bg_color(formatRed, lxw_color_t(excelRed.rgbValue))
-        format_set_font_color(formatRed, LXW_COLOR_WHITE.rawValue)
-        formatRedHatched = workbook_add_format(workbook)
-        format_set_bg_color(formatRedHatched, lxw_color_t(excelRed.rgbValue))
-        format_set_fg_color(formatRedHatched, LXW_COLOR_WHITE.rawValue)
-        format_set_pattern(formatRedHatched, UInt8(LXW_PATTERN_LIGHT_UP.rawValue))
-        formatYellow = workbook_add_format(workbook)
-        format_set_bg_color(formatYellow, lxw_color_t(excelYellow.rgbValue))
-        formatGrey = workbook_add_format(workbook)
-        format_set_bg_color(formatGrey, lxw_color_t(excelGrey.rgbValue))
-        formatFaint = workbook_add_format(workbook)
-        format_set_font_color(formatFaint, lxw_color_t(excelFaint.rgbValue))
-        formatNotActive = workbook_add_format(workbook)
-        format_set_bg_color(formatNotActive, lxw_color_t(excelNotActive.rgbValue))
-        format_set_font_color(formatNotActive, LXW_COLOR_WHITE.rawValue)
-        formatNoHomeClub = workbook_add_format(workbook)
-        format_set_bg_color(formatNoHomeClub, lxw_color_t(excelNoHomeClub.rgbValue))
-        format_set_font_color(formatNoHomeClub, LXW_COLOR_WHITE.rawValue)
-        format_set_num_format(formatNoHomeClub, "0.00;-0.00;\"No Home Club\"")
-        format_set_align(formatNoHomeClub, UInt8(LXW_ALIGN_LEFT.rawValue))
-        formatNotPaid = workbook_add_format(workbook)
-        format_set_bg_color(formatNotPaid, lxw_color_t(excelNotPaid.rgbValue))
-        
-        formatBannerString = workbook_add_format(workbook)
-        format_set_align(formatBannerString, UInt8(LXW_ALIGN_LEFT.rawValue))
-        format_set_align(formatBannerString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerString)
-        format_set_pattern (formatBannerString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerString, lxw_color_t(excelBanner.rgbValue))
-        format_set_font_color(formatBannerString, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerString)
-        format_set_indent(formatBannerString, 2)
-
-        formatBannerCenteredString = workbook_add_format(workbook)
-        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBannerCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerCenteredString)
-        format_set_pattern (formatBannerCenteredString, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerCenteredString, lxw_color_t(excelBanner.rgbValue))
-        format_set_font_color(formatBannerCenteredString, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerCenteredString)
-        
-        formatBannerFloat = workbook_add_format(workbook)
-        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBannerFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_bold(formatBannerFloat)
-        format_set_pattern (formatBannerFloat, UInt8(LXW_PATTERN_SOLID.rawValue))
-        format_set_bg_color(formatBannerFloat, lxw_color_t(excelBanner.rgbValue))
-        format_set_font_color(formatBannerFloat, LXW_COLOR_WHITE.rawValue)
-        format_set_text_wrap(formatBannerFloat)
-        
-        formatBannerNumeric = formatBannerFloat
-        
-        formatBodyString = workbook_add_format(workbook)
-        format_set_align(formatBodyString, UInt8(LXW_ALIGN_LEFT.rawValue))
-        format_set_align(formatBodyString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_indent(formatBodyString, 2)
-        
-        formatBodyCenteredString = workbook_add_format(workbook)
-        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyCenteredString, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        
-        formatBodyCenteredInt = workbook_add_format(workbook)
-        format_set_align(formatBodyCenteredInt, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyCenteredInt, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_num_format(formatBodyCenteredInt, "0;-0;")
-
-        formatBodyFloat = workbook_add_format(workbook)
-        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyFloat, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-        format_set_num_format(formatBodyFloat, "0.00;-0.00;")
-        
-        formatBodyNumeric = workbook_add_format(workbook)
-        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_CENTER.rawValue))
-        format_set_align(formatBodyNumeric, UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue))
-    }
+    
     
     // MARK: - Helper routines
     
@@ -3287,7 +3224,7 @@ class WriterBase {
             worksheet_conditional_format_range(worksheet, lxw_row_t(Int32(fromRow)), lxw_col_t(Int32(fromColumn)), lxw_row_t(Int32(toRow)), lxw_col_t(Int32(toColumn)), &dupFormat)
         }
     }
-            
+    
     func setDataValidation(row: Int, column: Int, formula: String, warning: Bool = false) {
         let row = lxw_row_t(Int32(row))
         let column = lxw_col_t(Int32(column))
@@ -3337,4 +3274,315 @@ class WriterBase {
         worksheet_freeze_panes(worksheet, row, column)
     }
     
+    // MARK: - Format helpers
+    
+    func setupFormats() {
+        formatString = format(align: .left)
+        formatCenteredString = format(align: .center)
+        formatZeroBlank = format(align: .left, number: "0;-0;")
+        formatInt = format(align: .right, number: "0;-0;")
+        formatFloat = format(align: .right, number: "0.00;-0.00;")
+        formatFloatUnderline = format(align: .right, number: "0.00;-0.00;", edges: [.bottom], weight: .thin)
+        formatZeroInt = format(align: .right, number: "0")
+        formatZeroFloat = format(align: .right, number: "0.00")
+        formatZeroFloatBold = format(align: .right, bold: true, number: "0.00")
+        formatDate = format(align: .left, number: "dd/MM/yyyy")
+        formatPercent = format(align: .right, number: "0.00%")
+        formatBold = format(bold: true, wrap: true)
+        formatBoldNoWrap = format(bold: true)
+        formatTopBold = format(verticalAlign: .top, bold: true, wrap: true)
+        formatCenteredBold = format(align: .center, bold: true, wrap: true)
+        formatRightBold = format(align: .right, bold: true, wrap: true, number: "0;-0;")
+        formatBoldUnderline = format(bold: true, wrap: true, edges: [.bottom], weight: .thin)
+        formatRightBoldUnderline = format(align: .right, bold: true, wrap: true, number: "0;-0;", edges: [.bottom], weight: .thin)
+        formatFloatBoldUnderline = format(align: .right, bold: true, wrap: true, number: "0.00;-0.00;", edges: [.bottom], weight: .thin)
+        formatWrapText = format(wrap: true)
+        
+        formatRed = format(backgroundColor: .red, fontColor: .white)
+        formatRedHatched = format(backgroundColor: .red, fontColor: .white, pattern: .hatched)
+        formatYellow = format(backgroundColor: .yellow)
+        formatGrey = format(backgroundColor: .grey)
+        formatFaint = format(fontColor: .faint)
+        formatNotActive = format(backgroundColor: .notActive, fontColor: .white)
+        formatNoHomeClub = format(align: .left, number: "0.00;-0.00;\"No Home Club\"", backgroundColor: .noHomeClub, fontColor: .white)
+        formatNotPaid = format(backgroundColor: .notPaid)
+        
+        formatBorderedBannerString = format(align: .left, verticalAlign: .bottom, bold: true, wrap: true, backgroundColor: .greyBanner, fontColor: .white, pattern: .solid, edges: [.all], weight: .thin)
+        formatBorderedBannerRightString = format(align: .right, verticalAlign: .bottom, bold: true, wrap: true, backgroundColor: .greyBanner, fontColor: .white, pattern: .solid, edges: [.all], weight: .thin)
+        formatBorderedString = format(align: .left, verticalAlign: .bottom, edges: [.all], weight: .thin)
+        formatBorderedInt = format(align: .right, verticalAlign: .bottom, number: "0", edges: [.all], weight: .thin)
+        formatBorderedFloat = format(align: .right, verticalAlign: .bottom, number: "0.00", edges: [.all], weight: .thin)
+        formatBorderedPercent = format(align: .right, verticalAlign: .bottom, number: "0.00%", edges: [.all], weight: .thin)
+        
+        formatBannerIndentedString = format(align: .left, verticalAlign: .middle, bold: true, wrap: true, indent: 2, backgroundColor: .banner, fontColor: .white, pattern: .solid)
+        formatBannerCenteredString = format(align: .center, verticalAlign: .middle, bold: true, wrap: true, indent: 2, backgroundColor: .banner, fontColor: .white, pattern: .solid)
+        formatBannerFloat = formatBannerCenteredString
+        formatBannerNumeric = formatBannerCenteredString
+        
+        formatBodyString = format(align: .left, verticalAlign: .middle, indent: 2)
+        formatBodyCenteredString = format(align: .center, verticalAlign: .middle)
+        formatBodyCenteredInt = format(align: .center, verticalAlign: .middle, number: "0;-0;")
+        formatBodyFloat = format(align: .center, verticalAlign: .middle, number: "0.00;-0.00;")
+        formatBodyNumeric = formatBodyCenteredString
+    }
+    
+    func format(align: FormatAlign? = nil,
+                     verticalAlign: FormatVerticalAlign? = nil,
+                     bold: Bool = false,
+                     wrap: Bool = false,
+                     number: String? = nil,
+                     indent: Int? = nil,
+                     backgroundColor: FormatColor? = nil,
+                     fontColor: FormatColor? = nil,
+                     pattern: FormatPattern? = nil,
+                     fontSize: Double? = nil,
+                     borders: [(edges: [FormatEdge], weight: FormatWeight)]? = nil,
+                     edges: [FormatEdge] = [],
+                     weight: FormatWeight? = nil)-> UnsafeMutablePointer<lxw_format>? {
+        
+        let format = workbook_add_format(workbook)
+        if let align = align {
+            format_set_align(format, align.lx_align)
+        }
+        if let verticalAlign = verticalAlign {
+            format_set_align(format, verticalAlign.lx_align)
+        }
+        if bold {
+            format_set_bold(format)
+        }
+        if wrap {
+            format_set_text_wrap(format)
+        }
+        if let number = number {
+            format_set_num_format(format, number)
+        }
+        if let indent = indent {
+            format_set_indent(format, UInt8(indent))
+        }
+        if let pattern = pattern {
+            format_set_pattern (format, pattern.lx_pattern)
+        }
+        if let fontSize = fontSize {
+            format_set_font_size(format, fontSize)
+        }
+        if let backgroundColor = backgroundColor {
+            format_set_bg_color(format, backgroundColor.lx_color)
+        }
+        if let fontColor = fontColor {
+            format_set_font_color(format, fontColor.lx_color)
+        }
+        var borders = borders ?? []
+        if let weight = weight, !edges.isEmpty {
+            borders.append((edges: edges, weight: weight))
+        }
+        for border in borders {
+            for edge in border.edges {
+                edge.setBorder(format: format, weight: border.weight)
+            }
+        }
+        
+        return format
+    }
+    
+    enum FormatAlign {
+        case left
+        case center
+        case right
+        
+        var lx_align: UInt8 {
+            switch self {
+            case .left:
+                UInt8(LXW_ALIGN_LEFT.rawValue)
+            case .center:
+                UInt8(LXW_ALIGN_CENTER.rawValue)
+            case .right:
+                UInt8(LXW_ALIGN_RIGHT.rawValue)
+            }
+        }
+    }
+    
+    enum FormatVerticalAlign {
+        case top
+        case middle
+        case bottom
+        
+        var lx_align: UInt8 {
+            switch self {
+            case .top:
+                UInt8(LXW_ALIGN_VERTICAL_TOP.rawValue)
+            case .middle:
+                UInt8(LXW_ALIGN_VERTICAL_CENTER.rawValue)
+            case .bottom:
+                UInt8(LXW_ALIGN_VERTICAL_BOTTOM.rawValue)
+            }
+        }
+    }
+    
+    enum FormatEdge : CaseIterable {
+        case leading
+        case trailing
+        case top
+        case bottom
+        case all
+        
+        func setBorder(format: UnsafeMutablePointer<lxw_format>?, weight: FormatWeight) {
+            switch self {
+            case .leading:
+                format_set_left(format, weight.lx_weight)
+            case .trailing:
+                format_set_right(format, weight.lx_weight)
+            case .top:
+                format_set_top(format, weight.lx_weight)
+            case .bottom:
+                format_set_bottom(format, weight.lx_weight)
+            case .all:
+                FormatEdge.realCases.forEach { edge in
+                    edge.setBorder(format: format, weight: weight)
+                }
+            }
+        }
+        
+        static var realCases : [FormatEdge] {
+            FormatEdge.allCases.filter({$0 != .all})
+        }
+        
+    }
+    
+    enum FormatWeight {
+        case none
+        case thin
+        case medium
+        case thick
+        
+        var lx_weight: UInt8 {
+            switch self {
+            case .none:
+                UInt8(LXW_BORDER_NONE.rawValue)
+            case .thin:
+                UInt8(LXW_BORDER_THIN.rawValue)
+            case .medium:
+                UInt8(LXW_BORDER_MEDIUM.rawValue)
+            case .thick:
+                UInt8(LXW_BORDER_THICK.rawValue)
+            }
+        }
+    }
+    
+    enum FormatPattern {
+        case solid
+        case hatched
+        
+        var lx_pattern: UInt8 {
+            switch self {
+            case .solid:
+                UInt8(LXW_PATTERN_SOLID.rawValue)
+            case .hatched:
+                UInt8(LXW_PATTERN_LIGHT_UP.rawValue)
+            }
+        }
+    }
+    
+    enum FormatColor {
+        case black
+        case white
+        case red
+        case yellow
+        case grey
+        case faint
+        case banner
+        case greyBanner
+        case gold
+        case silver
+        case bronze
+        case notActive
+        case noHomeClub
+        case notPaid
+        
+        var color: Int {
+            switch self {
+            case .black:
+                excelBlack.rgbValue
+            case .white:
+                excelWhite.rgbValue
+            case .red:
+                excelRed.rgbValue
+            case .yellow:
+                excelYellow.rgbValue
+            case .grey:
+                excelGrey.rgbValue
+            case .faint:
+                excelFaint.rgbValue
+            case .banner:
+                excelBanner.rgbValue
+            case .greyBanner:
+                excelGreyBanner.rgbValue
+            case .gold:
+                excelGold.rgbValue
+            case .silver:
+                excelSilver.rgbValue
+            case .bronze:
+                excelBronze.rgbValue
+            case .notActive:
+                excelNotActive.rgbValue
+            case .noHomeClub:
+                excelNoHomeClub.rgbValue
+            case .notPaid:
+                excelNotPaid.rgbValue
+            }
+        }
+        
+        var lx_color: lxw_color_t {
+            UInt32(self.color)
+        }
+    }
+    
+    enum RankCategory: CaseIterable {
+        case gold
+        case silver
+        case bronze
+        
+        var string: String {
+            "\(self)".capitalized
+        }
+        
+        var backgroundColor: FormatColor {
+            switch self {
+            case .gold:
+                .gold
+            case .silver:
+                .silver
+            case .bronze:
+                .bronze
+            }
+        }
+        
+        var textColor: FormatColor {
+            switch self {
+            case .bronze:
+                .white
+            default:
+                .black
+            }
+        }
+    }
+    
+    enum FormatType: CaseIterable {
+        case largeCenter
+        case center
+        case left
+        
+        var fontSize: Double {
+            switch self {
+            case .largeCenter: 18
+            default: 11
+            }
+        }
+        
+        var alignment: FormatAlign {
+            switch self {
+            case .left: .left
+            default: .center
+            }
+        }
+    }
 }

@@ -1009,6 +1009,7 @@ struct SelectInputView: View {
                 scoreData.awardTo = awardTo
                 scoreData.perWin = perWin
                 scoreData.strata = strataDef?.activeStrata() ?? []
+                scoreData.strataDefName = strataDef?.name ?? ""
                 scoreData.customFooter = strataDef?.customFooter ?? ""
                 writer?.add(name: roundName, scoreData: scoreData)
                 buildParticipantList()
@@ -1245,11 +1246,15 @@ struct SelectInputView: View {
                     scoreData.awardTo = awardTo * 100
                     scoreData.perWin = perWin
                     scoreData.filterSessionId = filterSessionId
-                    scoreData.aggreateAs = round.aggregateAs
+                    scoreData.filterParticipantNumberMin = round.filterParticipantNumberMin ?? ""
+                    scoreData.filterParticipantNumberMax = round.filterParticipantNumberMax ?? ""
+                    
+                    scoreData.aggregateAs = round.aggregateAs
                     scoreData.overrideTeamMembers = (overrideTeamMembers == 0 ? nil : overrideTeamMembers)
                     scoreData.manualPointsColumn = manualPointsColumn
                     if let strataDef = StrataDefViewModel.strataDef(name: strataDefName) {
                         scoreData.strata = strataDef.strata
+                        scoreData.strataDefName = strataDef.name
                     }
                     if let writerRound = writer?.add(name: round.name!, shortName: round.shortName!, scoreData: round.scoreData!) {
                         writerRound.toe = round.toe

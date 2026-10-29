@@ -44,11 +44,14 @@ var messageFont: Font { Font.system(size: (MyApp.format == .tablet ? 16.0 : 14.0
 var searchFont: Font { Font.system(size: (MyApp.format == .tablet ? 20.0 : 16.0)) }
 
 // Excel Colors
+let excelWhite = Color(red: 255, green: 255, blue: 255)
+let excelBlack = Color(red: 0, green: 0, blue: 0)
 let excelRed = Color(red: 255, green: 0, blue: 0)
 let excelYellow = Color(red: 255, green: 251,blue: 0)
 let excelGrey = Color(red: 192, green: 192, blue: 192)
 let excelFaint = Color(red: 217, green: 217, blue: 217)
 let excelBanner = Color(red: 31, green: 3, blue: 108)
+let excelGreyBanner = Color(red: 166, green: 166, blue: 166)
 let excelGold = Color(red: 212, green: 175, blue: 55)
 let excelSilver = Color(red: 188, green: 198, blue: 204)
 let excelBronze = Color(red: 169, green: 113, blue: 66)

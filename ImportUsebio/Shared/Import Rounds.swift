@@ -15,11 +15,11 @@ fileprivate enum ImportPhase {
     case finish
 }
 
-fileprivate protocol EnumProtocol {
+protocol EnumProtocol {
     var string: String {get}
 }
 
-fileprivate enum EventColumn: String, EnumProtocol {
+enum EventColumn: String, EnumProtocol {
     case description = "EVENT DESCRIPTION"
     case code = "EVENT CODE"
     case clubCode = "CLUB CODE"
@@ -32,7 +32,7 @@ fileprivate enum EventColumn: String, EnumProtocol {
     var string: String { self.rawValue.capitalized }
 }
 
-fileprivate enum RoundColumn: String, EnumProtocol {
+enum RoundColumn: String, EnumProtocol {
     case name = "ROUND NAME"
     case shortName = "SHORT NAME"
     case exclude = "EXCLUDE"
@@ -354,7 +354,11 @@ class ImportRounds {
                     case .ewMaxAward:
                         round.ewMaxAward = Float(columnValue)
                     case .reducedTo:
-                        round.reducedTo = (Float(columnValue.replacingOccurrences(of: "%", with: "")) ?? 0) / 100
+                        if columnValue.contains(where: {$0 == "%"}) {
+                            round.reducedTo = (Float(columnValue.replacingOccurrences(of: "%", with: "")) ?? 0) / 100
+                        } else {
+                            round.reducedTo = Float(columnValue)
+                        }
                     case .minEntry:
                         round.minEntry = Int(columnValue)
                     case .awardTo:
@@ -399,7 +403,7 @@ class ImportRounds {
                         }
                     case .strataPercent:
                         if let index = roundColumnIndex[columnNumber], index <= strataElements {
-                            round.strataPercent[index] = Float(columnValue) ?? 0
+                            round.strataPercent[index] = ((Float(columnValue) ?? 0) * 100).rounded()
                         }
                     }
                 }
